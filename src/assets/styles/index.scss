@@ -1,0 +1,6 @@
+// 自定义mixin
+@use './mixin' as mixin;
+
+.hide-scrollbar {
+  @include mixin.hide-scrollbar;
+}

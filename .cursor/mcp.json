@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "Framelink Figma MCP": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp",
+        "--figma-api-key={FIGMA_TOKEN}",
+        "--stdio"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    },
+    "ESLint": {
+      "command": "npx",
+      "args": [
+        "@eslint/mcp@latest"
+      ]
+    },
+    "vue-mcp": {
+      "url": "http://localhost:4326/__mcp/sse"
+    }
+  }
+}

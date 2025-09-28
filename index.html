@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- favicon -->
+    <link rel="icon" href="/favicon.ico" />
+    <!-- css主题变量 -->
+    <link rel="stylesheet" href="/theme.css" />
+    <!-- loading样式 -->
+    <link rel="stylesheet" href="/loading.css" />
+    <title>Vite Vue3 App</title>
+  </head>
+
+  <body>
+    <!--[if IE]>
+      <script>
+        alert('您正在使用的浏览器版本过低，为了您的最佳体验，请先升级浏览器。');
+        window.location.href =
+          'http://support.dmeng.net/upgrade-your-browser.html?referrer=' + encodeURIComponent(window.location.href);
+      </script>
+    <![endif]-->
+    <div id="main-app">
+      <div class="LoadingWrap">
+        <div class="LoadingSvg">
+          <svg viewBox="-11,-5 100,100" xmlns="http://www.w3.org/2000/svg">
+            <clipPath id="clipUpper" clipPathUnits="userSpaceOnUse">
+              <path
+                d="M40 40 L73.465,21.535 a1.4,1.4 0 0 0 2 0 l5,-5 a1.4,1.4 0 0 0 0 -2 l-50,-50 L-5,-5 L-5,100 L-5,50.3 a0.707,0.707 0 0 0 1.207,0.5 l7.8,-7.8 a3,3 0 0 0 1,-2.4 Z"
+              />
+            </clipPath>
+            <clipPath id="clipLower" clipPathUnits="userSpaceOnUse">
+              <path
+                d="M40 40 L4.635,52.465 a1.5,1.5 0 0 0 -2.1 0 l-5,5 a1.5,1.5 0 0 0 0 2 L0,100 83,100 83,0 L83,23.2 a0.707,0.707 0 0 0 -1.207,-0.5 l-7.8,7.8 a3,3 0 0 0 -1,2.4 Z"
+              />
+            </clipPath>
+
+            <defs>
+              <path
+                id="upper"
+                d="M-9,49 l9,-9 L0,19 L19,0 L59,0 L78,19"
+                stroke-width="10"
+                fill="none"
+                clip-path="url(#clipUpper)"
+              />
+              <path
+                id="lower"
+                d="M87,24.5 l-9,9 L78,55 L39,90.5 L0,55"
+                stroke-width="10"
+                fill="none"
+                clip-path="url(#clipLower)"
+              />
+            </defs>
+
+            <g>
+              <use class="path phase1" href="#upper" />
+              <use class="path phase1" href="#lower" />
+
+              <use class="path phase2" href="#upper" />
+              <use class="path phase2" href="#lower" />
+
+              <use class="path phase3" href="#upper" />
+              <use class="path phase3" href="#lower" />
+
+              <use class="path phase4" href="#upper" />
+              <use class="path phase4" href="#lower" />
+
+              <use class="path phase5" href="#upper" />
+              <use class="path phase5" href="#lower" />
+            </g>
+
+            <path
+              d="M34,32 l10,-10 l0,20 l-10,10 Z"
+              stroke-width="2.5"
+              stroke="#64ABB4"
+              fill="#64ABB4"
+              stroke-linejoin="round"
+              class="center"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-common
+data:
+  nginx-common.conf: |
+    # nginx rewrite rule for cluster/batch interface.
+    # original url will be /website/face/v2/cluster/batch/${identifier}
+    # these requests will all be redirected to /v2/cluster/batch
+
+    # 代理配置
+
+    # 转发fp
+    location /fpService {
+      rewrite ^/fpService/(.*) /$1 break;
+      proxy_pass http://{{ .Values.fpIp }}:{{ .Values.fpPort }}/;
+      proxy_redirect off;
+    }
+
+    # 转发opod
+    location /opodService {
+      rewrite ^/opodService/(.*) /$1 break;
+      proxy_pass http://{{ .Values.opodIp }}:{{ .Values.opodPort }}/;
+      proxy_redirect off;
+    }
+
+    # 转发运维平台
+    location /analyticsService {
+      rewrite ^/analyticsService/(.*) /$1 break;
+      proxy_pass http://10.40.86.43:32191/;
+      proxy_redirect off;
+    }
+
+    # 转发vpp
+    location /vppService {
+      rewrite ^/vppService/(.*) /$1 break;
+      proxy_pass http://{{ .Values.vpp.ip }}:{{ .Values.vpp.port }}/;
+      proxy_redirect off;
+    }
+
+    # nginx日志
+    location /nginxService/reportLogs {
+      add_header Access-Control-Allow-Origin *;
+      add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+      add_header Cache-Control public;
+      add_header Cache-Control max-age=315360000;
+
+      if ($request_method = OPTIONS) {
+        return 204;
+      }
+
+      default_type text/plain;
+      return 200 'ok';
+    }
+
+    location /fpService/website/face/v2/cluster/batch/async {
+        rewrite ^/fpService/website/face/v2/cluster/batch/async(.*) /face/v2/cluster/batch/async break;
+        proxy_pass http://{{ .Values.fpIp }}:{{ .Values.fpPort }};
+        proxy_redirect off;
+        gzip on;
+        gzip_types application/json;
+    }
+
+    location /fpService/website/face/v2/cluster/batch {
+        rewrite ^/fpService/website/face/v2/cluster/batch(.*) /face/v2/cluster/batch break;
+        proxy_pass http://{{ .Values.fpIp }}:{{ .Values.fpPort }};
+        proxy_redirect off;
+    }
+
+    # 网站服务
+    location / {
+      root /usr/share/nginx/html;
+      index index.html;
+      try_files $uri $uri/ /index.html;
+    }
+
+    # 版本信息
+    location /web/version {
+      alias /usr/share/nginx/html/version.html;
+      add_header Content-Type "text/html; charset=utf-8";
+    }
+
+    # 静态资源缓存配置
+    location ~ /.*\.(png|jpg|jpeg|gif|ico|ttf|otf|woff|woff2|ogg|mp4|wav) {
+        root /usr/share/nginx/html;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    # 资源缓存配置
+    location ~ /.*\.(json|js|css|html)$ {
+        root /usr/share/nginx/html;
+        expires 7d;
+        add_header Cache-Control "public, no-transform";
+    }

@@ -1,0 +1,7 @@
+*.log
+*.tar.gz
+*.war
+*.md
+.git
+.gitlab-ci
+ci

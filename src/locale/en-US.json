@@ -1,0 +1,28 @@
+{
+  "layout": {
+    "systemTitle": "Management System",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "admin": "Administrator",
+    "profileDeveloping": "Profile feature is under development...",
+    "settingsDeveloping": "Settings feature is under development...",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "logoutSuccess": "Logout successful",
+    "tip": "Tip",
+    "themeSwitch": "Switch Theme"
+  },
+  "common": {
+    "setting": "Settings",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "reset": "Reset",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "add": "Add",
+    "search": "Search",
+    "refresh": "Refresh"
+  }
+}
