@@ -1,7 +1,7 @@
-# 组件开发 Agent
+# 组件开发规范
 
 ## 职责
-专门负责Vue组件开发指导，包括组件设计原则、开发模式、最佳实践和组件库构建，为AI生成高质量的Vue组件提供专业指导。
+专门负责Vue组件开发指导，包括组件设计原则、开发模式、最佳实践，区分基础组件和业务组件的开发规范。
 
 ## 🎯 组件设计原则
 
@@ -9,1032 +9,722 @@
 - **功能聚焦**: 每个组件只负责一个明确的功能
 - **职责清晰**: 组件的作用和边界要明确定义
 - **可测试性**: 单一职责使组件更容易测试
-- **可维护性**: 降低组件复杂度，提高可维护性
 
 ### 2. 可复用性原则
-- **通用设计**: 组件应该具有通用性，避免业务耦合
+- **通用设计**: 基础组件应该具有通用性，避免业务耦合
 - **配置灵活**: 通过Props提供灵活的配置选项
 - **插槽支持**: 使用插槽提供内容定制能力
-- **事件通信**: 通过事件与父组件通信
 
 ### 3. 组合优于继承
 - **组合模式**: 通过组合小组件构建复杂功能
 - **Hooks复用**: 使用Composition API实现逻辑复用
-- **插件机制**: 通过插件扩展组件功能
-- **依赖注入**: 使用provide/inject共享状态
 
 ## 📦 组件分类体系
 
 ### 基础组件 (Base Components)
-```typescript
-// 特点：纯UI组件，无业务逻辑，高度可复用
-// 位置：src/components/base/
-
-// 示例：Button组件
-interface IButtonProps {
-  /** 按钮类型 */
-  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text';
-  /** 按钮尺寸 */
-  size?: 'large' | 'default' | 'small';
-  /** 是否禁用 */
-  disabled?: boolean;
-  /** 是否加载中 */
-  loading?: boolean;
-  /** 图标 */
-  icon?: string | Component;
-  /** 是否为圆形按钮 */
-  round?: boolean;
-  /** 是否为圆角按钮 */
-  circle?: boolean;
-}
-```
-
-### 通用组件 (Common Components)
-```typescript
-// 特点：业务无关的功能组件，可在多个项目中使用
-// 位置：src/components/common/
-
-// 示例：DataTable组件
-interface IDataTableProps<T = any> {
-  /** 表格数据 */
-  data: T[];
-  /** 列定义 */
-  columns: ITableColumn<T>[];
-  /** 是否显示分页 */
-  showPagination?: boolean;
-  /** 分页配置 */
-  pagination?: IPaginationConfig;
-  /** 是否显示选择框 */
-  selectable?: boolean;
-  /** 加载状态 */
-  loading?: boolean;
-}
-```
+- **位置**: `src/components/`
+- **特点**: 纯UI组件，无业务逻辑，高度可复用
+- **命名**: 使用 `Base` 前缀，如 `BaseInput`、`BaseButton`
 
 ### 业务组件 (Business Components)
-```typescript
-// 特点：包含特定业务逻辑，项目专用
-// 位置：src/components/business/
-
-// 示例：UserSelector组件
-interface IUserSelectorProps {
-  /** 选中的用户ID列表 */
-  modelValue: string[];
-  /** 是否多选 */
-  multiple?: boolean;
-  /** 用户角色过滤 */
-  roleFilter?: string[];
-  /** 部门过滤 */
-  departmentFilter?: string[];
-}
-```
+- **位置**: `src/business-components/`
+- **特点**: 包含特定业务逻辑，与业务流程关联
+- **命名**: 业务功能描述，如 `LoginInput`、`QrCodeLogin`
 
 ### 页面组件 (Page Components)
-```typescript
-// 特点：完整的页面实现，路由对应的组件
-// 位置：src/views/
+- **位置**: `src/views/`
+- **特点**: 完整的页面实现，路由对应的组件
+- **命名**: 页面名称，如 `Login`、`Home`
 
-// 示例：UserManagement页面组件
-interface IUserManagementProps {
-  // 页面级别的Props通常很少或没有
-}
-```
+## 🛠️ 基础组件开发模板
 
-## 🛠️ 组件开发模板
-
-### 基础组件模板
+### BaseInput 组件示例
 ```vue
 <template>
-  <button
-    :class="buttonClass"
-    :disabled="disabled || loading"
-    @click="handleClick"
-  >
-    <i v-if="loading" class="loading-icon"></i>
-    <i v-else-if="icon" :class="iconClass"></i>
-    <span v-if="$slots.default" class="button-text">
-      <slot></slot>
-    </span>
-  </button>
-</template>
-
-<script setup lang="ts">
-import { computed, type Component } from 'vue';
-
-// ==================== 类型定义 ====================
-interface Props {
-  /** 按钮类型 */
-  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'text';
-  /** 按钮尺寸 */
-  size?: 'large' | 'default' | 'small';
-  /** 是否禁用 */
-  disabled?: boolean;
-  /** 是否加载中 */
-  loading?: boolean;
-  /** 图标 */
-  icon?: string | Component;
-  /** 是否为圆形按钮 */
-  round?: boolean;
-  /** 是否为圆角按钮 */
-  circle?: boolean;
-}
-
-interface Emits {
-  /** 点击事件 */
-  (e: 'click', event: MouseEvent): void;
-}
-
-// ==================== Props 和 Emits ====================
-const props = withDefaults(defineProps<Props>(), {
-  type: 'primary',
-  size: 'default',
-  disabled: false,
-  loading: false,
-  round: false,
-  circle: false,
-});
-
-const emit = defineEmits<Emits>();
-
-// ==================== 计算属性 ====================
-const buttonClass = computed((): string[] => {
-  const classes = ['base-button'];
-  
-  // 类型样式
-  classes.push(`base-button--${props.type}`);
-  
-  // 尺寸样式
-  classes.push(`base-button--${props.size}`);
-  
-  // 状态样式
-  if (props.disabled) classes.push('is-disabled');
-  if (props.loading) classes.push('is-loading');
-  if (props.round) classes.push('is-round');
-  if (props.circle) classes.push('is-circle');
-  
-  return classes;
-});
-
-const iconClass = computed((): string => {
-  if (typeof props.icon === 'string') {
-    return props.icon;
-  }
-  return '';
-});
-
-// ==================== 方法定义 ====================
-const handleClick = (event: MouseEvent): void => {
-  if (props.disabled || props.loading) return;
-  emit('click', event);
-};
-</script>
-
-<style scoped lang="scss">
-.base-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;
-  cursor: pointer;
-  transition: all 0.3s;
-  user-select: none;
-
-  // 类型样式
-  &--primary {
-    color: #fff;
-    background-color: #409eff;
-    border-color: #409eff;
-
-    &:hover:not(.is-disabled) {
-      background-color: #66b1ff;
-      border-color: #66b1ff;
-    }
-  }
-
-  &--success {
-    color: #fff;
-    background-color: #67c23a;
-    border-color: #67c23a;
-
-    &:hover:not(.is-disabled) {
-      background-color: #85ce61;
-      border-color: #85ce61;
-    }
-  }
-
-  // 尺寸样式
-  &--large {
-    padding: 12px 20px;
-    font-size: 16px;
-  }
-
-  &--small {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-
-  // 状态样式
-  &.is-disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  &.is-loading {
-    cursor: not-allowed;
-  }
-
-  &.is-round {
-    border-radius: 20px;
-  }
-
-  &.is-circle {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border-radius: 50%;
-  }
-
-  // 图标和文本间距
-  .loading-icon,
-  i {
-    margin-right: 4px;
-
-    &:last-child {
-      margin-right: 0;
-    }
-  }
-
-  .button-text {
-    display: inline-block;
-  }
-}
-</style>
-```
-
-### 业务组件模板
-```vue
-<template>
-  <div class="user-selector">
-    <div class="selector-header">
+  <div class="base-input">
+    <label v-if="label" class="input-label">{{ label }}</label>
+    <div class="input-wrapper">
       <el-input
-        v-model="searchKeyword"
-        placeholder="搜索用户"
+        v-model="inputValue"
+        :type="type"
+        :placeholder="placeholder"
+        :show-password="type === 'password'"
+        :disabled="disabled"
+        size="large"
         clearable
-        @input="handleSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      
-      <div class="filter-controls">
-        <el-select
-          v-model="selectedRole"
-          placeholder="选择角色"
-          clearable
-          @change="handleRoleChange"
-        >
-          <el-option
-            v-for="role in roleOptions"
-            :key="role.value"
-            :label="role.label"
-            :value="role.value"
-          />
-        </el-select>
-      </div>
-    </div>
-
-    <div class="selector-content">
-      <div v-if="loading" class="loading-state">
-        <el-skeleton :rows="5" animated />
-      </div>
-      
-      <div v-else-if="error" class="error-state">
-        <el-empty description="加载失败">
-          <el-button @click="fetchUsers">重试</el-button>
-        </el-empty>
-      </div>
-      
-      <div v-else class="user-list">
-        <div
-          v-for="user in filteredUsers"
-          :key="user.id"
-          :class="['user-item', { 'is-selected': isSelected(user.id) }]"
-          @click="handleUserSelect(user)"
-        >
-          <el-avatar :src="user.avatar" :size="40">
-            {{ user.username.charAt(0).toUpperCase() }}
-          </el-avatar>
-          
-          <div class="user-info">
-            <div class="user-name">{{ user.username }}</div>
-            <div class="user-email">{{ user.email }}</div>
-            <div class="user-roles">
-              <el-tag
-                v-for="role in user.roles"
-                :key="role"
-                size="small"
-                type="info"
-              >
-                {{ role }}
-              </el-tag>
-            </div>
-          </div>
-          
-          <div class="selection-indicator">
-            <el-icon v-if="isSelected(user.id)" color="#409eff">
-              <Check />
-            </el-icon>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showPagination" class="selector-footer">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
+        @input="handleInput"
+        @blur="handleBlur"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import { Search, Check } from '@element-plus/icons-vue';
-import { UserApi } from '@/api/modules/user';
-import { debounce } from 'lodash-es';
-import type { IUserInfo } from '@/interface/Api';
+import { ref, watch } from 'vue';
 
 // ==================== 类型定义 ====================
-interface Props {
-  /** 选中的用户ID列表 */
-  modelValue: string[];
-  /** 是否多选 */
-  multiple?: boolean;
-  /** 用户角色过滤 */
-  roleFilter?: string[];
-  /** 部门过滤 */
-  departmentFilter?: string[];
-  /** 是否显示分页 */
-  showPagination?: boolean;
-  /** 每页大小 */
-  pageSize?: number;
+interface BaseInputProps {
+  /** 输入框标签 */
+  label?: string;
+  /** 输入框类型 */
+  type?: 'text' | 'password' | 'email' | 'number' | 'tel';
+  /** 占位符文本 */
+  placeholder?: string;
+  /** 输入框值 */
+  modelValue?: string;
+  /** 是否禁用 */
+  disabled?: boolean;
 }
 
-interface Emits {
-  /** 更新选中值 */
-  (e: 'update:modelValue', value: string[]): void;
-  /** 用户选择事件 */
-  (e: 'select', user: IUserInfo): void;
-  /** 用户取消选择事件 */
-  (e: 'unselect', user: IUserInfo): void;
-}
-
-interface IRoleOption {
-  label: string;
-  value: string;
+interface BaseInputEmits {
+  /** 更新输入框值 */
+  (e: 'update:modelValue', value: string): void;
+  /** 输入事件 */
+  (e: 'input', value: string): void;
+  /** 失焦事件 */
+  (e: 'blur', value: string): void;
 }
 
 // ==================== Props 和 Emits ====================
-const props = withDefaults(defineProps<Props>(), {
-  multiple: true,
-  roleFilter: () => [],
-  departmentFilter: () => [],
-  showPagination: true,
-  pageSize: 20,
+const props = withDefaults(defineProps<BaseInputProps>(), {
+  label: '',
+  type: 'text',
+  placeholder: '',
+  modelValue: '',
+  disabled: false,
 });
 
-const emit = defineEmits<Emits>();
+const emit = defineEmits<BaseInputEmits>();
 
 // ==================== 响应式数据 ====================
-const users = ref<IUserInfo[]>([]);
-const loading = ref(false);
-const error = ref<string>('');
-const searchKeyword = ref<string>('');
-const selectedRole = ref<string>('');
-const currentPage = ref(1);
-const pageSize = ref(props.pageSize);
-const total = ref(0);
-
-// 角色选项
-const roleOptions = ref<IRoleOption[]>([
-  { label: '管理员', value: 'admin' },
-  { label: '用户', value: 'user' },
-  { label: '访客', value: 'guest' },
-]);
-
-// ==================== 计算属性 ====================
-const filteredUsers = computed((): IUserInfo[] => {
-  let result = users.value;
-
-  // 关键词搜索
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(user =>
-      user.username.toLowerCase().includes(keyword) ||
-      user.email.toLowerCase().includes(keyword)
-    );
-  }
-
-  // 角色过滤
-  if (selectedRole.value) {
-    result = result.filter(user => user.roles.includes(selectedRole.value));
-  }
-
-  // Props角色过滤
-  if (props.roleFilter.length > 0) {
-    result = result.filter(user =>
-      user.roles.some(role => props.roleFilter.includes(role))
-    );
-  }
-
-  return result;
-});
-
-const selectedUserIds = computed({
-  get: () => props.modelValue,
-  set: (value: string[]) => emit('update:modelValue', value),
-});
-
-// ==================== 方法定义 ====================
-/**
- * 获取用户列表
- */
-const fetchUsers = async (): Promise<void> => {
-  loading.value = true;
-  error.value = '';
-
-  try {
-    const response = await UserApi.getUserList({
-      page: currentPage.value,
-      pageSize: pageSize.value,
-    });
-
-    users.value = response.data;
-    total.value = response.total;
-  } catch (err) {
-    error.value = '获取用户列表失败';
-    console.error('获取用户列表失败:', err);
-    ElMessage.error('获取用户列表失败');
-  } finally {
-    loading.value = false;
-  }
-};
-
-/**
- * 判断用户是否已选中
- */
-const isSelected = (userId: string): boolean => {
-  return selectedUserIds.value.includes(userId);
-};
-
-/**
- * 处理用户选择
- */
-const handleUserSelect = (user: IUserInfo): void => {
-  const userId = user.id;
-  const currentSelection = [...selectedUserIds.value];
-
-  if (isSelected(userId)) {
-    // 取消选择
-    const index = currentSelection.indexOf(userId);
-    currentSelection.splice(index, 1);
-    emit('unselect', user);
-  } else {
-    // 选择用户
-    if (props.multiple) {
-      currentSelection.push(userId);
-    } else {
-      currentSelection.splice(0, currentSelection.length, userId);
-    }
-    emit('select', user);
-  }
-
-  selectedUserIds.value = currentSelection;
-};
-
-/**
- * 处理搜索
- */
-const handleSearch = debounce((keyword: string) => {
-  searchKeyword.value = keyword;
-}, 300);
-
-/**
- * 处理角色变化
- */
-const handleRoleChange = (role: string): void => {
-  selectedRole.value = role;
-};
-
-/**
- * 处理页面大小变化
- */
-const handleSizeChange = (size: number): void => {
-  pageSize.value = size;
-  currentPage.value = 1;
-  fetchUsers();
-};
-
-/**
- * 处理页面变化
- */
-const handlePageChange = (page: number): void => {
-  currentPage.value = page;
-  fetchUsers();
-};
-
-// ==================== 生命周期 ====================
-onMounted(() => {
-  fetchUsers();
-});
+const inputValue = ref(props.modelValue);
 
 // ==================== 监听器 ====================
 watch(
-  [() => props.roleFilter, () => props.departmentFilter],
-  () => {
-    fetchUsers();
+  () => props.modelValue,
+  newValue => {
+    if (newValue !== inputValue.value) {
+      inputValue.value = newValue;
+    }
   },
-  { deep: true }
 );
+
+// ==================== 方法定义 ====================
+const handleInput = (value: string) => {
+  emit('update:modelValue', value);
+  emit('input', value);
+};
+
+const handleBlur = () => {
+  emit('blur', inputValue.value);
+};
 </script>
 
 <style scoped lang="scss">
-.user-selector {
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #fff;
+.base-input {
+  width: 100%;
+}
 
-  .selector-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid #ebeef5;
+.input-label {
+  margin-bottom: 12px;
+  color: var(--colorTextHeading);
+  font-size: 14.375px;
+  font-weight: 400;
+  line-height: 1.39;
+}
 
-    .filter-controls {
-      display: flex;
-      gap: 8px;
-    }
-  }
-
-  .selector-content {
-    min-height: 300px;
-    max-height: 400px;
-    overflow-y: auto;
-
-    .loading-state,
-    .error-state {
-      padding: 40px;
+.input-wrapper {
+  :deep(.el-input) {
+    .el-input__wrapper {
+      height: 48px;
+      border: 1px solid var(--colorTextQuaternary);
+      border-radius: 6px;
+      background: var(--colorBgContainer);
+      box-shadow: none;
     }
 
-    .user-list {
-      .user-item {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid #f5f7fa;
-        cursor: pointer;
-        transition: background-color 0.3s;
+    .el-input__inner {
+      padding: 14px 12px;
+      color: var(--colorTextHeading);
+      font-size: 16px;
+      line-height: 1.4;
 
-        &:hover {
-          background-color: #f5f7fa;
-        }
-
-        &.is-selected {
-          background-color: #ecf5ff;
-        }
-
-        .user-info {
-          flex: 1;
-          margin-left: 12px;
-
-          .user-name {
-            font-size: 14px;
-            font-weight: 500;
-            color: #303133;
-            margin-bottom: 4px;
-          }
-
-          .user-email {
-            font-size: 12px;
-            color: #909399;
-            margin-bottom: 4px;
-          }
-
-          .user-roles {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-          }
-        }
-
-        .selection-indicator {
-          width: 20px;
-          text-align: center;
-        }
+      &::placeholder {
+        color: var(--colorTextPlaceholder);
+        font-size: 16px;
       }
     }
-  }
 
-  .selector-footer {
-    padding: 16px;
-    border-top: 1px solid #ebeef5;
-    text-align: center;
+    &.is-focus .el-input__wrapper {
+      border-color: var(--colorPrimary);
+      box-shadow: 0 0 0 1px var(--colorPrimaryBorder);
+    }
+
+    &.is-disabled .el-input__wrapper {
+      border-color: var(--colorBorder);
+      background: var(--colorBgContainerDisabled);
+    }
   }
 }
 </style>
 ```
 
-## 🔧 组件开发最佳实践
+## 🏢 业务组件开发模板
+
+### LoginInput 组件示例
+```vue
+<template>
+  <div class="login-input-container">
+    <el-form 
+      ref="loginFormRef" 
+      :model="loginForm" 
+      :rules="loginRules" 
+      class="login-form" 
+      @keyup.enter="handleLogin"
+    >
+      <el-form-item prop="phone">
+        <BaseInput v-model="loginForm.phone" label="手机号" placeholder="请输入手机号" />
+      </el-form-item>
+
+      <el-form-item prop="password">
+        <BaseInput
+          v-model="loginForm.password"
+          label="密码"
+          type="password"
+          placeholder="8-16位密码（大写字母+小写字母+数字）"
+        />
+      </el-form-item>
+
+      <div class="form-actions">
+        <el-checkbox v-model="agreedToTerms" class="agreement-checkbox">
+          我已阅读并同意《用户协议》
+        </el-checkbox>
+
+        <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">
+          立即登录
+        </el-button>
+      </div>
+    </el-form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { reactive, ref } from 'vue';
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import BaseInput from '@/components/BaseInput/index.vue';
+import { useUserStore } from '@/store';
+
+// ==================== 类型定义 ====================
+interface LoginInputEmits {
+  /** 登录成功事件 */
+  (e: 'login-success', token: string): void;
+  /** 登录失败事件 */
+  (e: 'login-error', error: Error): void;
+}
+
+// ==================== Emits ====================
+const emit = defineEmits<LoginInputEmits>();
+
+// ==================== Store ====================
+const userStore = useUserStore();
+
+// ==================== 响应式数据 ====================
+const loginFormRef = ref<FormInstance>();
+const loading = ref(false);
+const agreedToTerms = ref(false);
+
+const loginForm = reactive({
+  phone: '',
+  password: '',
+});
+
+// ==================== 表单验证规则 ====================
+const loginRules: FormRules = {
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    {
+      pattern: /^1[3-9]\d{9}$/,
+      message: '请输入正确的手机号格式',
+      trigger: 'blur',
+    },
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    {
+      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,16}$/,
+      message: '密码需要8-16位，包含大写字母、小写字母和数字',
+      trigger: 'blur',
+    },
+  ],
+};
+
+// ==================== 方法定义 ====================
+const handleLogin = async () => {
+  if (!loginFormRef.value) return;
+
+  if (!agreedToTerms.value) {
+    ElMessage.warning('请先阅读并同意用户协议');
+    return;
+  }
+
+  try {
+    await loginFormRef.value.validate();
+    loading.value = true;
+
+    const token = await userStore.loginAction({
+      username: loginForm.phone,
+      password: loginForm.password,
+    });
+
+    emit('login-success', token);
+    ElMessage.success('登录成功！');
+  } catch (error: any) {
+    emit('login-error', error);
+    ElMessage.error(error.message || '登录失败，请检查手机号和密码');
+  } finally {
+    loading.value = false;
+  }
+};
+</script>
+
+<style scoped lang="scss">
+.login-input-container {
+  width: 440px;
+}
+
+.login-form {
+  :deep(.el-form-item) {
+    margin-bottom: 36px;
+  }
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+
+  .agreement-checkbox {
+    height: 16px;
+
+    :deep(.el-checkbox__input) {
+      .el-checkbox__inner {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        border-color: var(--colorPrimary);
+        background: var(--colorBgContainer);
+
+        &::after {
+          border-width: 1px;
+          border-color: var(--colorBgContainer);
+        }
+      }
+
+      &.is-checked .el-checkbox__inner {
+        border-color: var(--colorPrimary);
+        background: var(--colorPrimary);
+      }
+    }
+
+    :deep(.el-checkbox__label) {
+      color: var(--colorTextHeading);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+  }
+
+  .login-btn {
+    width: 100%;
+    height: 48px;
+    margin-top: 12px;
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(92deg, var(--cyan-2) 0%, var(--blue-4) 100%);
+    box-shadow: inset 0 -2px 0 0 var(--colorFillContent);
+    color: var(--colorTextLight);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        inset 0 -2px 0 0 var(--colorFillContent),
+        0 4px 12px var(--colorPrimaryBorder);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.is-loading {
+      opacity: 0.8;
+    }
+  }
+}
+</style>
+```
+
+## 🎨 Figma设计稿还原
+
+### 1. 使用Figma MCP获取设计数据
+```typescript
+// 使用Figma MCP工具获取设计稿数据
+// 1. 从Figma URL获取fileKey和nodeId
+// URL示例: https://www.figma.com/file/abc123/Design?node-id=123:456
+
+// 2. 使用mcp_Framelink_Figma_MCP_get_figma_data获取设计数据
+// fileKey: "abc123"
+// nodeId: "123:456"
+
+// 3. 获取组件的样式、布局、文本等信息
+// 4. 根据设计数据生成符合编码规范的组件代码
+```
+
+### 2. 图片资源管理
+```
+src/assets/
+├── images/              # 图片资源
+│   ├── Login/          # 按页面/功能分类
+│   │   ├── background.png
+│   │   ├── logo.png
+│   │   └── qrcode.png
+│   └── Home/
+│       └── banner.png
+└── icons/              # 图标资源
+    ├── user.svg
+    └── settings.svg
+```
+
+### 3. 下载Figma图片资源
+```typescript
+// 使用mcp_Framelink_Figma_MCP_download_figma_images下载图片
+// 1. 获取图片节点ID
+// 2. 指定本地保存路径（src/assets/images/或src/assets/icons/）
+// 3. 自动下载并保存到指定目录
+// 4. 支持PNG和SVG格式
+
+// 图片保存路径规范：
+// - 页面相关图片: src/assets/images/PageName/
+// - 通用图片: src/assets/images/common/
+// - 图标: src/assets/icons/
+```
+
+### 4. 设计稿还原注意事项
+- ✅ **精确还原**: 严格按照设计稿的尺寸、颜色、间距
+- ✅ **无冗余**: 不添加设计稿中没有的元素或层级
+- ✅ **响应式**: 考虑不同屏幕尺寸的适配
+- ✅ **性能优化**: 图片压缩、懒加载
+- ❌ **避免过度封装**: 不要为了组件化而增加不必要的层级
+
+## 📖 组件开发最佳实践
 
 ### 1. Props 设计原则
 ```typescript
-// ✅ 好的Props设计
+// ✅ 正确：完整的Props定义
 interface Props {
   /** 必需属性：明确类型 */
   data: ITableData[];
-  
   /** 可选属性：提供默认值 */
   size?: 'small' | 'medium' | 'large';
-  
   /** 布尔属性：默认false */
   loading?: boolean;
-  
-  /** 函数属性：明确签名 */
-  onRowClick?: (row: ITableData, index: number) => void;
-  
-  /** 对象属性：使用接口定义 */
-  pagination?: IPaginationConfig;
 }
 
-// ❌ 不好的Props设计
-interface BadProps {
-  data: any; // 类型不明确
-  config: object; // 类型过于宽泛
-  callback: Function; // 函数签名不明确
-}
+const props = withDefaults(defineProps<Props>(), {
+  size: 'medium',
+  loading: false,
+});
+
+// ❌ 错误：缺少类型定义
+const props = defineProps(['data', 'size']);
 ```
 
 ### 2. 事件设计原则
 ```typescript
-// ✅ 好的事件设计
+// ✅ 正确：完整的事件定义
 interface Emits {
-  /** 行点击事件：提供完整的上下文信息 */
-  (e: 'row-click', row: ITableData, index: number, event: MouseEvent): void;
-  
-  /** 选择变化事件：提供新旧值 */
-  (e: 'selection-change', newSelection: string[], oldSelection: string[]): void;
-  
+  /** 提交事件：提供完整的上下文信息 */
+  (e: 'submit', data: IFormData): void;
   /** 更新事件：支持v-model */
-  (e: 'update:modelValue', value: any): void;
+  (e: 'update:modelValue', value: string): void;
 }
 
-// ❌ 不好的事件设计
-interface BadEmits {
-  (e: 'click'): void; // 缺少上下文信息
-  (e: 'change', data: any): void; // 类型不明确
+const emit = defineEmits<Emits>();
+
+// ❌ 错误：缺少类型定义
+const emit = defineEmits(['submit', 'cancel']);
+```
+
+### 3. 样式规范
+```scss
+// ✅ 正确：使用CSS变量
+.component {
+  color: var(--colorTextHeading);
+  background: var(--colorBgContainer);
+  border: 1px solid var(--colorBorder);
+}
+
+// ❌ 错误：硬编码颜色值
+.component {
+  color: #333;
+  background: #fff;
+  border: 1px solid #e0e0e0;
 }
 ```
 
-### 3. 插槽设计原则
+### 4. 避免冗余DOM和样式（重点）
+
+#### DOM结构优化原则
 ```vue
+<!-- ✅ 正确：简洁的DOM结构 -->
 <template>
-  <div class="data-table">
-    <!-- 表格头部插槽 -->
-    <div class="table-header">
-      <slot name="header" :data="data" :loading="loading">
-        <h3>数据表格</h3>
-      </slot>
-    </div>
+  <div class="base-input">
+    <label v-if="label" class="input-label">{{ label }}</label>
+    <el-input v-model="inputValue" />
+  </div>
+</template>
 
-    <!-- 表格内容 -->
-    <table class="table">
-      <thead>
-        <tr>
-          <th v-for="column in columns" :key="column.key">
-            <!-- 表头插槽 -->
-            <slot :name="`header-${column.key}`" :column="column">
-              {{ column.title }}
-            </slot>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, index) in data" :key="row.id">
-          <td v-for="column in columns" :key="column.key">
-            <!-- 单元格插槽 -->
-            <slot
-              :name="`cell-${column.key}`"
-              :row="row"
-              :column="column"
-              :index="index"
-              :value="row[column.key]"
-            >
-              {{ row[column.key] }}
-            </slot>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <!-- 表格底部插槽 -->
-    <div class="table-footer">
-      <slot name="footer" :data="data" :total="total">
-        <div>共 {{ total }} 条记录</div>
-      </slot>
+<!-- ❌ 错误：冗余的DOM层级 -->
+<template>
+  <div class="base-input-container">
+    <div class="base-input-wrapper">
+      <div class="base-input-inner">
+        <div class="label-wrapper">
+          <label>{{ label }}</label>
+        </div>
+        <div class="input-wrapper">
+          <el-input v-model="inputValue" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 ```
 
-### 4. 组合式API最佳实践
-```typescript
-// ✅ 使用组合式函数复用逻辑
-export function useTableSelection<T extends { id: string }>(
-  data: Ref<T[]>,
-  multiple = true
-) {
-  const selectedIds = ref<string[]>([]);
-  
-  const selectedItems = computed(() => {
-    return data.value.filter(item => selectedIds.value.includes(item.id));
-  });
-  
-  const isSelected = (id: string): boolean => {
-    return selectedIds.value.includes(id);
-  };
-  
-  const toggleSelection = (item: T): void => {
-    const id = item.id;
-    const index = selectedIds.value.indexOf(id);
-    
-    if (index > -1) {
-      selectedIds.value.splice(index, 1);
-    } else {
-      if (multiple) {
-        selectedIds.value.push(id);
-      } else {
-        selectedIds.value = [id];
-      }
-    }
-  };
-  
-  const clearSelection = (): void => {
-    selectedIds.value = [];
-  };
-  
-  const selectAll = (): void => {
-    selectedIds.value = data.value.map(item => item.id);
-  };
-  
-  return {
-    selectedIds: readonly(selectedIds),
-    selectedItems,
-    isSelected,
-    toggleSelection,
-    clearSelection,
-    selectAll,
-  };
-}
-
-// 在组件中使用
-const { selectedIds, selectedItems, isSelected, toggleSelection } = 
-  useTableSelection(tableData, true);
-```
-
-### 5. 组件测试策略
-```typescript
-// 组件单元测试
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import UserSelector from '../UserSelector.vue';
-
-describe('UserSelector', () => {
-  const mockUsers = [
-    { id: '1', username: 'user1', email: 'user1@example.com', roles: ['user'] },
-    { id: '2', username: 'user2', email: 'user2@example.com', roles: ['admin'] },
-  ];
-
-  it('应该正确渲染用户列表', () => {
-    const wrapper = mount(UserSelector, {
-      props: {
-        modelValue: [],
-        users: mockUsers,
-      },
-    });
-
-    expect(wrapper.findAll('.user-item')).toHaveLength(2);
-    expect(wrapper.text()).toContain('user1');
-    expect(wrapper.text()).toContain('user2');
-  });
-
-  it('应该正确处理用户选择', async () => {
-    const wrapper = mount(UserSelector, {
-      props: {
-        modelValue: [],
-        users: mockUsers,
-      },
-    });
-
-    await wrapper.find('.user-item').trigger('click');
-    
-    expect(wrapper.emitted('update:modelValue')).toBeTruthy();
-    expect(wrapper.emitted('select')).toBeTruthy();
-  });
-
-  it('应该支持搜索功能', async () => {
-    const wrapper = mount(UserSelector, {
-      props: {
-        modelValue: [],
-        users: mockUsers,
-      },
-    });
-
-    const searchInput = wrapper.find('input[placeholder="搜索用户"]');
-    await searchInput.setValue('user1');
-
-    // 验证过滤结果
-    expect(wrapper.findAll('.user-item')).toHaveLength(1);
-    expect(wrapper.text()).toContain('user1');
-    expect(wrapper.text()).not.toContain('user2');
-  });
-});
-```
-
-## 📚 组件文档规范
-
-### 组件README模板
-```markdown
-# UserSelector 用户选择器
-
-## 概述
-用户选择器组件，支持单选/多选用户，提供搜索、过滤等功能。
-
-## 基本用法
-```vue
-<template>
-  <UserSelector
-    v-model="selectedUsers"
-    :multiple="true"
-    @select="handleUserSelect"
-  />
-</template>
-
-<script setup>
-import { ref } from 'vue';
-import UserSelector from '@/components/UserSelector/index.vue';
-
-const selectedUsers = ref([]);
-
-const handleUserSelect = (user) => {
-  console.log('选中用户:', user);
-};
-</script>
-```
-
-## API
-
-### Props
-| 参数 | 说明 | 类型 | 默认值 | 必需 | 可选 |
-|------|------|------|--------|------|
-| modelValue | 选中的用户ID列表 | `string[]` | `[]` | 是 | 是 |
-| multiple | 是否多选 | `boolean` | `true` | 否 | 是 |
-| roleFilter | 角色过滤 | `string[]` | `[]` | 否 | 是 |
-| showPagination | 是否显示分页 | `boolean` | `true` | 否 | 是 |
-
-### Events
-| 事件名 | 说明 | 参数 | 可选 |
-|--------|------|------|
-| update:modelValue | 选中值变化 | `(value: string[]) => void` |
-| select | 选中用户 | `(user: IUserInfo) => void` |
-| unselect | 取消选中用户 | `(user: IUserInfo) => void` |
-
-### Slots
-| 插槽名 | 说明 | 参数 | 可选 |
-|--------|------|------|
-| header | 自定义头部 | `{ users, loading }` | 是 |
-| user-item | 自定义用户项 | `{ user, selected }` | 是 |
-| empty | 自定义空状态 | - | 是 |
-
-## 示例
-
-### 单选模式
-```vue
-<UserSelector
-  v-model="selectedUser"
-  :multiple="false"
-/>
-```
-
-### 角色过滤
-```vue
-<UserSelector
-  v-model="selectedUsers"
-  :role-filter="['admin', 'manager']"
-/>
-```
-
-### 自定义用户项
-```vue
-<UserSelector v-model="selectedUsers">
-  <template #user-item="{ user, selected }">
-    <div class="custom-user-item">
-      <img :src="user.avatar" :alt="user.username" />
-      <span>{{ user.username }}</span>
-      <el-tag v-if="selected" type="success">已选</el-tag>
-    </div>
-  </template>
-</UserSelector>
-```
-```
-
-## 🎨 样式规范
-
-### CSS变量系统
+#### 样式优化原则
 ```scss
-// 组件样式变量
-:root {
-  // 颜色变量
-  --user-selector-bg: #ffffff;
-  --user-selector-border: #dcdfe6;
-  --user-selector-hover: #f5f7fa;
-  --user-selector-selected: #ecf5ff;
-  
-  // 尺寸变量
-  --user-selector-padding: 16px;
-  --user-selector-item-height: 60px;
-  --user-selector-border-radius: 4px;
-  
-  // 字体变量
-  --user-selector-font-size: 14px;
-  --user-selector-font-weight: 400;
-}
+// ✅ 正确：简洁的样式，避免冗余
+.base-input {
+  width: 100%;
 
-// 组件样式
-.user-selector {
-  background: var(--user-selector-bg);
-  border: 1px solid var(--user-selector-border);
-  border-radius: var(--user-selector-border-radius);
-  
-  &__item {
-    height: var(--user-selector-item-height);
-    padding: var(--user-selector-padding);
-    font-size: var(--user-selector-font-size);
-    
-    &:hover {
-      background: var(--user-selector-hover);
-    }
-    
-    &.is-selected {
-      background: var(--user-selector-selected);
+  .input-label {
+    margin-bottom: 12px;
+    color: var(--colorTextHeading);
+    font-size: 14.375px;
+  }
+
+  :deep(.el-input) {
+    .el-input__wrapper {
+      height: 48px;
+      border: 1px solid var(--colorTextQuaternary);
     }
   }
 }
-```
 
-### 响应式设计
-```scss
-.user-selector {
-  // 桌面端样式
-  @media (min-width: 768px) {
-    .user-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
-    }
-  }
-  
-  // 移动端样式
-  @media (max-width: 767px) {
-    .selector-header {
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .user-item {
-      padding: 12px;
-      
-      .user-info {
-        .user-name {
-          font-size: 16px;
+// ❌ 错误：过度嵌套和冗余样式
+.base-input-container {
+  .base-input-wrapper {
+    .base-input-inner {
+      .label-wrapper {
+        label {
+          display: block;
+          margin-bottom: 12px;
+          padding: 0;
+          border: none;
+          background: none;
+          color: var(--colorTextHeading);
         }
       }
+      .input-wrapper {
+        position: relative;
+        display: block;
+        width: 100%;
+        // ... 更多冗余样式
+      }
     }
   }
 }
 ```
 
-通过遵循这些组件开发规范和最佳实践，可以创建出高质量、可复用、易维护的Vue组件，为项目的长期发展提供坚实的基础。
+#### 代码优化检查清单
+- [ ] **只在必要时添加包装div**
+- [ ] **能用单个元素不用多个**
+- [ ] **避免超过3层的DOM嵌套**
+- [ ] **避免超过3层的样式嵌套**
+- [ ] **不添加没有实际作用的div**
+- [ ] **使用Flex/Grid减少嵌套**
+- [ ] **删除未使用的CSS代码**
+
+## 📂 组件目录结构
+
+### 基础组件
+```
+src/components/
+├── BaseInput/
+│   └── index.vue
+├── BaseButton/
+│   └── index.vue
+└── BaseTable/
+    └── index.vue
+```
+
+### 业务组件
+```
+src/business-components/
+├── LoginInput/
+│   └── index.vue
+├── QrCodeLogin/
+│   └── index.vue
+└── UserSelector/
+    └── index.vue
+```
+
+### 页面组件
+```
+src/views/
+├── Login/
+│   └── index.vue
+├── Home/
+│   └── index.vue
+└── User/
+    └── index.vue
+```
+
+## 📋 组件开发快速检查清单
+
+### 基础组件检查
+- [ ] 无业务逻辑，纯UI组件
+- [ ] Props和Emits有完整的TypeScript接口定义
+- [ ] 使用CSS变量而不是硬编码颜色
+- [ ] DOM结构简洁，无冗余层级
+- [ ] 样式使用scoped避免污染
+- [ ] 支持v-model（如适用）
+
+### 业务组件检查
+- [ ] 业务逻辑清晰
+- [ ] 使用基础组件而不是重复造轮子
+- [ ] Props和Emits有完整的类型定义
+- [ ] 错误处理完善
+- [ ] 加载状态处理
+- [ ] 与Store集成（如需要）
+
+### 样式规范检查
+- [ ] 使用CSS变量而不是硬编码
+- [ ] 遵循BEM命名规范（或项目统一规范）
+- [ ] 避免深层嵌套选择器（不超过3层）
+- [ ] 响应式设计（如需要）
+- [ ] 避免冗余样式
+
+## ❓ 常见问题
+
+### Q: 基础组件和业务组件如何区分？
+**A**: 
+- **基础组件**: 不包含业务逻辑，可在任何项目中复用，放在`src/components/`
+- **业务组件**: 包含特定业务逻辑，与当前项目业务关联，放在`src/business-components/`
+
+### Q: 什么时候应该拆分组件？
+**A**: 符合以下条件之一就应该拆分：
+- 组件代码超过200行
+- 组件职责超过一个
+- 有独立的业务逻辑
+- 需要在多处复用
+
+### Q: 如何避免冗余的DOM结构？
+**A**: 
+```vue
+<!-- 评估每个div是否必要 -->
+<!-- ✅ 必要的div：用于布局或样式容器 -->
+<div class="form-actions">
+  <el-checkbox v-model="agreed">同意协议</el-checkbox>
+  <el-button @click="submit">提交</el-button>
+</div>
+
+<!-- ❌ 不必要的div：仅用于包装单个元素 -->
+<div class="button-wrapper">
+  <el-button @click="submit">提交</el-button>
+</div>
+
+<!-- ✅ 直接使用：单个元素不需要包装 -->
+<el-button @click="submit">提交</el-button>
+```
+
+**原则**：
+- 只在确实需要时才添加包装div
+- 能用单个元素实现的不要用多个
+- 使用Flex/Grid布局减少嵌套
+- 避免为了样式而添加无意义的div
+- 参考Figma设计稿的实际层级结构
+
+### Q: 如何设计灵活的Props接口？
+**A**: 
+```typescript
+interface Props {
+  // 1. 必需的核心数据
+  data: IUserInfo[];
+  // 2. 可选的配置项（提供默认值）
+  size?: 'small' | 'medium' | 'large';
+  // 3. 行为控制开关
+  showAvatar?: boolean;
+  // 4. 自定义函数（明确签名）
+  onRowClick?: (user: IUserInfo) => void;
+}
+```
+
+## 🚀 组件开发工作流程
+
+### 1. 从Figma设计稿开始
+```
+1. 获取Figma设计稿链接
+2. 使用Figma MCP获取设计数据
+3. 下载图片资源到src/assets/images/或icons/
+4. 分析组件结构和样式
+```
+
+### 2. 组件开发步骤
+```
+1. 确定组件类型（基础/业务/页面）
+2. 创建组件目录和文件
+3. 定义Props和Emits类型
+4. 实现组件逻辑（无冗余代码）
+5. 精确还原设计稿样式
+6. 测试组件功能
+```
+
+### 3. 代码质量检查
+```
+- [ ] 符合编码规范
+- [ ] 无冗余DOM层级（≤3层）
+- [ ] 无冗余样式代码
+- [ ] 类型定义完整
+- [ ] 使用CSS变量
+- [ ] 图片资源已分类存放
+```
+
+## 📊 组件质量标准
+
+### 可接受的质量指标
+- **DOM层级**: ≤ 3层嵌套
+- **样式嵌套**: ≤ 3层
+- **组件文件大小**: ≤ 300行
+- **Props数量**: ≤ 10个
+- **设计稿还原度**: ≥ 95%
+
+### 代码简洁度评估
+```typescript
+// 评估DOM层级
+const domLevels = countDOMNesting(template);
+// 目标: ≤ 3
+
+// 评估样式嵌套
+const styleLevels = countStyleNesting(styles);
+// 目标: ≤ 3
+
+// 评估代码行数
+const lines = countCodeLines(component);
+// 目标: ≤ 300
+```
+
+通过遵循这些组件开发规范，可以创建出高质量、简洁、可复用、易维护的Vue组件。

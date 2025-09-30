@@ -9,18 +9,22 @@
 ### 核心控制层
 - **[main-controller.md](./main-controller.md)** - 主控制Agent，负责协调各专业Agent，智能选择最佳协作策略
 
-### 专业指导层
-- **[coding-standards.md](./coding-standards.md)** - 编码规范Agent，确保代码质量和一致性
-- **[component-development.md](./component-development.md)** - 组件开发Agent，专注Vue组件开发指导
+### 开发指导层
+- **[coding-standards.md](./coding-standards.md)** - 编码规范Agent，确保代码质量和一致性，包含常量/类型/函数规范
+- **[component-development.md](./component-development.md)** - 组件开发Agent，区分基础组件和业务组件开发指导
 - **[api-development.md](./api-development.md)** - API开发Agent，处理接口设计和数据交互
+- **[store-development.md](./store-development.md)** - Store开发Agent，Pinia状态管理规范
 - **[code-review.md](./code-review.md)** - 代码审查Agent，提供质量检查和优化建议
-- **[testing.md](./testing.md)** - 测试指导Agent，制定测试策略和用例编写
-- **[deployment.md](./deployment.md)** - 部署指导Agent，处理构建和运维相关问题
 - **[project-structure.md](./project-structure.md)** - 项目结构Agent，管理架构设计和目录组织
+
+### 上线部署层
+- **[testing.md](./testing.md)** - 测试指导Agent，上线前的测试策略和用例编写
+- **[deployment.md](./deployment.md)** - 部署指导Agent，上线部署和运维相关
 
 ### 工具支持层
 - **[prompts-guide.md](./prompts-guide.md)** - 提示词指南，提供标准化的AI交互模板
-- **[ai-programming-best-practices.md](./ai-programming-best-practices.md)** - AI编程最佳实践，总结高效协作方法
+- **[ai-programming-best-practices.md](./ai-programming-best-practices.md)** - AI编程最佳实践
+- **[quick-checklist.md](./quick-checklist.md)** - 快速检查清单汇总
 
 ## 🎯 快速导航
 
@@ -30,55 +34,42 @@
 ```
 需求分析 → main-controller.md
 架构设计 → project-structure.md
-技术选型 → coding-standards.md
+技术规范 → coding-standards.md
 ```
 
 #### 开发实施阶段
 ```
-组件开发 → component-development.md
+基础组件 → component-development.md (src/components/)
+业务组件 → component-development.md (src/business-components/)
 API开发 → api-development.md
-状态管理 → coding-standards.md
-样式开发 → component-development.md
+状态管理 → store-development.md
+常量/类型 → coding-standards.md (constants、interface、utils)
 ```
 
 #### 质量保证阶段
 ```
 代码审查 → code-review.md
-测试编写 → testing.md
 性能优化 → code-review.md
-文档完善 → 所有Agent协作
 ```
 
-#### 部署运维阶段
+#### 上线部署阶段
 ```
-构建配置 → deployment.md
-部署策略 → deployment.md
-监控告警 → deployment.md
+测试编写 → testing.md
+部署配置 → deployment.md
 ```
 
-### 按问题类型选择Agent
+### 按文件类型选择Agent
 
-#### 功能开发问题
-- **新建功能** → component-development.md + coding-standards.md
-- **功能增强** → code-review.md + component-development.md
-- **接口对接** → api-development.md + coding-standards.md
-- **状态管理** → coding-standards.md + component-development.md
-
-#### 代码质量问题
-- **规范检查** → coding-standards.md
-- **性能优化** → code-review.md + deployment.md
-- **重构优化** → code-review.md + project-structure.md
-- **类型安全** → coding-standards.md
-
-#### 测试相关问题
-- **测试策略** → testing.md
-- **用例编写** → testing.md + component-development.md
-- **测试优化** → testing.md + code-review.md
-
-#### 部署运维问题
-- **构建问题** → deployment.md
-- **环境配置** → deployment.md + project-structure.md
-- **性能监控** → deployment.md + code-review.md
+| 文件类型 | 推荐Agent | 说明 |
+|---------|----------|------|
+| `src/components/**/*.vue` | component-development.md | 基础组件 |
+| `src/business-components/**/*.vue` | component-development.md | 业务组件 |
+| `src/views/**/*.vue` | component-development.md | 页面组件 |
+| `src/api/**/*.ts` | api-development.md | API接口 |
+| `src/store/**/*.ts` | store-development.md | 状态管理 |
+| `src/constants/**/*.ts` | coding-standards.md | 常量定义 |
+| `src/interface/**/*.ts` | coding-standards.md | 类型定义 |
+| `src/utils/**/*.ts` | coding-standards.md | 工具函数 |
 
 ## 🛠️ 使用指南
 
@@ -87,8 +78,8 @@ API开发 → api-development.md
 
 ```markdown
 参考：component-development.md
-任务：创建一个数据展示组件
-要求：遵循Vue3 Composition API规范
+任务：创建一个登录输入组件
+要求：遵循Vue3 Composition API规范，区分基础组件和业务组件
 ```
 
 ### 2. 多Agent协作
@@ -96,8 +87,8 @@ API开发 → api-development.md
 
 ```markdown
 参考：main-controller.md
-任务：开发用户管理模块
-涉及：组件开发 + API接口 + 状态管理 + 测试用例
+任务：开发登录页面
+涉及：页面组件 + 业务组件 + API接口 + 状态管理
 ```
 
 ### 3. 渐进式开发
@@ -105,83 +96,140 @@ API开发 → api-development.md
 
 ```markdown
 阶段1：project-structure.md - 确定模块结构
-阶段2：api-development.md - 设计接口规范
-阶段3：component-development.md - 实现UI组件
-阶段4：testing.md - 编写测试用例
+阶段2：api-development.md - 设计API接口
+阶段3：store-development.md - 设计状态管理
+阶段4：component-development.md - 实现UI组件
 阶段5：code-review.md - 代码质量检查
+阶段6：testing.md + deployment.md - 上线部署
 ```
 
-## 📚 学习路径
+## 📚 组件分类规范
 
-### 新手入门
-1. 阅读 **ai-coding-standards.md** 了解整体规范
-2. 学习 **prompts-guide.md** 掌握AI交互技巧
-3. 参考 **component-development.md** 开始组件开发
-4. 使用 **coding-standards.md** 确保代码质量
+### 基础组件（src/components/）
+- **特点**: 无业务逻辑，纯UI组件，高度可复用
+- **命名**: 使用 `Base` 前缀
+- **示例**: `BaseInput`、`BaseButton`
+- **参考**: [component-development.md](./component-development.md)
 
-### 进阶提升
-1. 深入 **main-controller.md** 理解Agent协作机制
-2. 掌握 **code-review.md** 提升代码审查能力
-3. 学习 **api-development.md** 完善接口设计技能
-4. 研究 **deployment.md** 优化部署流程
+### 业务组件（src/business-components/）
+- **特点**: 包含业务逻辑，与业务流程关联
+- **命名**: 业务功能描述
+- **示例**: `LoginInput`、`QrCodeLogin`
+- **参考**: [component-development.md](./component-development.md)
 
-### 专家级应用
-1. 定制 **project-structure.md** 适应复杂项目架构
-2. 优化 **testing.md** 建立完善的测试体系
-3. 实践 **ai-programming-best-practices.md** 提升团队效率
-4. 贡献改进建议，完善Agent体系
+### 页面组件（src/views/）
+- **特点**: 完整页面，路由对应
+- **命名**: 页面名称
+- **示例**: `Login`、`Home`
+- **参考**: [component-development.md](./component-development.md)
+
+## 📁 代码组织规范
+
+### API开发
+- **目录**: `src/api/modules/`
+- **规范**: [api-development.md](./api-development.md)
+- **示例**: `login.ts`
+
+### 状态管理
+- **目录**: `src/store/modules/`
+- **规范**: [store-development.md](./store-development.md)
+- **示例**: `user.ts`、`global.ts`
+
+### 常量定义
+- **目录**: `src/constants/`
+- **规范**: [coding-standards.md](./coding-standards.md#常量定义规范)
+- **示例**: `System.ts`
+
+### 类型定义
+- **目录**: `src/interface/`
+- **规范**: [coding-standards.md](./coding-standards.md#typescript类型定义规范)
+- **示例**: `System.ts`
+
+### 工具函数
+- **目录**: `src/utils/`
+- **规范**: [coding-standards.md](./coding-standards.md#工具函数编码规范)
+- **示例**: `date.ts`、`locale.ts`
 
 ## 🔄 Agent协作示例
 
-### 示例1：创建用户列表组件
+### 示例1：创建登录页面
 ```yaml
 主导Agent: component-development.md
 协作Agent: 
-  - coding-standards.md (确保代码规范)
-  - api-development.md (设计数据接口)
-  - testing.md (编写测试用例)
+  - api-development.md (登录API)
+  - store-development.md (用户状态)
+  - coding-standards.md (代码规范)
 
 工作流程:
-  1. 分析组件需求和设计规范
-  2. 定义Props接口和事件类型
-  3. 实现组件逻辑和UI结构
-  4. 集成API数据获取逻辑
-  5. 编写单元测试和集成测试
-  6. 代码审查和优化建议
+  1. 设计API接口和类型定义
+  2. 创建用户Store管理登录状态
+  3. 开发BaseInput基础组件
+  4. 开发LoginInput和QrCodeLogin业务组件
+  5. 组装Login页面组件
+  6. 代码审查和优化
 ```
 
-### 示例2：性能优化项目
+### 示例2：开发用户管理模块
 ```yaml
-主导Agent: code-review.md
+主导Agent: main-controller.md
 协作Agent:
-  - component-development.md (组件层面优化)
-  - deployment.md (构建和部署优化)
-  - project-structure.md (架构层面优化)
+  - api-development.md (用户API)
+  - store-development.md (用户状态)
+  - component-development.md (组件开发)
+  - coding-standards.md (代码规范)
 
 工作流程:
-  1. 性能问题分析和定位
-  2. 组件渲染优化策略
-  3. 代码分割和懒加载方案
-  4. 构建配置优化
-  5. 部署策略调整
-  6. 监控和持续优化
+  1. 设计用户管理API接口
+  2. 创建用户Store
+  3. 开发用户列表组件
+  4. 开发用户表单组件
+  5. 集成测试
 ```
 
-## 📈 效果评估
+## 📋 开发阶段说明
 
-### 开发效率提升
-- **代码生成速度**: 提升60-80%
-- **问题解决效率**: 提升40-60%
-- **代码质量**: 提升50-70%
-- **团队协作**: 提升30-50%
+### 开发阶段 (日常开发)
+以下Agent用于日常开发，保证代码质量和开发效率：
+- coding-standards.md
+- component-development.md
+- api-development.md
+- store-development.md
+- code-review.md
+- project-structure.md
 
-### 质量保证改进
-- **Bug减少率**: 降低40-60%
-- **代码一致性**: 提升70-90%
-- **维护成本**: 降低30-50%
-- **新人上手**: 提升50-80%
+### 上线阶段
+以下Agent仅在准备上线时使用：
+- testing.md - 编写完整的测试用例
+- deployment.md - 配置部署流程
 
-## 🚀 持续改进
+## 🎯 最佳实践
+
+### 1. 遵循目录规范
+- 基础组件放在 `src/components/`
+- 业务组件放在 `src/business-components/`
+- 页面组件放在 `src/views/`
+- API接口放在 `src/api/modules/`
+- 状态管理放在 `src/store/modules/`
+
+### 2. 遵循命名规范
+- 基础组件使用 `Base` 前缀
+- 业务组件使用业务功能描述
+- 常量使用大写字母和下划线
+- 类型接口使用 `I` 前缀或描述性名称
+
+### 3. 避免冗余
+- 避免冗余的DOM层级
+- 避免冗余的样式定义
+- 基础组件不包含业务逻辑
+- 复用已有组件而不是重复开发
+
+### 4. 保持一致性
+- 统一的代码风格
+- 统一的命名规范
+- 统一的目录结构
+- 统一的类型定义
+
+## 📈 持续改进
 
 ### 反馈机制
 - 使用过程中的问题和建议
@@ -194,12 +242,6 @@ API开发 → api-development.md
 - 新增专业领域Agent
 - 优化协作机制和流程
 - 集成更多AI工具和服务
-
-### 贡献指南
-- 提交使用反馈和改进建议
-- 分享成功案例和最佳实践
-- 参与Agent内容编写和维护
-- 推广AI编程理念和方法
 
 ---
 

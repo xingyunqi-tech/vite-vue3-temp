@@ -384,169 +384,137 @@ describe('useUserStore', () => {
 
 ### Vue 组件测试
 ```typescript
-// tests/components/QuickActions.test.ts
+// tests/components/BaseInput.test.ts
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { ElRow, ElCol, ElIcon } from 'element-plus';
-import QuickActions from '@/components/QuickActions/index.vue';
-import type { ActionItem } from '@/components/QuickActions/index.vue';
+import { ElInput, ElIcon } from 'element-plus';
+import BaseInput from '@/components/BaseInput/index.vue';
+import type { InputProps } from '@/components/BaseInput/index.vue';
 
 // Mock Element Plus 组件
 vi.mock('element-plus', () => ({
-  ElRow: { name: 'ElRow', template: '<div class="el-row"><slot /></div>' },
-  ElCol: { name: 'ElCol', template: '<div class="el-col"><slot /></div>' },
+  ElInput: { name: 'ElInput', template: '<div class="el-input"><slot /></div>' },
   ElIcon: { name: 'ElIcon', template: '<i class="el-icon"><slot /></i>' },
 }));
 
-describe('QuickActions', () => {
-  const mockActions: ActionItem[] = [
-    {
-      key: 'add',
-      icon: 'Plus',
-      title: '添加用户',
-      description: '创建新用户',
-      color: '#409eff',
-    },
-    {
-      key: 'edit',
-      icon: 'Edit',
-      title: '编辑用户',
-      description: '修改用户信息',
-      color: '#67c23a',
-    },
-  ];
+describe('BaseInput', () => {
+  const mockProps = {
+    modelValue: '',
+    label: '用户名',
+    placeholder: '请输入用户名',
+    type: 'text',
+    disabled: false,
+    clearable: true,
+    required: true,
+    error: '',
+  };
 
   it('应该正确渲染组件', () => {
-    const wrapper = mount(QuickActions, {
-      props: {
-        title: '快捷操作',
-        actions: mockActions,
-      },
+    const wrapper = mount(BaseInput, {
+      props: mockProps,
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    expect(wrapper.find('h2').text()).toBe('快捷操作');
-    expect(wrapper.findAll('.action-card')).toHaveLength(2);
+    expect(wrapper.find('label').text()).toBe('用户名');
+    expect(wrapper.find('.required').exists()).toBe(true);
+    expect(wrapper.find('input').attributes('placeholder')).toBe('请输入用户名');
   });
 
-  it('应该使用默认标题', () => {
-    const wrapper = mount(QuickActions, {
+  it('应该正确显示错误信息', () => {
+    const wrapper = mount(BaseInput, {
       props: {
-        actions: mockActions,
+        ...mockProps,
+        error: '用户名不能为空',
       },
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    expect(wrapper.find('h2').text()).toBe('快捷操作');
+    expect(wrapper.find('.error-message').text()).toBe('用户名不能为空');
+    expect(wrapper.find('.error-input').exists()).toBe(true);
   });
 
-  it('应该正确渲染操作项', () => {
-    const wrapper = mount(QuickActions, {
+  it('应该正确处理禁用状态', () => {
+    const wrapper = mount(BaseInput, {
       props: {
-        actions: mockActions,
+        ...mockProps,
+        disabled: true,
       },
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    const actionCards = wrapper.findAll('.action-card');
-    
-    expect(actionCards[0].find('.action-title').text()).toBe('添加用户');
-    expect(actionCards[0].find('.action-desc').text()).toBe('创建新用户');
-    
-    expect(actionCards[1].find('.action-title').text()).toBe('编辑用户');
-    expect(actionCards[1].find('.action-desc').text()).toBe('修改用户信息');
+    expect(wrapper.find('input').attributes('disabled')).toBeDefined();
+    expect(wrapper.classes()).toContain('disabled');
   });
 
-  it('应该在点击操作项时触发事件', async () => {
-    const wrapper = mount(QuickActions, {
-      props: {
-        actions: mockActions,
-      },
+  it('应该正确触发输入事件', async () => {
+    const wrapper = mount(BaseInput, {
+      props: mockProps,
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    await wrapper.findAll('.action-card')[0].trigger('click');
+    await wrapper.find('input').setValue('test-user');
 
-    expect(wrapper.emitted('action-click')).toBeTruthy();
-    expect(wrapper.emitted('action-click')?.[0]).toEqual(['add']);
+    expect(wrapper.emitted('update:modelValue')).toBeTruthy();
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['test-user']);
   });
 
-  it('应该正确计算span值', () => {
-    // 测试2个操作项
-    const wrapper2 = mount(QuickActions, {
+  it('应该正确处理清除功能', async () => {
+    const wrapper = mount(BaseInput, {
       props: {
-        actions: mockActions.slice(0, 2),
+        ...mockProps,
+        modelValue: 'test-user',
       },
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    // 2个操作项应该各占12span (24/2=12)
-    expect(wrapper2.vm.actionSpan).toBe(12);
+    // 模拟点击清除按钮
+    await wrapper.find('.clear-icon').trigger('click');
 
-    // 测试5个操作项
-    const wrapper5 = mount(QuickActions, {
-      props: {
-        actions: [...mockActions, ...mockActions, mockActions[0]],
-      },
-      global: {
-        components: {
-          ElRow,
-          ElCol,
-          ElIcon,
-        },
-      },
-    });
-
-    // 超过4个操作项应该使用默认6span
-    expect(wrapper5.vm.actionSpan).toBe(6);
+    expect(wrapper.emitted('update:modelValue')).toBeTruthy();
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['']);
   });
 
-  it('应该正确设置图标颜色', () => {
-    const wrapper = mount(QuickActions, {
+  it('应该正确处理密码类型', () => {
+    const wrapper = mount(BaseInput, {
       props: {
-        actions: mockActions,
+        ...mockProps,
+        type: 'password',
       },
       global: {
         components: {
-          ElRow,
-          ElCol,
+          ElInput,
           ElIcon,
         },
       },
     });
 
-    const firstIcon = wrapper.findAll('.action-icon')[0];
-    expect(firstIcon.attributes('style')).toContain('color: #409eff');
+    expect(wrapper.find('input').attributes('type')).toBe('password');
+    expect(wrapper.find('.password-toggle').exists()).toBe(true);
   });
 });
 ```

@@ -59,6 +59,7 @@ vite-vue3-temp/
 │   ├── api/                   # API 接口层
 │   ├── assets/                # 静态资源
 │   ├── components/            # 通用组件
+│   ├── business-components/   # 业务组件
 │   ├── constants/             # 常量定义
 │   ├── interface/             # TypeScript 接口定义
 │   ├── layout/                # 布局组件
@@ -149,17 +150,17 @@ src/api/
 ### `src/components/` - 通用组件目录
 ```
 src/components/
-├── QuickActions/              # 快捷操作组件
+├── BaseInput/                # 基础输入组件
 │   ├── index.vue             # 组件主文件
 │   └── types.ts              # 组件类型定义（可选）
-├── StatisticsCard/            # 统计卡片组件
+├── SentryDemo/               # Sentry示例组件
 │   ├── index.vue             # 组件主文件
 │   └── README.md             # 组件文档（可选）
 └── ...                       # 其他通用组件
 ```
 
 **组件命名规范**:
-- 目录名: PascalCase (如 `QuickActions`)
+- 目录名: PascalCase (如 `BaseInput`)
 - 文件名: `index.vue` (主文件)
 - 类型文件: `types.ts` (可选)
 - 文档文件: `README.md` (可选)
@@ -244,7 +245,7 @@ typings/
 // ✅ 正确：使用别名导入
 import { UserApi } from '@/api/modules/user';
 import { useUserStore } from '@/store/modules/user';
-import QuickActions from '@/components/QuickActions/index.vue';
+import BaseInput from '@/components/BaseInput/index.vue';
 
 // ❌ 错误：相对路径过长
 import { UserApi } from '../../../api/modules/user';
@@ -263,7 +264,7 @@ import dayjs from 'dayjs';
 // 3. 项目内部导入
 import { UserApi } from '@/api/modules/user';
 import { useUserStore } from '@/store/modules/user';
-import QuickActions from '@/components/QuickActions/index.vue';
+import BaseInput from '@/components/BaseInput/index.vue';
 
 // 4. 类型导入（使用type关键字）
 import type { IUserInfo } from '@/interface/Api';
@@ -272,7 +273,7 @@ import type { IUserInfo } from '@/interface/Api';
 ### 组件引用规范
 ```typescript
 // ✅ 正确：页面组件引用通用组件
-import QuickActions from '@/components/QuickActions/index.vue';
+import BaseInput from '@/components/BaseInput/index.vue';
 
 // ✅ 正确：页面组件引用自己的私有组件
 import UserForm from './components/UserForm.vue';

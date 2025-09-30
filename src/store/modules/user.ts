@@ -76,10 +76,14 @@ export const useUserStore = defineStore(
     const loginAction = async (userInfo: { username: string; password: string }) => {
       const username = userInfo.username.trim();
       try {
-        const response = await LoginService.login(username, userInfo.password);
-        const tokenStr = response.data.token;
+        const response = await LoginService.login({ username, password: userInfo.password });
+        // 根据接口结构，正确获取token
+        const tokenStr = response.results?.token;
+        if (!tokenStr) {
+          return Promise.reject(new Error('登录失败：未获取到token'));
+        }
         setTokenValue(tokenStr);
-        return Promise.resolve();
+        return Promise.resolve(tokenStr);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -122,6 +126,7 @@ export const useUserStore = defineStore(
       try {
         // 调用退出登录接口
         await LoginService.logout();
+        console.log('退出登录');
         setTokenValue('');
         setId('');
         setName('');

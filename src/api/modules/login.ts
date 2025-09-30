@@ -1,17 +1,17 @@
 import { PROXY_URI } from '@/constants';
-import type { IResponse } from '@/interface';
 import AxiosInstance from '../instance';
 
 const Dict = {
-  login: `${PROXY_URI.API}/admin/login`,
-  logout: `${PROXY_URI.API}/admin/logout`,
+  login: `${PROXY_URI.API}/login`,
+  logout: `${PROXY_URI.API}/logout`,
+  getUserInfo: `${PROXY_URI.API}/userinfo`,
 } as const;
 
 /**
  * 登录参数接口
  * 用于管理员登录身份验证
  */
-export interface LoginParams {
+export interface LoginRequest {
   /** 用户名 */
   username: string;
   /** 密码 */
@@ -22,7 +22,7 @@ export interface LoginParams {
  * 登录响应接口
  * 返回登录成功后的令牌信息
  */
-export interface LoginResponse extends IResponse {
+export interface LoginResponse {
   /** 访问令牌 */
   token: string;
 }
@@ -31,10 +31,10 @@ const LoginService = {
   /**
    * 用户登录
    */
-  login(username: string, password: string) {
+  login(data: LoginRequest) {
     return AxiosInstance.post<LoginResponse>(Dict.login, {
-      username,
-      password,
+      username: data.username,
+      password: data.password,
     });
   },
 
@@ -42,7 +42,14 @@ const LoginService = {
    * 用户登出
    */
   logout() {
-    return AxiosInstance.post<IResponse>(Dict.logout);
+    return AxiosInstance.post(Dict.logout);
+  },
+
+  /**
+   * 获取用户信息
+   */
+  getUserInfo() {
+    return AxiosInstance.get(Dict.getUserInfo);
   },
 };
 

@@ -1,5 +1,6 @@
 import { createApp, markRaw } from 'vue';
 import 'element-plus/theme-chalk/dark/css-vars.css';
+import 'element-plus/dist/index.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 
 import App from './app/App.vue';

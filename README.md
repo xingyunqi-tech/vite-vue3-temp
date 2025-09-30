@@ -67,8 +67,11 @@ vite-vue3-temp/
 │   │   ├── images/            # 图片资源
 │   │   └── styles/            # 样式文件
 │   ├── components/            # 通用组件
-│   │   ├── QuickActions/      # 快捷操作组件
-│   │   └── StatisticsCard/    # 统计卡片组件
+│   │   ├── BaseInput/         # 基础输入组件
+│   │   └── SentryDemo/        # Sentry示例组件
+│   ├── business-components/   # 业务组件
+│   │   ├── LoginInput/        # 登录输入组件
+│   │   └── QrCodeLogin/       # 二维码登录组件
 │   ├── constants/             # 常量定义
 │   ├── interface/             # TypeScript 接口定义
 │   ├── layout/                # 布局组件

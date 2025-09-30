@@ -369,6 +369,278 @@ const handleSubmit = (formData: IFormData) => {
 const emit = defineEmits(['submit', 'cancel']);
 ```
 
+## 📊 常量定义规范
+
+### 1. 常量组织结构
+```
+src/constants/
+├── index.ts        # 常量统一导出
+└── System.ts       # 系统相关常量
+```
+
+### 2. 常量定义示例
+```typescript
+// constants/System.ts
+
+/**
+ * 不同服务的代理前缀
+ */
+export const PROXY_URI = {
+  API: '/apiService',
+} as const;
+
+/**
+ * 默认语言
+ */
+export const DEFAULT_LOCALE = 'zh-CN';
+
+/**
+ * 默认主题
+ */
+export const DEFAULT_THEME_STYLE = 'light';
+
+/**
+ * 语言包选项
+ */
+export enum LOCALE_TYPE {
+  ZH_CN = 'zh-CN',
+  EN_US = 'en-US',
+}
+```
+
+### 3. 常量命名规范
+```typescript
+// ✅ 正确：使用大写字母和下划线
+export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const API_BASE_URL = '/api';
+export const DEFAULT_PAGE_SIZE = 10;
+
+// ✅ 正确：对象常量使用 as const
+export const PROXY_URI = {
+  API: '/apiService',
+  WS: '/wsService',
+} as const;
+
+// ❌ 错误：使用小写命名
+export const maxFileSize = 10 * 1024 * 1024;
+export const apiBaseUrl = '/api';
+```
+
+### 4. 常量导出规范
+```typescript
+// constants/index.ts
+/**
+ * 常量统一导出文件
+ * 将所有常量模块在此处统一导出，便于外部使用
+ */
+
+// 导出系统相关常量
+export * from './System';
+```
+
+## 🔤 TypeScript类型定义规范
+
+### 1. 类型组织结构
+```
+src/interface/
+├── index.ts        # 类型统一导出
+└── System.ts       # 系统相关类型
+```
+
+### 2. 类型定义示例
+```typescript
+// interface/System.ts
+
+/**
+ * 语言包枚举
+ */
+export enum LocaleList {
+  'zh-CN',
+  'en-US',
+}
+
+/**
+ * 语言包类型
+ */
+export type LocaleKey = keyof typeof LocaleList;
+
+/**
+ * 主题样式枚举
+ */
+export enum ThemeStyleList {
+  'light',
+  'dark',
+}
+
+/**
+ * 主题样式类型
+ */
+export type ThemeStyleKey = keyof typeof ThemeStyleList;
+```
+
+### 3. 接口命名规范
+```typescript
+// ✅ 正确：使用I前缀或描述性名称
+export interface IUserInfo {
+  id: string;
+  username: string;
+}
+
+export type UserStatus = 'active' | 'inactive' | 'pending';
+
+export type LocaleKey = keyof typeof LocaleList;
+
+// ❌ 错误：命名不清晰
+export interface User {
+  data: any;
+}
+
+export type T = string;
+```
+
+### 4. 类型导出规范
+```typescript
+// interface/index.ts
+/**
+ * 接口类型定义统一导出文件
+ * 将所有接口定义在此处统一导出，便于外部使用
+ */
+
+// 导出业务相关接口
+export * from './System';
+```
+
+## 🔧 工具函数编码规范
+
+### 1. 函数组织结构
+```
+src/utils/
+├── index.ts        # 工具函数统一导出
+├── date.ts         # 日期处理函数
+└── locale.ts       # 语言包处理函数
+```
+
+### 2. 日期工具函数示例
+```typescript
+// utils/date.ts
+
+/**
+ * 日期处理相关工具函数
+ * 提供日期格式化和字符串转日期等功能
+ */
+
+/**
+ * 格式化日期为指定格式的字符串
+ * @param date - 要格式化的日期对象
+ * @param fmt - 格式化模板字符串，如'yyyy-MM-dd hh:mm:ss'
+ * @returns 格式化后的日期字符串
+ */
+export function formatDate(date: Date, fmt: string): string {
+  if (/(y+)/.test(fmt)) {
+    fmt = fmt.replace(RegExp.$1, `${date.getFullYear()}`.substr(4 - RegExp.$1.length));
+  }
+  const o: { [key: string]: number } = {
+    'M+': date.getMonth() + 1,
+    'd+': date.getDate(),
+    'h+': date.getHours(),
+    'm+': date.getMinutes(),
+    's+': date.getSeconds(),
+  };
+  for (const k in o) {
+    if (new RegExp(`(${k})`).test(fmt)) {
+      const str: string = `${o[k]}`;
+      fmt = fmt.replace(RegExp.$1, RegExp.$1.length === 1 ? str : padLeftZero(str));
+    }
+  }
+  return fmt;
+}
+
+/**
+ * 左侧补零工具函数
+ * @param str - 要补零的字符串
+ * @returns 补零后的字符串
+ * @private
+ */
+function padLeftZero(str: string): string {
+  return `00${str}`.substr(str.length);
+}
+```
+
+### 3. 语言包工具函数示例
+```typescript
+// utils/locale.ts
+
+import elementPlusZhCN from 'element-plus/es/locale/lang/zh-cn';
+import elementPlusEnUS from 'element-plus/es/locale/lang/en';
+import type { LocaleKey } from '@/interface/System';
+
+/**
+ * Element Plus 语言包映射
+ */
+const elementPlusLocales = {
+  'zh-CN': elementPlusZhCN,
+  'en-US': elementPlusEnUS,
+};
+
+/**
+ * 根据语言代码获取对应的 Element Plus 语言包
+ * @param locale 语言代码
+ * @returns Element Plus 语言包
+ */
+export const getElementPlusLocale = (locale: LocaleKey) => {
+  return elementPlusLocales[locale] || elementPlusLocales['zh-CN'];
+};
+```
+
+### 4. 函数命名规范
+```typescript
+// ✅ 正确：清晰的函数命名
+export function formatDate(date: Date, fmt: string): string {
+  // 格式化日期
+}
+
+export function getElementPlusLocale(locale: LocaleKey) {
+  // 获取语言包
+}
+
+// ❌ 错误：命名不清晰
+export function format(d: any, f: any) {
+  // 不清楚在格式化什么
+}
+
+export function get(key: string) {
+  // 不清楚在获取什么
+}
+```
+
+### 5. 函数文档注释规范
+```typescript
+/**
+ * 完整的函数文档注释
+ * @param param1 - 参数1的说明
+ * @param param2 - 参数2的说明
+ * @returns 返回值说明
+ * @example
+ * const result = formatDate(new Date(), 'yyyy-MM-dd');
+ * console.log(result); // 2023-12-25
+ */
+export function formatDate(date: Date, fmt: string): string {
+  // 函数实现
+}
+```
+
+### 6. 工具函数导出规范
+```typescript
+// utils/index.ts
+/**
+ * 工具函数统一导出文件
+ * 将所有工具函数在此处统一导出，便于外部使用
+ */
+
+export * from './date';
+export * from './locale';
+```
+
 ## 🏪 状态管理规范 (Pinia)
 
 ### Store定义规范
@@ -916,6 +1188,246 @@ const fetchUserData = async () => {
     console.error('获取用户列表失败:', appError);
   }
 };
+```
+
+## 📋 编码规范快速检查清单
+
+### TypeScript 类型安全检查
+- [ ] 所有变量都有明确的类型定义，避免使用 `any`
+- [ ] 接口定义完整，包含所有必要字段和注释
+- [ ] 函数参数和返回值类型明确
+- [ ] 使用类型守卫而不是类型断言
+- [ ] 泛型使用合理，提高代码复用性
+- [ ] 导入类型时使用 `type` 关键字
+
+### Vue组件规范检查
+- [ ] Props 和 Emits 有完整的类型定义
+- [ ] 响应式数据类型明确，避免类型推断错误
+- [ ] 计算属性有返回类型注解
+- [ ] 异步函数有完善的错误处理
+- [ ] 生命周期钩子使用合理
+- [ ] 模板中使用 `v-key` 进行列表渲染
+
+### API接口规范检查
+- [ ] 接口方法有完整的 JSDoc 注释
+- [ ] 参数验证完善，包含边界条件检查
+- [ ] 错误处理机制统一
+- [ ] 返回值类型定义完整
+- [ ] 使用统一的响应格式
+- [ ] 异步操作有超时和重试机制
+
+### 样式编码检查
+- [ ] 使用 CSS 变量而不是硬编码颜色值
+- [ ] 样式类名遵循 BEM 命名规范
+- [ ] 响应式设计适配多种屏幕尺寸
+- [ ] 使用语义化的样式组织
+- [ ] 避免深层嵌套选择器（不超过3层）
+- [ ] 样式性能优化（避免复杂选择器）
+
+## ❓ 编码规范常见问题
+
+### Q: 什么时候可以使用 `any` 类型？
+**A**: 极少数情况下可以使用：
+- 迁移现有 JavaScript 代码的过渡期
+- 第三方库没有类型定义且无法补充
+- 动态内容确实无法预知类型结构
+- **更好的选择**: 使用 `unknown` + 类型守卫
+
+### Q: 如何处理复杂的嵌套对象类型？
+**A**: 
+```typescript
+// ✅ 推荐：拆分复杂类型
+interface IUserProfile {
+  personal: IPersonalInfo;
+  contact: IContactInfo;
+  preferences: IUserPreferences;
+}
+
+interface IPersonalInfo {
+  name: string;
+  age: number;
+  avatar?: string;
+}
+
+// ❌ 避免：过于复杂的嵌套
+interface IUser {
+  name: string;
+  contact: {
+    email: string;
+    phone: {
+      primary: string;
+      secondary?: string;
+    };
+  };
+}
+```
+
+### Q: 组件的 Props 验证应该多严格？
+**A**: 
+- **必需 Props**: 严格验证，包含类型和格式检查
+- **可选 Props**: 提供合理默认值
+- **对象 Props**: 使用接口定义结构
+- **函数 Props**: 明确参数和返回值类型
+
+### Q: 如何组织大型组件的代码结构？
+**A**: 
+```vue
+<script setup lang="ts">
+// 1. 导入声明（按类别分组）
+// 2. 类型定义
+// 3. Props 和 Emits
+// 4. 响应式数据
+// 5. 计算属性
+// 6. 监听器
+// 7. 生命周期
+// 8. 方法定义
+// 9. 暴露的方法/属性
+</script>
+```
+
+### Q: 错误处理的最佳实践是什么？
+**A**:
+```typescript
+// ✅ 推荐的错误处理模式
+const fetchUserData = async (userId: string): Promise<IUserInfo> => {
+  try {
+    validateUserId(userId);
+    const response = await UserApi.getInfo(userId);
+    return response.data;
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      throw new UserError('用户ID格式不正确', 'INVALID_USER_ID');
+    }
+    if (error instanceof NetworkError) {
+      throw new UserError('网络连接失败', 'NETWORK_ERROR');
+    }
+    throw new UserError('获取用户信息失败', 'UNKNOWN_ERROR');
+  }
+};
+```
+
+## 🛠️ 代码质量工具配置
+
+### ESLint 规则检查
+```bash
+# 检查所有文件
+pnpm lint
+
+# 自动修复可修复的问题
+pnpm lint:fix
+
+# 检查特定文件
+pnpm eslint src/components/MyComponent.vue
+```
+
+### TypeScript 编译检查
+```bash
+# 类型检查
+pnpm type-check
+
+# 监听模式类型检查
+pnpm type-check:watch
+```
+
+### 样式规范检查
+```bash
+# Stylelint 检查
+pnpm stylelint "src/**/*.{vue,scss,css}"
+
+# 自动修复样式问题
+pnpm stylelint "src/**/*.{vue,scss,css}" --fix
+```
+
+## 🔧 快速修复常见问题
+
+### 类型错误快速修复
+```typescript
+// 问题：Property 'xxx' does not exist on type
+// 修复：完善接口定义
+interface IApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+  // 添加缺失的属性
+  timestamp?: number;
+  traceId?: string;
+}
+
+// 问题：Argument of type 'unknown' is not assignable
+// 修复：使用类型守卫
+function isUserInfo(obj: unknown): obj is IUserInfo {
+  return typeof obj === 'object' && obj !== null && 'id' in obj;
+}
+```
+
+### Vue组件常见问题
+```vue
+<!-- 问题：v-for 缺少 key -->
+<!-- 修复：添加唯一 key -->
+<div v-for="item in items" :key="item.id">
+  {{ item.name }}
+</div>
+
+<!-- 问题：事件处理器类型错误 -->
+<!-- 修复：明确事件类型 -->
+<template>
+  <button @click="handleClick">点击</button>
+</template>
+
+<script setup lang="ts">
+const handleClick = (event: MouseEvent): void => {
+  // 处理点击事件
+};
+</script>
+```
+
+### API接口问题修复
+```typescript
+// 问题：缺少错误处理
+// 修复：完善错误处理
+const getUserList = async (params: IUserListParams) => {
+  try {
+    const response = await api.get('/users', { params });
+    return response.data;
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    throw handleApiError(error);
+  }
+};
+```
+
+## 📊 代码质量指标
+
+### 可接受的质量标准
+- **TypeScript 覆盖率**: ≥ 95%
+- **ESLint 错误数**: 0
+- **代码复杂度**: ≤ 10（单个函数）
+- **函数长度**: ≤ 50 行
+- **文件长度**: ≤ 500 行
+- **嵌套深度**: ≤ 4 层
+
+### 定期检查项目
+```bash
+# 全面代码质量检查脚本
+#!/bin/bash
+echo "🔍 执行代码质量检查..."
+
+echo "1️⃣ TypeScript 类型检查"
+pnpm type-check
+
+echo "2️⃣ ESLint 规范检查"
+pnpm lint
+
+echo "3️⃣ Stylelint 样式检查"
+pnpm stylelint "src/**/*.{vue,scss,css}"
+
+echo "4️⃣ 单元测试"
+pnpm test:unit
+
+echo "5️⃣ 构建验证"
+pnpm build
+
+echo "✅ 代码质量检查完成"
 ```
 
 通过遵循这些编码规范，可以确保代码的一致性、可读性和可维护性，为AI编程提供清晰的指导标准。

@@ -43,7 +43,7 @@ tests/
 ├── utils/
 │   └── test-helpers.ts       # 测试工具函数
 ├── components/               # 组件测试
-│   └── StatisticsCard.test.ts
+│   └── LoginInput.test.ts
 ├── utils/                    # 工具函数测试
 └── api/                      # API测试
 ```

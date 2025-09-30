@@ -147,6 +147,36 @@ export class E2EHelpers {
   }
 
   /**
+   * 安全访问 localStorage
+   */
+  async safeLocalStorage(action: 'get' | 'set' | 'remove', key: string, value?: string) {
+    try {
+      return await this.page.evaluate(
+        ({ action, key, value }) => {
+          try {
+            if (action === 'get') {
+              return localStorage.getItem(key);
+            } else if (action === 'set' && value) {
+              localStorage.setItem(key, value);
+              return true;
+            } else if (action === 'remove') {
+              localStorage.removeItem(key);
+              return true;
+            }
+          } catch (e) {
+            console.warn('localStorage access error:', e);
+            return null;
+          }
+        },
+        { action, key, value },
+      );
+    } catch (e) {
+      console.warn('Failed to access localStorage in test environment', e);
+      return null;
+    }
+  }
+
+  /**
    * 检查无障碍性
    */
   async checkAccessibility() {

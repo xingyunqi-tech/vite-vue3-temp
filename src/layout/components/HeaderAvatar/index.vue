@@ -34,22 +34,20 @@ const { t: $t } = useI18n();
 const handleCommand = async (command: string) => {
   switch (command) {
     case 'logout':
-      try {
-        await ElMessageBox.confirm($t('layout.logoutConfirm'), $t('layout.tip'), {
-          confirmButtonText: $t('common.confirm'),
-          cancelButtonText: $t('common.cancel'),
-          type: 'warning',
+      await ElMessageBox.confirm($t('layout.logoutConfirm'), $t('layout.tip'), {
+        confirmButtonText: $t('common.confirm'),
+        cancelButtonText: $t('common.cancel'),
+        type: 'warning',
+      })
+        .then(async () => {
+          // 执行退出登录
+          await userStore.logoutAction();
+          ElMessage.success($t('layout.logoutSuccess'));
+          router.push('/Login');
+        })
+        .catch(() => {
+          // 用户取消操作
         });
-
-        // 执行退出登录
-        await userStore.logoutAction();
-        ElMessage.success($t('layout.logoutSuccess'));
-
-        // 跳转到登录页
-        await router.push('/Login');
-      } catch (error) {
-        // 用户取消操作
-      }
       break;
   }
 };

@@ -13,7 +13,7 @@ export const DEFAULT_LOCALE = 'zh-CN';
 /**
  * 默认主题
  */
-export const DEFAULT_THEME_STYLE = 'dark';
+export const DEFAULT_THEME_STYLE = 'light';
 
 /**
  * 语言包选项
