@@ -73,11 +73,8 @@ const handleLogoClick = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--colorBorderSecondary);
-  background: var(--colorBgContainer);
-  box-shadow: 0 2px 4px var(--colorBgMask);
+  height: 103px;
+  padding: 0 20px;
 }
 
 .header-left {
@@ -113,16 +110,5 @@ const handleLogoClick = () => {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-/* 响应式设计 */
-@media (width <= 768px) {
-  .layout-header {
-    padding: 0 16px;
-  }
-
-  .header-center {
-    padding: 0 12px;
-  }
 }
 </style>

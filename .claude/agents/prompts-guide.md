@@ -15,7 +15,11 @@
 要求：
 - 使用Composition API和TypeScript
 - 完整的Props接口定义和JSDoc注释
-- 使用CSS变量进行样式定义
+- 使用 public/theme.css 中定义的CSS变量，禁止硬编码颜色
+- 所有元素添加class，不直接使用标签名选择器
+- 数据驱动：列表内容使用 v-for + 数据数组，便于接口对接
+- 图片资源按页面分类存放在 src/assets/images/[PageName]/ 目录
+- 图片下载前检查本地是否已存在
 - 包含响应式设计
 - 添加适当的事件处理
 - 遵循项目编码规范

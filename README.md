@@ -43,29 +43,29 @@
 
 ```md
 vite-vue3-temp/
-├── .claude/                    # Claude AI 配置和文档
-│   └── agents/                 # AI Agent 配置文件
-├── .husky/                     # Git hooks 配置
-├── config/                     # 项目配置文件
+├── .claude/                   # Claude AI 配置和文档
+│   └── agents/                # AI Agent 配置文件
+├── .husky/                    # Git hooks 配置
+├── config/                    # 项目配置文件
 │   ├── devServer.ts           # 开发服务器配置
 │   ├── host.ts                # 主机配置
 │   └── proxy.ts               # 代理配置
-├── public/                     # 静态资源
+├── public/                    # 静态资源
 │   ├── favicon.ico            # 网站图标
 │   ├── loading.css            # 加载样式
 │   └── theme.css              # 主题样式
-├── scripts/                    # 构建和工具脚本
+├── scripts/                   # 构建和工具脚本
 │   ├── i18n/                  # 国际化自动化脚本
 │   ├── commit-msg/            # 提交信息检查
 │   ├── pre-commit/            # 提交前检查
 │   └── pre-push/              # 推送前检查
-├── src/                        # 源代码目录
+├── src/                       # 源代码目录
 │   ├── api/                   # API 接口层
 │   │   ├── instance.ts        # Axios 实例配置
 │   │   └── modules/           # API 模块
 │   ├── assets/                # 静态资源
-│   │   ├── images/            # 图片资源
-│   │   └── styles/            # 样式文件
+│   │   ├── icons/             # 图标资源
+│   │   └── images/            # 图片资源
 │   ├── components/            # 通用组件
 │   │   ├── BaseInput/         # 基础输入组件
 │   │   └── SentryDemo/        # Sentry示例组件
@@ -78,6 +78,7 @@ vite-vue3-temp/
 │   ├── router/                # 路由配置
 │   ├── store/                 # 状态管理 (Pinia)
 │   │   └── modules/           # 状态模块
+│   ├── styles                 # 样式文件
 │   ├── utils/                 # 工具函数
 │   ├── views/                 # 页面组件
 │   │   ├── home/              # 首页
@@ -85,8 +86,8 @@ vite-vue3-temp/
 │   │   └── 404.vue            # 404页面
 │   ├── App.vue                # 根组件
 │   └── main.ts                # 应用入口
-├── typings/                    # TypeScript 类型声明
-├── tests/                      # 测试文件
+├── typings/                   # TypeScript 类型声明
+├── tests/                     # 测试文件
 ├── package.json               # 项目依赖配置
 ├── vite.config.ts             # Vite 构建配置
 ├── tsconfig.json              # TypeScript 配置

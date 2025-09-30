@@ -1,14 +1,25 @@
 <template>
-  <span class="logo-text">{{ title }}</span>
+  <h1 class="logo-text">
+    <template v-for="(line, index) in titleLines" :key="index">
+      {{ line }}<br v-if="index < titleLines.length - 1" />
+    </template>
+  </h1>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 interface Props {
   title?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   title: '',
+});
+
+const titleLines = computed(() => {
+  if (!props.title) return [''];
+  return props.title.split('\n');
 });
 </script>
 
@@ -17,12 +28,6 @@ withDefaults(defineProps<Props>(), {
   color: var(--colorTextHeading);
   font-size: 18px;
   font-weight: 600;
-}
-
-/* 响应式设计 */
-@media (width <= 768px) {
-  .logo-text {
-    display: none;
-  }
+  line-height: 1.32;
 }
 </style>

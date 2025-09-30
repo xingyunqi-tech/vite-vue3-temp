@@ -13,10 +13,14 @@ import { getElementPlusLocale } from '@/utils/locale';
 import { loadLocaleMessages } from '@/plugins/locale';
 import SentryProvider from '@/components/SentryProvider/index.vue';
 import dayjs from '@/plugins/dayjs';
+import { provideLayoutContext } from '@/layout/useLayoutContext';
 
 const globalStore = useGlobalStore();
 const { currentLocale, currentTheme } = toRefs(globalStore);
 const { initLocale, initTheme } = globalStore;
+
+// 提供布局上下文给整个应用
+provideLayoutContext();
 
 onMounted(() => {
   initLocale();

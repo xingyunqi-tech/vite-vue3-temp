@@ -2,7 +2,7 @@
   <div class="login-container">
     <!-- Logo 头部 -->
     <div class="logo-header">
-      <img src="@/assets/images/Login/logo.png" alt="Logo" class="logo-image" />
+      <img src="@/assets/images/common/logo.png" alt="Logo" class="logo-image" />
       <div class="logo-text">
         <h1 class="logo-text-title">生命科学学院</h1>
         <h1 class="logo-text-title">实验教学示范中心管理平台</h1>

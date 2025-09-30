@@ -1,16 +1,13 @@
 <template>
-  <el-icon class="logo-icon">
-    <House />
-  </el-icon>
+  <img src="@/assets/images/common/logo.png" alt="Logo" class="logo-image" />
 </template>
 
-<script setup lang="ts">
-import { House } from '@element-plus/icons-vue';
-</script>
+<script setup lang="ts"></script>
 
 <style scoped lang="scss">
-.logo-icon {
-  color: var(--colorPrimary);
-  font-size: 24px;
+.logo-image {
+  width: 53px;
+  height: 53px;
+  object-fit: cover;
 }
 </style>

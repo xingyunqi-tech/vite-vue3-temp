@@ -383,45 +383,197 @@ const handleLogin = async () => {
 // 4. 根据设计数据生成符合编码规范的组件代码
 ```
 
-### 2. 图片资源管理
+### 2. 图片资源管理规范（重要）
+
+#### 目录结构规范
 ```
 src/assets/
-├── images/              # 图片资源
+├── images/              # 图片资源（PNG、JPG等）
 │   ├── Login/          # 按页面/功能分类
 │   │   ├── background.png
 │   │   ├── logo.png
 │   │   └── qrcode.png
-│   └── Home/
-│       └── banner.png
-└── icons/              # 图标资源
-    ├── user.svg
-    └── settings.svg
+│   ├── Home/
+│   │   └── banner.png
+│   └── common/         # 通用图片
+│       └── default-avatar.png
+└── icons/              # 图标资源（SVG）
+    ├── Close.svg
+    ├── Copy.svg
+    └── user.svg
 ```
 
-### 3. 下载Figma图片资源
+#### 图片资源检查流程
 ```typescript
-// 使用mcp_Framelink_Figma_MCP_download_figma_images下载图片
-// 1. 获取图片节点ID
-// 2. 指定本地保存路径（src/assets/images/或src/assets/icons/）
-// 3. 自动下载并保存到指定目录
-// 4. 支持PNG和SVG格式
+/**
+ * 图片资源下载前的检查流程
+ */
+// 1. 检查目标目录是否存在对应图片
+// 2. 如果已存在相同名称的图片，跳过下载
+// 3. 如果不存在，才下载新图片
+// 4. 下载后验证图片是否正确加载
 
-// 图片保存路径规范：
-// - 页面相关图片: src/assets/images/PageName/
-// - 通用图片: src/assets/images/common/
-// - 图标: src/assets/icons/
+// 示例：检查图片是否存在
+const imagePath = 'src/assets/images/Login/background.png';
+// 如果 background.png 已存在，则不需要下载
+// 如果不存在，使用 Figma MCP 下载
+```
+
+#### 图片路径使用规范
+```vue
+<template>
+  <!-- ✅ 正确：使用相对路径导入 -->
+  <img :src="backgroundImage" alt="登录背景" class="bg-image" />
+  
+  <!-- ❌ 错误：直接硬编码路径 -->
+  <img src="/src/assets/images/Login/background.png" alt="登录背景" />
+</template>
+
+<script setup lang="ts">
+import backgroundImage from '@/assets/images/Login/background.png';
+// 或者
+// import backgroundImage from '@/assets/images/Login/background.png?url';
+</script>
+```
+
+### 3. 下载Figma图片资源（详细步骤）
+
+#### 步骤1：获取图片节点信息
+```typescript
+// 从 Figma 设计数据中获取图片节点
+// 1. 识别需要下载的图片节点（image fills 或 SVG icons）
+// 2. 获取节点ID（格式：123:456）
+// 3. 确定图片类型（PNG/SVG）
+```
+
+#### 步骤2：检查本地是否已存在
+```typescript
+// 在下载前，先检查本地路径
+// 图片命名规则：
+// - 使用语义化名称（如 background.png, logo.png）
+// - 避免使用节点ID作为文件名
+// - 保持文件名简洁且具有描述性
+
+// 检查路径示例：
+// src/assets/images/Login/background.png
+// src/assets/images/Login/logo.png
+// src/assets/icons/Close.svg
+```
+
+#### 步骤3：下载图片到正确目录
+```typescript
+// 使用 mcp_Framelink_Figma_MCP_download_figma_images 下载
+// 参数示例：
+{
+  fileKey: "abc123",
+  localPath: "/Users/xxx/project/src/assets/images/Login/", // 绝对路径
+  nodes: [
+    {
+      nodeId: "123:456",
+      fileName: "background.png",  // 语义化文件名
+      imageRef: "xxx",             // 如果是图片填充
+      needsCropping: false
+    },
+    {
+      nodeId: "789:012",
+      fileName: "logo.png",
+      imageRef: "yyy",
+      needsCropping: false
+    }
+  ]
+}
+```
+
+#### 步骤4：验证图片加载
+```vue
+<script setup lang="ts">
+// 下载后，在组件中验证导入
+import background from '@/assets/images/Login/background.png';
+import logo from '@/assets/images/Login/logo.png';
+
+// 确保图片正确加载
+console.log('Background:', background);
+console.log('Logo:', logo);
+</script>
 ```
 
 ### 4. 设计稿还原注意事项
 - ✅ **精确还原**: 严格按照设计稿的尺寸、颜色、间距
 - ✅ **无冗余**: 不添加设计稿中没有的元素或层级
+- ✅ **图片管理**: 检查已存在图片，避免重复下载
+- ✅ **路径规范**: 图片按页面/功能分类存放在 images 目录
 - ✅ **响应式**: 考虑不同屏幕尺寸的适配
 - ✅ **性能优化**: 图片压缩、懒加载
 - ❌ **避免过度封装**: 不要为了组件化而增加不必要的层级
 
 ## 📖 组件开发最佳实践
 
-### 1. Props 设计原则
+### 1. 数据驱动原则（核心规范）
+
+#### 模板应该由数据驱动
+```vue
+<!-- ❌ 错误：硬编码在模板中 -->
+<template>
+  <div class="menu-list">
+    <div class="menu-item">首页</div>
+    <div class="menu-item">用户管理</div>
+    <div class="menu-item">系统设置</div>
+    <div class="menu-item">关于我们</div>
+  </div>
+</template>
+
+<!-- ✅ 正确：使用数据驱动 -->
+<template>
+  <div class="menu-list">
+    <div 
+      v-for="item in menuItems" 
+      :key="item.id" 
+      class="menu-item"
+    >
+      {{ item.name }}
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// 定义数据接口
+interface MenuItem {
+  id: string;
+  name: string;
+  path?: string;
+  icon?: string;
+}
+
+// 使用响应式数据
+const menuItems = ref<MenuItem[]>([
+  { id: '1', name: '首页', path: '/home' },
+  { id: '2', name: '用户管理', path: '/users' },
+  { id: '3', name: '系统设置', path: '/settings' },
+  { id: '4', name: '关于我们', path: '/about' },
+]);
+</script>
+```
+
+#### 数据驱动的优势
+```typescript
+// 1. 便于后续接口对接
+const fetchMenuItems = async () => {
+  const response = await MenuApi.getMenuList();
+  menuItems.value = response.data;
+};
+
+// 2. 便于数据过滤和处理
+const activeItems = computed(() => 
+  menuItems.value.filter(item => item.active)
+);
+
+// 3. 便于动态修改
+const addMenuItem = (item: MenuItem) => {
+  menuItems.value.push(item);
+};
+```
+
+### 2. Props 设计原则
 ```typescript
 // ✅ 正确：完整的Props定义
 interface Props {
@@ -442,7 +594,7 @@ const props = withDefaults(defineProps<Props>(), {
 const props = defineProps(['data', 'size']);
 ```
 
-### 2. 事件设计原则
+### 3. 事件设计原则
 ```typescript
 // ✅ 正确：完整的事件定义
 interface Emits {
@@ -458,21 +610,210 @@ const emit = defineEmits<Emits>();
 const emit = defineEmits(['submit', 'cancel']);
 ```
 
-### 3. 样式规范
+### 4. 样式规范（重要）
+
+#### 4.1 颜色变量使用规范
 ```scss
-// ✅ 正确：使用CSS变量
+// ✅ 正确：使用 public/theme.css 中定义的CSS变量
 .component {
-  color: var(--colorTextHeading);
-  background: var(--colorBgContainer);
-  border: 1px solid var(--colorBorder);
+  // 文本颜色
+  color: var(--colorTextHeading);          // 标题文本
+  // color: var(--colorText);               // 普通文本
+  // color: var(--colorTextSecondary);      // 次要文本
+  // color: var(--colorTextTertiary);       // 三级文本
+  // color: var(--colorTextPlaceholder);    // 占位符文本
+  
+  // 背景颜色
+  background: var(--colorBgContainer);     // 容器背景
+  // background: var(--colorBgLayout);      // 布局背景
+  // background: var(--colorBgElevated);    // 浮层背景
+  
+  // 边框颜色
+  border: 1px solid var(--colorBorder);    // 默认边框
+  // border: 1px solid var(--colorBorderSecondary);  // 次要边框
+  
+  // 主题色
+  // background: var(--colorPrimary);       // 主色
+  // color: var(--colorPrimaryText);        // 主色文本
+  // border-color: var(--colorPrimaryBorder); // 主色边框
 }
 
 // ❌ 错误：硬编码颜色值
 .component {
-  color: #333;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  color: #333;              // 不要用硬编码
+  background: #fff;         // 不要用硬编码
+  border: 1px solid #e0e0e0;  // 不要用硬编码
 }
+
+// ✅ 正确：使用主题色板变量
+.highlight {
+  background: linear-gradient(92deg, var(--cyan-2) 0%, var(--blue-4) 100%);
+}
+
+.success-text {
+  color: var(--colorSuccess);
+}
+
+.error-text {
+  color: var(--colorError);
+}
+
+.warning-bg {
+  background: var(--colorWarningBg);
+  border: 1px solid var(--colorWarningBorder);
+}
+```
+
+#### 4.2 样式选择器规范
+```scss
+// ❌ 错误：直接使用标签名
+h1 {
+  font-size: 24px;
+  color: var(--colorTextHeading);
+}
+
+p {
+  color: var(--colorText);
+}
+
+div {
+  padding: 20px;
+}
+
+// ✅ 正确：为每个元素添加class
+.page-title {
+  font-size: 24px;
+  color: var(--colorTextHeading);
+}
+
+.page-content {
+  color: var(--colorText);
+}
+
+.content-wrapper {
+  padding: 20px;
+}
+
+// ✅ 正确：使用语义化class名称
+.menu-item {
+  padding: 12px 16px;
+  color: var(--colorText);
+  
+  &:hover {
+    background: var(--controlItemBgHover);
+    color: var(--colorPrimary);
+  }
+  
+  &--active {
+    background: var(--controlItemBgActive);
+    color: var(--colorPrimary);
+  }
+}
+```
+
+#### 4.3 完整的样式示例
+```vue
+<template>
+  <div class="user-card">
+    <div class="user-card__header">
+      <h3 class="user-card__title">{{ user.name }}</h3>
+      <span class="user-card__status user-card__status--active">在线</span>
+    </div>
+    <div class="user-card__body">
+      <p class="user-card__email">{{ user.email }}</p>
+      <p class="user-card__phone">{{ user.phone }}</p>
+    </div>
+    <div class="user-card__footer">
+      <button class="user-card__btn user-card__btn--primary">编辑</button>
+      <button class="user-card__btn user-card__btn--danger">删除</button>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+// 使用BEM命名规范 + CSS变量
+.user-card {
+  padding: 20px;
+  border: 1px solid var(--colorBorder);
+  border-radius: 8px;
+  background: var(--colorBgContainer);
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    margin: 0;
+    color: var(--colorTextHeading);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &__status {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    
+    &--active {
+      color: var(--colorSuccessText);
+      background: var(--colorSuccessBg);
+      border: 1px solid var(--colorSuccessBorder);
+    }
+    
+    &--offline {
+      color: var(--colorTextSecondary);
+      background: var(--colorFillAlter);
+      border: 1px solid var(--colorBorder);
+    }
+  }
+
+  &__body {
+    margin-bottom: 16px;
+  }
+
+  &__email,
+  &__phone {
+    margin: 8px 0;
+    color: var(--colorTextSecondary);
+    font-size: 14px;
+  }
+
+  &__footer {
+    display: flex;
+    gap: 12px;
+  }
+
+  &__btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    
+    &--primary {
+      color: var(--colorTextLight);
+      background: var(--colorPrimary);
+      
+      &:hover {
+        background: var(--colorPrimaryHover);
+      }
+    }
+    
+    &--danger {
+      color: var(--colorTextLight);
+      background: var(--colorError);
+      
+      &:hover {
+        background: var(--colorErrorHover);
+      }
+    }
+  }
+}
+</style>
 ```
 
 ### 4. 避免冗余DOM和样式（重点）
@@ -595,10 +936,33 @@ src/views/
 
 ## 📋 组件开发快速检查清单
 
+### 图片资源检查（新增）
+- [ ] 图片已按页面/功能分类存放在 `src/assets/images/` 目录
+- [ ] 图标已存放在 `src/assets/icons/` 目录
+- [ ] 下载前已检查本地是否存在同名图片
+- [ ] 图片路径使用导入方式而非硬编码
+- [ ] 图片文件命名语义化（如 `background.png`，而非 `image-123.png`）
+
+### 数据驱动检查（新增）
+- [ ] 列表、菜单等重复内容使用 `v-for` + 数据数组
+- [ ] 避免在模板中硬编码内容
+- [ ] 定义了完整的数据接口类型
+- [ ] 数据结构便于后续接口对接
+- [ ] 使用计算属性处理派生数据
+
+### 样式规范检查（强化）
+- [ ] 使用 `public/theme.css` 中定义的CSS变量
+- [ ] 所有颜色使用 `var(--colorXxx)` 而非硬编码
+- [ ] 不直接使用标签名选择器（如 `h1`, `p`, `div`）
+- [ ] 每个元素都添加了语义化的 class 名称
+- [ ] 遵循 BEM 命名规范或项目统一规范
+- [ ] 避免深层嵌套选择器（不超过3层）
+- [ ] 响应式设计（如需要）
+- [ ] 避免冗余样式
+
 ### 基础组件检查
 - [ ] 无业务逻辑，纯UI组件
 - [ ] Props和Emits有完整的TypeScript接口定义
-- [ ] 使用CSS变量而不是硬编码颜色
 - [ ] DOM结构简洁，无冗余层级
 - [ ] 样式使用scoped避免污染
 - [ ] 支持v-model（如适用）
@@ -610,13 +974,6 @@ src/views/
 - [ ] 错误处理完善
 - [ ] 加载状态处理
 - [ ] 与Store集成（如需要）
-
-### 样式规范检查
-- [ ] 使用CSS变量而不是硬编码
-- [ ] 遵循BEM命名规范（或项目统一规范）
-- [ ] 避免深层嵌套选择器（不超过3层）
-- [ ] 响应式设计（如需要）
-- [ ] 避免冗余样式
 
 ## ❓ 常见问题
 

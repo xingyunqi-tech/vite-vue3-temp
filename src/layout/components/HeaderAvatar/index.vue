@@ -79,11 +79,4 @@ const handleCommand = async (command: string) => {
   color: var(--colorTextTertiary);
   font-size: 12px;
 }
-
-/* 响应式设计 */
-@media (width <= 768px) {
-  .username {
-    display: none;
-  }
-}
 </style>

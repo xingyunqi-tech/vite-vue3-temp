@@ -2,5 +2,7 @@ node_modules
 dist
 deploy
 coverage
+auto-imports.d.ts
+components.d.ts
 *.md
 .cursor

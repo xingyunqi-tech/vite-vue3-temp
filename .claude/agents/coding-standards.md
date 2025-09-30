@@ -1020,21 +1020,105 @@ const count = users.length; // 获取用户数量
 
 ## 🎨 样式编码规范
 
+### CSS变量使用规范（重要）
+
+#### 必须使用 public/theme.css 中定义的CSS变量
+```scss
+// ✅ 正确：使用预定义的CSS变量
+.component {
+  // 文本颜色
+  color: var(--colorTextHeading);        // 标题文本 rgba(0,0,0,0.88)
+  color: var(--colorText);               // 普通文本 rgba(0,0,0,0.88)
+  color: var(--colorTextSecondary);      // 次要文本 rgba(0,0,0,0.65)
+  color: var(--colorTextTertiary);       // 三级文本 rgba(0,0,0,0.45)
+  color: var(--colorTextPlaceholder);    // 占位符 rgba(0,0,0,0.25)
+  
+  // 背景颜色
+  background: var(--colorBgContainer);   // 容器背景 #ffffff
+  background: var(--colorBgLayout);      // 布局背景 #f5f5f5
+  background: var(--colorBgElevated);    // 浮层背景 #ffffff
+  
+  // 边框颜色
+  border: 1px solid var(--colorBorder);           // 默认边框 #d9d9d9
+  border: 1px solid var(--colorBorderSecondary);  // 次要边框 #eeeeee
+  
+  // 主题色
+  background: var(--colorPrimary);       // 主色 rgb(0,180,180)
+  color: var(--colorPrimaryText);        // 主色文本
+  border-color: var(--colorPrimaryBorder); // 主色边框
+  
+  // 状态颜色
+  color: var(--colorSuccess);            // 成功色
+  color: var(--colorWarning);            // 警告色
+  color: var(--colorError);              // 错误色
+  
+  // 色板变量
+  background: var(--cyan-2);             // 青色
+  background: var(--blue-4);             // 蓝色
+  background: var(--green-5);            // 绿色
+}
+
+// ❌ 错误：硬编码颜色值
+.component {
+  color: #333;              // 禁止！使用 var(--colorText)
+  background: #fff;         // 禁止！使用 var(--colorBgContainer)
+  border: 1px solid #e0e0e0;  // 禁止！使用 var(--colorBorder)
+  color: rgba(0,0,0,0.88);   // 禁止！使用 var(--colorTextHeading)
+}
+```
+
+#### 样式选择器规范
+```scss
+// ❌ 错误：直接使用标签选择器
+h1 {
+  font-size: 24px;
+  color: var(--colorTextHeading);
+}
+
+h2 {
+  font-size: 20px;
+}
+
+p {
+  color: var(--colorText);
+}
+
+div {
+  padding: 20px;
+}
+
+// ✅ 正确：为每个元素添加 class
+.page-title {
+  font-size: 24px;
+  color: var(--colorTextHeading);
+}
+
+.section-title {
+  font-size: 20px;
+  color: var(--colorTextHeading);
+}
+
+.text-content {
+  color: var(--colorText);
+}
+
+.content-wrapper {
+  padding: 20px;
+}
+```
+
 ### SCSS组织规范
 ```scss
-// ✅ 正确：变量定义
-$primary-color: #409eff;
-$success-color: #67c23a;
-$warning-color: #e6a23c;
-$danger-color: #f56c6c;
+// ❌ 不要定义颜色变量，使用 public/theme.css 中的CSS变量
+// $primary-color: #409eff;  // 禁止！
+// $success-color: #67c23a;  // 禁止！
 
-// 字体大小
+// ✅ 可以定义非颜色的变量
 $font-size-xs: 12px;
 $font-size-sm: 14px;
 $font-size-md: 16px;
 $font-size-lg: 18px;
 
-// 间距
 $spacing-xs: 4px;
 $spacing-sm: 8px;
 $spacing-md: 16px;
@@ -1049,9 +1133,9 @@ $spacing-lg: 24px;
 
 @mixin card-style {
   padding: $spacing-lg;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--colorBorder);  // 使用CSS变量
   border-radius: 8px;
-  background: #fff;
+  background: var(--colorBgContainer);   // 使用CSS变量
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -1207,6 +1291,7 @@ const fetchUserData = async () => {
 - [ ] 异步函数有完善的错误处理
 - [ ] 生命周期钩子使用合理
 - [ ] 模板中使用 `v-key` 进行列表渲染
+- [ ] 列表内容使用数据驱动而非硬编码
 
 ### API接口规范检查
 - [ ] 接口方法有完整的 JSDoc 注释
@@ -1216,13 +1301,23 @@ const fetchUserData = async () => {
 - [ ] 使用统一的响应格式
 - [ ] 异步操作有超时和重试机制
 
-### 样式编码检查
-- [ ] 使用 CSS 变量而不是硬编码颜色值
+### 样式编码检查（强化）
+- [ ] 使用 `public/theme.css` 中定义的 CSS 变量
+- [ ] 所有颜色值使用 `var(--colorXxx)` 而非硬编码
+- [ ] 不直接使用标签名选择器（如 `h1`, `p`, `div`）
+- [ ] 每个元素都有语义化的 class 名称
 - [ ] 样式类名遵循 BEM 命名规范
 - [ ] 响应式设计适配多种屏幕尺寸
 - [ ] 使用语义化的样式组织
 - [ ] 避免深层嵌套选择器（不超过3层）
 - [ ] 样式性能优化（避免复杂选择器）
+
+### 图片资源管理检查
+- [ ] 图片按页面/功能分类存放在 `src/assets/images/` 目录
+- [ ] 图标存放在 `src/assets/icons/` 目录
+- [ ] 下载前检查本地是否已存在
+- [ ] 使用导入方式加载图片而非硬编码路径
+- [ ] 图片文件命名语义化
 
 ## ❓ 编码规范常见问题
 

@@ -13,11 +13,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useLayoutControl } from '@/layout/useLayoutContext';
 
 const router = useRouter();
 const route = useRoute();
+const { setLayoutVisible } = useLayoutControl();
 
 // 菜单配置
 const menuList = computed(() => [
@@ -48,6 +50,15 @@ watch(
 const handleSelect = (key: string) => {
   router.push(key);
 };
+
+// 进入页面时隐藏左侧菜单，离开页面时恢复
+onMounted(() => {
+  setLayoutVisible({ nav: false });
+});
+
+onUnmounted(() => {
+  setLayoutVisible({ nav: true });
+});
 </script>
 <style lang="scss" scoped>
 .container {
