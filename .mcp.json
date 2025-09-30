@@ -15,6 +15,9 @@
     "ESLint": {
       "command": "npx",
       "args": ["@eslint/mcp@latest"]
+    },
+    "vue-mcp": {
+      "url": "http://localhost:4326/__mcp/sse"
     }
   }
 }
