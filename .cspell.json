@@ -403,7 +403,6 @@
     "eslint.config.ts",
     "index.html",
     "package.sh",
-    "playwright.config.ts",
     "pnpm-lock.yaml",
     "postcss.config.ts",
     "prettier.config.ts",

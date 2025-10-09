@@ -8,16 +8,16 @@
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"]
     },
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    },
     "ESLint": {
       "command": "npx",
       "args": ["@eslint/mcp@latest"]
     },
     "vue-mcp": {
       "url": "http://localhost:4326/__mcp/sse"
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
     }
   }
 }

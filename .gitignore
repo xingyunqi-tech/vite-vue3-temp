@@ -13,8 +13,6 @@ node_modules
 # dist
 dist
 coverage
-e2e-results
-playwright-report
 
 # env
 *.local
