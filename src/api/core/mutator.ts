@@ -1,7 +1,7 @@
 /**
  * Orval 自定义 Mutator
  *
- * 让 Orval 生成的代码使用 PolymasApi 实例发起请求
+ * 让 Orval 生成的代码使用项目的 axios 实例发起请求
  * 支持多实例切换和请求去重
  */
 
@@ -95,7 +95,7 @@ const BINARY_RESPONSE_TYPES = new Set(['blob', 'arraybuffer', 'stream']);
  * - mutator 自动提取 data 字段并返回 Data 类型
  * - 通过 ExtractResult<T> 类型工具实现类型转换
  *
- * ErrorModule 已确保 code === successfulCode 才走到 resolve 分支，
+ * 请求层拦截器已确保业务码成功才走到 resolve 分支，
  * 非成功码已被 reject，因此此处可安全提取 data 字段。
  *
  * 第二个参数让 Orval 给每个生成函数加上可选的最后一个参数，见 RequestOptions。
@@ -148,7 +148,6 @@ export const customMutator = async <T>(
 
   // 创建请求 Promise
   const requestPromise = (async () => {
-    // PolymasApi 继承自 Axios，直接调用 request 方法
     const response = await api.request({
       method: method.toUpperCase(),
       url,
@@ -162,7 +161,7 @@ export const customMutator = async <T>(
       return response.data as unknown as ExtractResult<T>;
     }
 
-    // ErrorModule 已处理非 200 的情况（reject）
+    // 请求层拦截器已 reject 非成功码
     // 默认实例返回 { code, data, message } 格式，提取 data 字段
     const responseData = (response.data as ApiResponse<any>).data;
     return responseData as ExtractResult<T>;

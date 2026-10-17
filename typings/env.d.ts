@@ -14,10 +14,6 @@ interface ImportMetaEnv {
    */
   readonly VITE_BASEURL: string;
   /**
-   * 平台接口 Host
-   */
-  readonly VITE_PLATFORM_HOST?: string;
-  /**
    * 是否开启构建分析器
    * - `'true'` 启用；其它值或未设置 = 禁用（运行时为字符串，需用 === 'true' 判断）
    */

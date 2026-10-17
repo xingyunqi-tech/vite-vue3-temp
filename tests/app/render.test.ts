@@ -8,7 +8,6 @@ const order: string[] = [];
 vi.mock('@/app/App.vue', () => ({ default: defineComponent({ render: () => h('div') }) }));
 vi.mock('@/directives', () => ({ setupDirectives: vi.fn() }));
 vi.mock('@/plugins/locale', () => ({ i18n: { install: vi.fn() } }));
-vi.mock('@/utils/auth', () => ({ writeTokenFromAuthQuery: vi.fn() }));
 vi.mock('@/utils/error-handler', () => ({
   reportGlobalError: vi.fn(),
   setupGlobalErrorHandler: vi.fn(),

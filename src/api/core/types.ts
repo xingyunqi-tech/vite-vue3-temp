@@ -4,6 +4,15 @@
 
 import type { AxiosRequestConfig } from 'axios';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** 失败时不弹错误提示（请求层拦截器读取），用于轮询、静默上报等 */
+    isIgnoreToast?: boolean;
+    /** 401 时不清 token、不跳登录页，用于登录接口本身 */
+    skipAuthRedirect?: boolean;
+  }
+}
+
 /**
  * API 响应通用接口
  */
@@ -37,8 +46,6 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   disableDedup?: boolean;
   /** 为写方法（POST/PUT/PATCH/DELETE）开启去重，默认关闭 */
   enableDedup?: boolean;
-  /** 失败时不弹错误提示（ErrorModule 读取），用于轮询、静默上报等 */
-  isIgnoreToast?: boolean;
 }
 
 /**

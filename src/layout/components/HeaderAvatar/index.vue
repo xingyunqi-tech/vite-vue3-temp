@@ -90,7 +90,6 @@ const handleCommand = async (command: string) => {
     })
       .then(async () => {
         permissionStore.resetPermission();
-        // logoutAction 会清理状态并跳转 SSO 登出页
         await userStore.logoutAction();
       })
       .catch(() => {

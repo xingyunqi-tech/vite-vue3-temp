@@ -1,37 +1,153 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { getUserInfo, login, logout } from '@/api/modules/auth';
 import { useUserInfoStore } from '@/store/modules/user-info';
+import { removePersistedStore } from '@/store/plugins/persist';
+import { getToken, jumpToLogout, removeToken, setToken } from '@/utils/auth';
 
-const setUserCookie = (data: object) => {
-  document.cookie = `CASLOGC=${encodeURIComponent(JSON.stringify(data))}; path=/`;
-};
+vi.mock('@/api/modules/auth', () => ({
+  login: vi.fn(async () => ({ token: 'token-a' })),
+  logout: vi.fn(async () => undefined),
+  getUserInfo: vi.fn(async () => ({
+    id: 1,
+    username: 'teacher',
+    realName: '张老师',
+    avatar: '',
+    email: '',
+    phone: '',
+    role: 'TEACHER',
+  })),
+}));
+vi.mock('@/store/plugins/persist', () => ({ removePersistedStore: vi.fn(async () => {}) }));
+vi.mock('@/utils/auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/auth')>()),
+  jumpToLogout: vi.fn(),
+}));
+
+beforeEach(() => {
+  setActivePinia(createPinia());
+  vi.clearAllMocks();
+});
+
+afterEach(() => {
+  removeToken();
+});
+
+describe('登录', () => {
+  it('loginAction 写入 token 并同步登录态', async () => {
+    const store = useUserInfoStore();
+    expect(store.isLoggedIn).toBe(false);
+
+    await store.loginAction({ username: '13800000000', password: 'Abcd1234' });
+
+    expect(login).toHaveBeenCalledWith({ username: '13800000000', password: 'Abcd1234' });
+    expect(getToken()).toBe('token-a');
+    expect(store.token).toBe('token-a');
+    expect(store.isLoggedIn).toBe(true);
+  });
+});
+
+describe('登录凭证校验', () => {
+  it('登录响应缺少 token 时抛错且不写入 Cookie', async () => {
+    vi.mocked(login).mockResolvedValueOnce({} as never);
+    const store = useUserInfoStore();
+
+    await expect(store.loginAction({ username: 'u', password: 'p' })).rejects.toThrow('未获取到登录凭证');
+    expect(getToken()).toBe('');
+  });
+});
+
+describe('用户信息', () => {
+  it('getInfoAction 以接口返回覆盖本地资料与角色', async () => {
+    const store = useUserInfoStore();
+    store.setUserInfo({ role: 'ADMIN', realName: '旧账号' });
+
+    await store.getInfoAction();
+
+    expect(getUserInfo).toHaveBeenCalledTimes(1);
+    expect(store.info.realName).toBe('张老师');
+    expect(store.info.role).toBe('TEACHER');
+    expect(store.isTeacher).toBe(true);
+  });
+
+  it('接口返回未定义的角色时角色留空', async () => {
+    vi.mocked(getUserInfo).mockResolvedValueOnce({
+      id: 3,
+      username: 'u',
+      realName: '',
+      avatar: '',
+      email: '',
+      phone: '',
+      role: 'teacher',
+    } as never);
+    const store = useUserInfoStore();
+
+    await store.getInfoAction();
+
+    expect(store.info.role).toBe('');
+  });
+
+  it('接口未返回角色时角色留空', async () => {
+    vi.mocked(getUserInfo).mockResolvedValueOnce({
+      id: 2,
+      username: 'u',
+      realName: '',
+      avatar: '',
+      email: '',
+      phone: '',
+    } as never);
+    const store = useUserInfoStore();
+    store.setUserInfo({ role: 'ADMIN' });
+
+    await store.getInfoAction();
+
+    expect(store.info.role).toBe('');
+  });
+});
 
 describe('换账号检测', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-  });
-  afterEach(() => {
-    document.cookie = 'CASLOGC=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-  });
-
-  it('Cookie 里的用户与本页加载的用户不同时判定为换了账号', async () => {
+  it('Cookie 里的 token 与加载用户信息时不同时判定为换了账号', async () => {
+    setToken('token-a');
     const store = useUserInfoStore();
-    setUserCookie({ userId: 1 });
     await store.getInfoAction();
     expect(store.isAccountSwitched()).toBe(false);
 
-    setUserCookie({ userId: 2 });
+    setToken('token-b');
     expect(store.isAccountSwitched()).toBe(true);
   });
 
-  it('本页尚未解析用户或 Cookie 已清空时不判定', async () => {
+  it('尚未加载用户信息或 token 已清空时不判定', async () => {
+    setToken('token-b');
     const store = useUserInfoStore();
-    store.setUserInfo({ userNid: '1' });
-    setUserCookie({ userId: 2 });
     expect(store.isAccountSwitched()).toBe(false);
 
     await store.getInfoAction();
-    document.cookie = 'CASLOGC=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    removeToken();
     expect(store.isAccountSwitched()).toBe(false);
+  });
+});
+
+describe('退出登录', () => {
+  it('通知后端、清理本地用户数据后跳转登录页', async () => {
+    setToken('token-a');
+    const store = useUserInfoStore();
+    await store.getInfoAction();
+
+    await store.logoutAction('/home');
+
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(store.info.role).toBe('');
+    expect(store.token).toBe('');
+    expect(removePersistedStore).toHaveBeenCalledWith('user');
+    expect(jumpToLogout).toHaveBeenCalledWith('/home');
+  });
+
+  it('退出接口失败时仍完成退出', async () => {
+    vi.mocked(logout).mockRejectedValueOnce(new Error('network'));
+    const store = useUserInfoStore();
+
+    await store.logoutAction();
+
+    expect(jumpToLogout).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,13 +8,11 @@ export const DEFAULT_API_CODE = {
   SUCCESS: 200,
 } as const;
 
-/**
- * 智慧树平台 API Host
- *
- * 开发环境由 VITE_PLATFORM_HOST 指向 /cloud 走 devServer 反代（见 config/devServer.ts），
- * 未配置时回落到线上域名。
- */
-export const PLATFORM_HOST = (import.meta.env && import.meta.env.VITE_PLATFORM_HOST) || '//cloudapi.polymas.com';
+/** 登录 token 的 Cookie 键名 */
+export const TOKEN_KEY = 'vite-vue3-temp-token';
+
+/** 登录页路径 */
+export const LOGIN_PATH = '/login';
 
 /** 默认服务代理前缀 */
 export const DEFAULT_PROXY_URI = {

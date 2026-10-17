@@ -6,7 +6,7 @@
 
 import type { AxiosError } from 'axios';
 import { ElMessage, ElNotification } from 'element-plus';
-import { jumpToLogin } from './auth';
+import { jumpToLogin, removeToken } from './auth';
 
 /**
  * 错误类型
@@ -60,7 +60,7 @@ const ERROR_MESSAGES: Record<number, string> = {
 /**
  * 把传输层的原始错误文案翻译成面向用户的中文提示
  *
- * 适用于只拿得到字符串、拿不到 error 对象的场合——典型是请求层 ErrorModule 的 toastHandler，
+ * 适用于只拿得到字符串、拿不到 error 对象的场合——典型是请求层拦截器的错误提示，
  * 它在 HTTP / 网络失败分支交出的是 axios 的 `error.message`（形如
  * `Request failed with status code 500` / `timeout of 120000ms exceeded` / `Network Error`）。
  * 这里按固定句式还原出状态码，复用同一张 ERROR_MESSAGES 表，避免文案表分叉成两份。
@@ -210,47 +210,31 @@ export function handleError(error: any, config: ErrorConfig = {}): ErrorType {
   return errorType;
 }
 
-let isRedirectingToSso = false;
-let pendingRedirectTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingRedirect: string | undefined;
+let isRedirectingToLogin = false;
 
 /**
- * 跳转 SSO 重新登录，并发只跳一次
+ * 清除 token 并跳转登录页（回跳当前页），并发只跳一次
  *
- * 401 有两条来路（请求层 ErrorModule 的 unauthorizedHandler、本文件的 handleError），
- * 去重标志位必须共用，否则并发 401 会各跳各的。
+ * 401 有两条来路（请求层拦截器、本文件的 handleError），去重标志位必须共用，否则并发 401 会各跳各的。
+ * 跳转是整页刷新，标志位随页面重建复位。
  *
- * 延迟期间又来了带回跳地址的调用时，用它顶掉排队中的那次：401 先到时排的是「回当前页」，
- * 而路由守卫随后给的是真正的目标路由，不顶掉的话登录完会落回旧页面。
- *
- * @param redirect 登录后的回跳绝对地址，缺省由 jumpToLogin 取当前页
  * @param delay 延迟毫秒数，用于先让用户看到错误提示
  */
-export function redirectToLoginOnce(redirect?: string, delay = 0): void {
-  if (isRedirectingToSso) {
-    if (pendingRedirectTimer === null || pendingRedirect !== undefined || redirect === undefined) return;
-    clearTimeout(pendingRedirectTimer);
-    pendingRedirectTimer = null;
-    pendingRedirect = redirect;
-    jumpToLogin(redirect);
-    return;
-  }
-  isRedirectingToSso = true;
-  pendingRedirect = redirect;
+export function redirectToLoginOnce(delay = 0): void {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+  removeToken();
 
   if (delay > 0) {
-    pendingRedirectTimer = setTimeout(() => {
-      pendingRedirectTimer = null;
-      jumpToLogin(redirect);
-    }, delay);
+    setTimeout(() => jumpToLogin(), delay);
     return;
   }
-  jumpToLogin(redirect);
+  jumpToLogin();
 }
 
-/** 处理认证错误 - 跳转 SSO 重新登录（回跳地址由 jumpToLogin 统一过滤） */
+/** 处理认证错误 - 跳转登录页（回跳地址由 jumpToLogin 统一过滤） */
 function handleAuthError() {
-  redirectToLoginOnce(undefined, 1500);
+  redirectToLoginOnce(1500);
 }
 
 /**
@@ -341,7 +325,7 @@ export interface GlobalErrorHandlerOptions {
    * 是否向用户弹出通知。默认 false。
    *
    * 全局兜底主要用于「记录/上报」未捕获错误（多为程序 bug、第三方脚本、游离 Promise，用户无法处理）；
-   * 业务/HTTP 错误的用户提示已由请求层 ErrorModule 负责，全局层默认静默以免重复弹窗与通知风暴。
+   * 业务/HTTP 错误的用户提示已由请求层拦截器负责，全局层默认静默以免重复弹窗与通知风暴。
    * 确有需要时可显式置 true 开启通知。
    */
   notify?: boolean;
@@ -349,12 +333,7 @@ export interface GlobalErrorHandlerOptions {
   onError?: (error: unknown, source: GlobalErrorSource) => void;
 }
 
-/**
- * 全局错误处理器（用于未捕获的错误）
- *
- * 被宿主应用嵌入时会反复 mount/unmount，这里用模块级标志位保证监听器只注册一次，
- * 并保存 handler 引用供 teardownGlobalErrorHandler 在卸载时移除，避免监听器累积泄漏与重复弹窗。
- */
+/** 全局错误处理器（用于未捕获的错误），监听器只注册一次 */
 let errorHandlerInstalled = false;
 let globalErrorOptions: GlobalErrorHandlerOptions = {};
 
@@ -393,20 +372,4 @@ export function setupGlobalErrorHandler(options: GlobalErrorHandlerOptions = {})
   errorHandlerInstalled = true;
   window.addEventListener('unhandledrejection', handleRejection);
   window.addEventListener('error', handleWindowError);
-}
-
-/** 移除全局错误监听器（被宿主应用卸载时调用） */
-export function teardownGlobalErrorHandler() {
-  if (!errorHandlerInstalled) return;
-  errorHandlerInstalled = false;
-  globalErrorOptions = {};
-  // 复位 SSO 跳转状态，避免 remount 后再遇 401 因标志未复位而无法重新跳转
-  isRedirectingToSso = false;
-  pendingRedirect = undefined;
-  if (pendingRedirectTimer !== null) {
-    clearTimeout(pendingRedirectTimer);
-    pendingRedirectTimer = null;
-  }
-  window.removeEventListener('unhandledrejection', handleRejection);
-  window.removeEventListener('error', handleWindowError);
 }

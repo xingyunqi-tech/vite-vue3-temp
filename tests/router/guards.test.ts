@@ -1,7 +1,8 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { h, type Component } from 'vue';
 import { createMemoryHistory, createRouter } from 'vue-router';
+import { LOGIN_PATH } from '@/constants';
 import { canAccess, setupRouterGuard } from '@/router/guards';
 import { FORBIDDEN_PATH } from '@/router/redirect';
 import { fallbackRoute } from '@/router/routes';
@@ -13,12 +14,10 @@ const userStore = {
   info: { role: '' },
   refreshToken: () => true,
   getInfoAction: vi.fn(async () => {}),
-  fetchUserRole: vi.fn(async () => userStore.info.role),
   isAccountSwitched: vi.fn(() => false),
 };
 
 vi.mock('@/store/modules/user-info', () => ({ useUserInfoStore: () => userStore }));
-vi.mock('@/utils/error-handler', () => ({ redirectToLoginOnce: vi.fn() }));
 
 vi.mock('@/router/routes', () => {
   const Page = { render: () => null };
@@ -61,7 +60,7 @@ describe('路由守卫的角色校验', () => {
     expect(router.currentRoute.value.fullPath).toBe('/admin-only?tab=1');
   });
 
-  it('未登录也能进入全屏 403，不跳 SSO', async () => {
+  it('未登录也能进入全屏 403', async () => {
     vi.spyOn(userStore, 'refreshToken').mockReturnValueOnce(false);
     const router = createGuardedRouter();
     router.addRoute({ path: FORBIDDEN_PATH, component: View });
@@ -95,6 +94,70 @@ describe('路由守卫的角色校验', () => {
     await router.push('/?tab=1');
 
     expect(router.currentRoute.value.fullPath).toBe('/home?tab=1');
+  });
+});
+
+describe('路由守卫的登录态', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('未登录访问受保护页面时跳登录页并带上目标路径', async () => {
+    vi.spyOn(userStore, 'refreshToken').mockReturnValue(false);
+    const router = createGuardedRouter();
+    router.addRoute({ path: LOGIN_PATH, component: View });
+
+    await router.push('/home?tab=1');
+
+    expect(router.currentRoute.value.path).toBe(LOGIN_PATH);
+    expect(router.currentRoute.value.query.redirect).toBe('/home?tab=1');
+  });
+
+  it('未登录访问带 redirect 的根路径时回跳根路径本身，跳登录页不带 redirect', async () => {
+    vi.spyOn(userStore, 'refreshToken').mockReturnValue(false);
+    const router = createGuardedRouter();
+    router.addRoute({ path: '/', redirect: '/home' });
+    router.addRoute({ path: LOGIN_PATH, component: View });
+
+    await router.push('/');
+
+    expect(router.currentRoute.value.fullPath).toBe(LOGIN_PATH);
+  });
+
+  it('已登录访问登录页时回到它带的目标页', async () => {
+    userStore.info.role = 'STUDENT';
+    const router = createGuardedRouter();
+    router.addRoute({ path: LOGIN_PATH, component: View });
+
+    await router.push(`${LOGIN_PATH}?redirect=%2Fhome`);
+
+    expect(router.currentRoute.value.path).toBe('/home');
+  });
+
+  it('拉取用户信息失败时跳 403 并标记可重试', async () => {
+    userStore.getInfoAction.mockRejectedValueOnce(new Error('network'));
+    const router = createGuardedRouter();
+    router.addRoute({ path: FORBIDDEN_PATH, component: View });
+
+    await router.push('/home');
+
+    expect(router.currentRoute.value.path).toBe(FORBIDDEN_PATH);
+    expect(router.currentRoute.value.query).toMatchObject({ reason: 'fetch-failed', redirect: '/home' });
+  });
+
+  it('接口未返回角色时跳 403 并提示无角色', async () => {
+    userStore.info.role = '';
+    const router = createGuardedRouter();
+    router.addRoute({ path: FORBIDDEN_PATH, component: View });
+
+    await router.push('/home');
+
+    expect(router.currentRoute.value.path).toBe(FORBIDDEN_PATH);
+    expect(router.currentRoute.value.query.reason).toBe('no-role');
   });
 });
 

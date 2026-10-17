@@ -31,5 +31,5 @@
 export * from './core';
 
 // 3. 自定义工具函数 (自动扫描 modules 目录)
-export * from './modules/platform';
+export * from './modules/auth';
 export * from './modules/override';

@@ -22,7 +22,6 @@ export const APP_TITLE = DEFAULT_APP_TITLE;
 export const DEFAULT_LOCALE = DEFAULT_LOCALE_VALUE;
 export const DEFAULT_THEME_STYLE = DEFAULT_THEME_STYLE_VALUE;
 
-export { LOCALE_TYPE, PLATFORM_HOST } from './system';
-export { IDENTITY_ROLE_TYPE, mapIdentityToRole, resolveIdentityTypes } from './roles';
-export type { RoleType, UserIdentityItem } from './roles';
+export { LOCALE_TYPE, LOGIN_PATH, TOKEN_KEY } from './system';
+export type { RoleType } from './roles';
 export type { MenuItem } from './menu';

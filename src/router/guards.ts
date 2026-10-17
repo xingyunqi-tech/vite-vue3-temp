@@ -1,12 +1,19 @@
 import type { RouteLocationNormalized, RouteRecordRaw, Router } from 'vue-router';
-import { EXCEPTION_QUERY, FORBIDDEN_PATH, FORBIDDEN_REASON, toAbsoluteUrl, type ForbiddenReason } from './redirect';
+import {
+  EXCEPTION_QUERY,
+  FORBIDDEN_PATH,
+  FORBIDDEN_REASON,
+  readSafeRedirect,
+  resolveLoginReturnPath,
+  type ForbiddenReason,
+} from './redirect';
 import { fallbackRoute, resolveDeclaredRoutes } from './routes';
+import { LOGIN_PATH } from '@/constants';
 import { usePermissionStore } from '@/store/modules/permission';
 import { useUserInfoStore } from '@/store/modules/user-info';
-import { redirectToLoginOnce } from '@/utils/error-handler';
 
-/** 免登录路径。只有全屏 403：它是「token 有效但拿不到权限」的落点，放行才能终止 SSO 回弹循环 */
-const WHITE_LIST = [FORBIDDEN_PATH];
+/** 免登录路径：登录页，以及「token 有效但拿不到权限」时的落点全屏 403 */
+const WHITE_LIST = [LOGIN_PATH, FORBIDDEN_PATH];
 
 function isWhiteListed(path: string): boolean {
   const normalized = path.length > 1 ? path.replace(/\/+$/, '') : path;
@@ -45,9 +52,7 @@ export function canAccess(router: Router, path: string, roles: string[]): boolea
 }
 
 /**
- * 同步登录态 → 白名单 → 未登录跳 SSO → 权限路由已生成 → 首次生成（拉角色 → 过滤 → addRoute → 兜底 → 重导航）
- *
- * token 存在时绝不 jumpToLogin：SSO 认为已登录会直接回弹，形成无限刷新；改跳白名单内的 /403 终止循环。
+ * 同步登录态 → 登录页 → 白名单 → 未登录跳登录页 → 权限路由已生成 → 首次生成（拉用户信息 → 过滤 → addRoute → 兜底 → 重导航）
  */
 export function setupRouterGuard(router: Router) {
   router.beforeEach(async to => {
@@ -58,12 +63,15 @@ export function setupRouterGuard(router: Router) {
     // 全屏 403 之类的免登录页同样会读 store 里的登录态镜像
     const hasToken = userStore.refreshToken();
 
+    // 已登录访问登录页：回到它带的目标页
+    if (to.path === LOGIN_PATH && hasToken) return resolveLoginReturnPath(readSafeRedirect(to.query) ?? '/');
+
     if (isWhiteListed(to.path)) return true;
 
     if (!hasToken) {
-      // 回跳用目标路由而非 location.href：本次导航随后被取消，地址栏还停在出发页
-      redirectToLoginOnce(toAbsoluteUrl(to.fullPath));
-      return false;
+      // 经过 redirect 的取原地址：默认页要等登录后按角色判定
+      const redirect = resolveLoginReturnPath(to.redirectedFrom?.fullPath ?? to.fullPath);
+      return { path: LOGIN_PATH, query: redirect === '/' ? {} : { [EXCEPTION_QUERY.REDIRECT]: redirect } };
     }
 
     if (permissionStore.isRoutesGenerated) {
@@ -79,8 +87,7 @@ export function setupRouterGuard(router: Router) {
 
     try {
       await userStore.getInfoAction();
-      // Cookie 只有身份资料，role 需走接口；Cookie 已带 role 时沿用
-      const role = userStore.info.role || (await userStore.fetchUserRole());
+      const role = userStore.info.role;
       if (!role) {
         console.warn('[guard] 无法确定用户角色，跳转 403');
         return toForbidden(FORBIDDEN_REASON.NO_ROLE, to);

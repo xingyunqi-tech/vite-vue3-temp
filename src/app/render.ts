@@ -4,7 +4,6 @@ import { setupDirectives } from '@/directives';
 import { i18n } from '@/plugins/locale';
 import { createAppRouter } from '@/router';
 import storePromise, { preloadPersistedData } from '@/store';
-import { writeTokenFromAuthQuery } from '@/utils/auth';
 import { reportGlobalError, setupGlobalErrorHandler } from '@/utils/error-handler';
 
 /** 默认挂载点 ID */
@@ -21,9 +20,6 @@ export interface AppSetupHooks {
 
 /** 创建并挂载 Vue 应用 */
 export async function renderApp(hooks: AppSetupHooks = {}): Promise<void> {
-  // 必须在路由守卫挂载之前写入，避免守卫读不到 token 误判未登录
-  writeTokenFromAuthQuery();
-
   // 全局错误兜底：默认静默（仅 console 记录）。如需用户通知或接入监控，传入 { notify: true } / { onError }
   setupGlobalErrorHandler();
   await preloadPersistedData();
