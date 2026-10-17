@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -17,7 +18,18 @@ import mkcert from 'vite-plugin-mkcert';
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons';
 import { devServer } from './config/devServer.ts';
 
-const { version: APP_VERSION } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
+
+/** 应用版本：package.json version + git 短 hash，同时用作 Sentry release */
+function resolveAppVersion(): string {
+  try {
+    return `${version}+${execSync('git rev-parse --short HEAD').toString().trim()}`;
+  } catch {
+    return version;
+  }
+}
+
+const APP_VERSION = resolveAppVersion();
 
 const uploadToSentry = process.env.UPLOAD_TO_SENTRY === 'true';
 
@@ -96,10 +108,13 @@ function generatePlugins(mode: string, command: ConfigEnv['command']): PluginOpt
       }),
     );
     if (uploadToSentry) {
+      if (!process.env.SENTRY_AUTH_TOKEN) {
+        throw new Error('UPLOAD_TO_SENTRY=true 时需要配置 SENTRY_AUTH_TOKEN（写在 .env.local 或环境变量中）');
+      }
       plugins.push(
         sentryVitePlugin({
-          org: process.env.VITE_SENTRY_ORG,
-          project: process.env.VITE_SENTRY_PROJECT,
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
           authToken: process.env.SENTRY_AUTH_TOKEN,
           release: { name: APP_VERSION },
           sourcemaps: { filesToDeleteAfterUpload: ['dist/**/*.map'] },
@@ -126,8 +141,8 @@ function generatePlugins(mode: string, command: ConfigEnv['command']): PluginOpt
 
 // https://vitejs.dev/config/
 export default ({ mode, command }: Pick<ConfigEnv, 'mode' | 'command'>) => {
-  // .env 文件里的变量补进 process.env，命令行显式传入的优先
-  for (const [key, value] of Object.entries(loadEnv(mode, process.cwd()))) {
+  // .env 文件里的 VITE_ 与 SENTRY_ 变量补进 process.env，命令行显式传入的优先
+  for (const [key, value] of Object.entries(loadEnv(mode, process.cwd(), ['VITE_', 'SENTRY_']))) {
     process.env[key] ??= value;
   }
   const basePath = process.env.VITE_BASE_PATH || '/';
@@ -138,6 +153,10 @@ export default ({ mode, command }: Pick<ConfigEnv, 'mode' | 'command'>) => {
     server: devServer(),
     /** 插件配置 */
     plugins: generatePlugins(mode, command),
+    /** 编译期常量 */
+    define: {
+      __APP_VERSION__: JSON.stringify(APP_VERSION),
+    },
     /** 路径别名配置 */
     resolve: {
       alias: [{ find: '@', replacement: path.resolve(import.meta.dirname, 'src') }],

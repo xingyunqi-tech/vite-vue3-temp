@@ -34,10 +34,6 @@ interface ImportMetaEnv {
   readonly VITE_BASE_PATH?: string;
   /** Sentry DSN，留空则不初始化 Sentry */
   readonly VITE_SENTRY_DSN?: string;
-  /** Sentry 组织（上传 sourcemap 用） */
-  readonly VITE_SENTRY_ORG?: string;
-  /** Sentry 项目（上传 sourcemap 用） */
-  readonly VITE_SENTRY_PROJECT?: string;
 }
 
 interface ImportMeta {

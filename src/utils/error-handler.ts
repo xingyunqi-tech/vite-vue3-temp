@@ -307,7 +307,7 @@ export function handleRequestError(error: any): never {
  * - vue：Vue 组件错误（渲染、生命周期、事件处理器、watcher），来自 app.config.errorHandler
  *   与 ErrorBoundary 接管整页时的主动上报
  */
-export type GlobalErrorSource = 'unhandledrejection' | 'error' | 'vue';
+export type GlobalErrorSource = 'unhandledrejection' | 'error' | 'vue' | 'router';
 
 /**
  * 全局兜底通知的固定文案
@@ -330,7 +330,7 @@ export interface GlobalErrorHandlerOptions {
    */
   notify?: boolean;
   /** 错误上报钩子（接入监控时使用），在 console 记录后调用 */
-  onError?: (error: unknown, source: GlobalErrorSource) => void;
+  onError?: (error: unknown, source: GlobalErrorSource, context?: string) => void;
 }
 
 /** 全局错误处理器（用于未捕获的错误），监听器只注册一次 */
@@ -348,7 +348,7 @@ let globalErrorOptions: GlobalErrorHandlerOptions = {};
  */
 export function reportGlobalError(error: unknown, source: GlobalErrorSource, context?: string): void {
   console.error(`[GlobalError] ${source}${context ? ` (${context})` : ''}:`, error);
-  globalErrorOptions.onError?.(error, source);
+  globalErrorOptions.onError?.(error, source, context);
   if (globalErrorOptions.notify) {
     handleError(error, { useNotification: true, message: GLOBAL_ERROR_NOTICE });
   }
