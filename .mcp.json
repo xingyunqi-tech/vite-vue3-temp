@@ -1,20 +1,3 @@
 {
-  "mcpServers": {
-    "Framelink Figma MCP": {
-      "command": "npx",
-      "args": ["-y", "figma-developer-mcp", "--figma-api-key=YOUR_FIGMA_TOKEN", "--stdio"]
-    },
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
-    },
-    "ESLint": {
-      "command": "npx",
-      "args": ["@eslint/mcp@latest"]
-    },
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest"]
-    }
-  }
+  "mcpServers": {}
 }
