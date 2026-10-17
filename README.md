@@ -50,11 +50,12 @@
 
 ```
 ├── .claude/                   # AI 协作配置（agents / skills / commands / settings.json）
+├── .github/                   # GitHub Actions（check-quality、build-deploy）与 dependabot
 ├── .husky/                    # Git hooks
 ├── .vscode/                   # VS Code 推荐插件与设置
 ├── config/
 │   └── devServer.ts           # 开发服务器：端口、代理目标
-├── deploy/                    # Helm Chart 与 k8s 清单
+├── deploy/                    # nginx.conf、manage.sh（容器部署）
 ├── docs/                      # 项目文档（api.md、deployment.md）
 ├── public/
 │   ├── assets/                # theme.css（--aix-* 设计变量）、loading.css、logo.png
@@ -123,7 +124,7 @@ pnpm preview      # 预览构建结果
 pnpm analyzer     # 构建并输出包体分析
 ```
 
-部署（Docker、package.sh、Helm / k8s）见 [docs/deployment.md](./docs/deployment.md)。
+部署（Docker、package.sh、manage.sh、GitHub Actions）见 [docs/deployment.md](./docs/deployment.md)。
 
 ## 📜 脚本命令
 
@@ -220,7 +221,7 @@ pnpm analyzer     # 构建并输出包体分析
 | 文档 | 说明 |
 |------|------|
 | [docs/api.md](./docs/api.md) | API 层：axios 实例、便捷函数、Orval 生成与扩展、请求去重、错误处理 |
-| [docs/deployment.md](./docs/deployment.md) | 部署：构建产物、Docker、package.sh、Helm / k8s、Sentry sourcemap |
+| [docs/deployment.md](./docs/deployment.md) | 部署：构建产物、Docker、package.sh、manage.sh、GitHub Actions、Sentry sourcemap |
 | [tests/README.md](./tests/README.md) | 测试：目录约定、全局 Mock、各层测试写法 |
 | [CLAUDE.md](./CLAUDE.md) | AI 协作约定与导航（`AGENTS.md` 为其符号链接） |
 

@@ -1,0 +1,59 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      vue:
+        patterns:
+          - 'vue'
+          - 'vue-router'
+          - 'vue-i18n'
+          - 'vue-tsc'
+          - 'pinia'
+          - 'pinia-plugin-persistedstate'
+          - '@vue/*'
+          - '@vitejs/plugin-vue*'
+      element-plus:
+        patterns:
+          - 'element-plus'
+          - '@element-plus/*'
+          - 'unplugin-element-plus'
+      eslint:
+        patterns:
+          - 'eslint*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+      stylelint:
+        patterns:
+          - 'stylelint*'
+          - 'postcss*'
+      vite:
+        patterns:
+          - 'vite'
+          - '@vitejs/plugin-legacy'
+          - 'vite-plugin-*'
+          - 'unocss'
+          - '@unocss/*'
+      vitest:
+        patterns:
+          - 'vitest'
+          - '@vitest/*'
+      sentry:
+        patterns:
+          - '@sentry/*'
+      commitlint:
+        patterns:
+          - '@commitlint/*'
+          - 'cz-git'
+          - 'czg'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5

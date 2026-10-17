@@ -44,6 +44,8 @@ yarn.lock
 *.tar.gz
 node_build_info.sh
 version.html
+# package.sh 打包临时目录
+vite_vue3_web/
 
 # subagent-driven-development 临时协调文件（任务简报/评审报告/进度台账，非项目产物）
 .superpowers/

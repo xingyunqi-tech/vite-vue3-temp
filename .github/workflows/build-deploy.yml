@@ -1,0 +1,248 @@
+# 构建与部署：构建前端 → 打包 Docker 镜像与部署包 → SSH 部署到服务器
+#
+# 触发条件:
+#   1. Check Quality 在 main / master / release/** 上成功后自动触发
+#   2. 手动触发 (workflow_dispatch)，可选择是否部署
+#
+# 在 Settings -> Secrets and variables -> Actions 中配置:
+#   - DEPLOY_SERVER_HOST: 服务器 IP 或域名
+#   - DEPLOY_SERVER_USER: SSH 用户名
+#   - DEPLOY_SERVER_PATH: 部署目标路径
+#   - DEPLOY_SSH_PRIVATE_KEY: SSH 私钥（完整内容，包括 BEGIN/END）
+#   - VITE_BASEURL（可选）: 生产环境接口地址，留空则请求同源
+#   - SENTRY_AUTH_TOKEN（可选）: 配置后构建时上传 sourcemap 到 Sentry
+
+name: Build and Deploy
+
+on:
+  workflow_run:
+    workflows: [Check Quality]
+    branches: [main, master, 'release/**']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: '是否部署到服务器'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: build-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
+env:
+  BASE_IMAGE: 'nginx:alpine'
+  REGISTRY: 'docker-local'
+  REPO_PREFIX: 'vite-vue3/web'
+  APP_NAME: 'vite-vue3-web'
+  PACKAGE_DIR: 'vite_vue3_web'
+  APP_PORT: '31190'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate build info
+        env:
+          GIT_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          {
+            echo "hash=${GIT_HASH}"
+            echo "build_at=$(date '+%Y-%m-%d_%H-%M-%S')"
+            echo "branch=${GIT_BRANCH}"
+            echo "website_docker_name=${REGISTRY}/${REPO_PREFIX}:${GIT_HASH}"
+          } > node_build_info.sh
+          awk 'BEGIN { ORS = "<br>" } { print }' node_build_info.sh > version.html
+
+      - name: Build
+        env:
+          VITE_BASEURL: ${{ secrets.VITE_BASEURL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          if [ -n "$SENTRY_AUTH_TOKEN" ]; then
+            UPLOAD_TO_SENTRY=true pnpm build
+          else
+            pnpm build
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            dist/
+            version.html
+            node_build_info.sh
+          retention-days: 7
+
+  package:
+    name: Package
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Build Docker image & create deploy package
+        run: |
+          # shellcheck disable=SC1091
+          source node_build_info.sh
+          IMAGE_TAG_NAME="${APP_NAME}:${hash}"
+          IMAGE_TAR="${PACKAGE_DIR}/${APP_NAME}_${hash}.tar"
+          PACKAGE_NAME="${APP_NAME}_${hash}_$(date '+%Y-%m-%d_%H-%M-%S').tar.gz"
+
+          docker build -f Dockerfile -t "${website_docker_name}" --build-arg BASE_IMAGE="${BASE_IMAGE}" .
+
+          mkdir -p "${PACKAGE_DIR}"
+          cp deploy/nginx.conf deploy/manage.sh deploy/README.md "${PACKAGE_DIR}/"
+          docker tag "${website_docker_name}" "${IMAGE_TAG_NAME}"
+          docker save "${IMAGE_TAG_NAME}" -o "${IMAGE_TAR}"
+
+          echo "web_docker_md5=$(md5sum "${IMAGE_TAR}" | awk '{print $1}')" >> node_build_info.sh
+          cp node_build_info.sh "${PACKAGE_DIR}/"
+          tar -czf "${PACKAGE_NAME}" "${PACKAGE_DIR}"
+
+          tar -czf "static_assets_${hash}.tar.gz" dist version.html
+          echo "Package created: ${PACKAGE_NAME}"
+
+      - name: Upload deploy package
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-package
+          path: |
+            ${{ env.APP_NAME }}_*.tar.gz
+            static_assets_*.tar.gz
+            node_build_info.sh
+          retention-days: 30
+
+  deploy:
+    name: Deploy
+    needs: package
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true') ||
+      github.event_name == 'workflow_run'
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment:
+      name: production
+    steps:
+      - name: Check secrets
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_SERVER_PATH }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          missing=0
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_PATH DEPLOY_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::缺少 ${name} 对应的 secret"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "请在 Settings -> Secrets and variables -> Actions 中配置 DEPLOY_SERVER_HOST / DEPLOY_SERVER_USER / DEPLOY_SERVER_PATH / DEPLOY_SSH_PRIVATE_KEY"
+            exit 1
+          fi
+
+      - name: Download deploy package
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-package
+
+      - name: Setup SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${DEPLOY_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_SERVER_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_SERVER_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_SERVER_PATH }}
+        run: |
+          # shellcheck disable=SC1091
+          source node_build_info.sh
+          PACKAGE_FILE=$(compgen -G "${APP_NAME}_${hash}_*.tar.gz" | head -1)
+          PACKAGE_BASENAME=$(basename "${PACKAGE_FILE}")
+          echo "部署 ${PACKAGE_BASENAME}（${hash}，${build_at}）到 ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}"
+
+          ssh -i ~/.ssh/deploy_key "${DEPLOY_USER}@${DEPLOY_HOST}" "mkdir -p '${DEPLOY_PATH}'"
+          scp -i ~/.ssh/deploy_key "${PACKAGE_FILE}" "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+          ssh -i ~/.ssh/deploy_key "${DEPLOY_USER}@${DEPLOY_HOST}" bash -s -- \
+            "${DEPLOY_PATH}" "${PACKAGE_BASENAME}" "${PACKAGE_DIR}" "${APP_NAME}" "${APP_PORT}" << 'REMOTE'
+          set -euo pipefail
+          deploy_path="$1"; package_file="$2"; package_dir="$3"; app_name="$4"; app_port="$5"
+          cd "${deploy_path}"
+          rm -rf "${package_dir}"
+          tar -xzf "${package_file}"
+          cd "${package_dir}"
+          ./manage.sh remove
+          PORT="${app_port}" ./manage.sh start
+
+          cd "${deploy_path}"
+          # 保留最近 3 个部署包与镜像
+          ls -t "${app_name}"_*.tar.gz | tail -n +4 | xargs -r rm -f
+          docker images "${app_name}" --format '{{.Repository}}:{{.Tag}}' | grep -v ':local$' | tail -n +4 | xargs -r docker rmi 2>/dev/null || true
+          echo "访问地址: http://$(hostname -I | awk '{print $1}'):${app_port}"
+          REMOTE
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  notify:
+    name: Notify
+    needs: [build, package, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          {
+            echo "# 部署结果"
+            echo ""
+            echo "| 项目 | 状态 |"
+            echo "|------|------|"
+            echo "| 构建 | ${{ needs.build.result }} |"
+            echo "| 打包 | ${{ needs.package.result }} |"
+            echo "| 部署 | ${{ needs.deploy.result || 'skipped' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
