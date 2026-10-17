@@ -45,14 +45,14 @@
  */
 .el-input.standard-input {
   --el-input-border-radius: 8px;
-  --el-input-text-color: var(--polymas-color-text-title);
-  --el-input-border-color: var(--polymas-color-border-default);
-  --el-input-hover-border-color: var(--polymas-color-border-emphasize);
-  --el-input-focus-border-color: var(--polymas-color-border-emphasize);
-  --el-input-placeholder-color: var(--polymas-color-text-tip);
-  --el-disabled-bg-color: var(--polymas-color-border-shallow);
-  --el-disabled-border-color: var(--polymas-color-bg-profound);
-  --el-disabled-text-color: var(--polymas-color-text-tip);
+  --el-input-text-color: var(--aix-colorTextHeading);
+  --el-input-border-color: var(--aix-colorBorder);
+  --el-input-hover-border-color: var(--aix-colorTextTertiary);
+  --el-input-focus-border-color: var(--aix-colorTextTertiary);
+  --el-input-placeholder-color: var(--aix-colorTextQuaternary);
+  --el-disabled-bg-color: var(--aix-colorBorderSecondary);
+  --el-disabled-border-color: var(--aix-colorFillSecondary);
+  --el-disabled-text-color: var(--aix-colorTextQuaternary);
 
   .el-input__wrapper {
     padding: 8px 12px;
@@ -60,23 +60,23 @@
     .el-input__inner {
       --el-input-inner-height: 22px;
 
-      caret-color: var(--polymas-color-theme);
+      caret-color: var(--aix-colorPrimary);
     }
 
     .el-input__count {
       .el-input__count-inner {
         background-color: transparent;
-        color: var(--polymas-color-text-tip) !important;
+        color: var(--aix-colorTextQuaternary) !important;
       }
     }
   }
 
   &.grey {
-    --el-input-bg-color: var(--polymas-color-bg-shallow);
+    --el-input-bg-color: var(--aix-colorFillQuaternary);
 
     .el-input__count {
       .el-input__count-inner {
-        color: var(--polymas-color-text-sub) !important;
+        color: var(--aix-colorTextTertiary) !important;
       }
     }
   }
@@ -122,9 +122,9 @@
     font-weight: 400;
     text-align: var(--select-item-text-align);
 
-    --el-text-color-regular: var(--polymas-color-text-content);
-    --el-color-primary: var(--polymas-color-text-title);
-    --el-fill-color-light: var(--polymas-color-bg-shallow);
+    --el-text-color-regular: var(--aix-colorTextSecondary);
+    --el-color-primary: var(--aix-colorTextHeading);
+    --el-fill-color-light: var(--aix-colorFillQuaternary);
 
     &:last-child {
       margin-bottom: 0;
@@ -150,13 +150,13 @@
  */
 // 选择器 - 选择框
 .el-select.standard-select {
-  --el-fill-color-blank: var(--polymas-color-bg-container);
-  --el-select-input-color: var(--polymas-color-text-sub);
-  --el-text-color-placeholder: var(--polymas-color-text-tip);
-  --el-border-color: var(--polymas-color-border-default);
-  --el-border-color-hover: var(--polymas-color-border-emphasize);
-  --el-color-primary: var(--polymas-color-border-emphasize);
-  --el-input-text-color: var(--polymas-color-text-title);
+  --el-fill-color-blank: var(--aix-colorBgContainer);
+  --el-select-input-color: var(--aix-colorTextTertiary);
+  --el-text-color-placeholder: var(--aix-colorTextQuaternary);
+  --el-border-color: var(--aix-colorBorder);
+  --el-border-color-hover: var(--aix-colorTextTertiary);
+  --el-color-primary: var(--aix-colorTextTertiary);
+  --el-input-text-color: var(--aix-colorTextHeading);
   --select-input-padding: 0 8px;
 
   height: 38px;
@@ -179,36 +179,36 @@
     gap: 4px;
 
     &.is-focused {
-      --el-fill-color-blank: var(--polymas-color-bg-profound);
-      --el-text-color-placeholder: var(--polymas-color-text-title);
-      --el-select-input-color: var(--polymas-color-text-title);
+      --el-fill-color-blank: var(--aix-colorFillSecondary);
+      --el-text-color-placeholder: var(--aix-colorTextHeading);
+      --el-select-input-color: var(--aix-colorTextHeading);
     }
   }
 
   &.is-empty .el-select__wrapper {
-    --el-text-color-placeholder: var(--polymas-color-text-tip);
+    --el-text-color-placeholder: var(--aix-colorTextQuaternary);
   }
 
   .el-select__selection {
     .el-select__placeholder.is-transparent {
-      color: var(--polymas-color-text-tip) !important;
+      color: var(--aix-colorTextQuaternary) !important;
     }
 
     .el-select__selected-item:has(.el-tag) {
       border-radius: 4px;
-      background-color: var(--polymas-color-bg-sub);
+      background-color: var(--aix-colorFillTertiary);
 
       .el-tag {
         padding: 1px 4px 1px 8px;
-        color: var(--polymas-color-text-content);
+        color: var(--aix-colorTextSecondary);
         font-size: 14px;
         font-weight: 400;
         line-height: 22px; /* 157.143% */
         .el-tag__close {
-          color: var(--polymas-color-text-sub);
+          color: var(--aix-colorTextTertiary);
 
           &:hover {
-            background: var(--polymas-color-bg-weighty);
+            background: var(--aix-colorFill);
             color: #fff;
           }
         }
@@ -218,20 +218,20 @@
 
   &.grey {
     .el-select__wrapper {
-      --el-fill-color-blank: var(--polymas-color-bg-shallow);
+      --el-fill-color-blank: var(--aix-colorFillQuaternary);
 
       &.is-focused {
-        --el-fill-color-blank: var(--polymas-color-bg-shallow);
+        --el-fill-color-blank: var(--aix-colorFillQuaternary);
       }
     }
 
     .el-tag {
-      background: var(--polymas-color-bg-container);
+      background: var(--aix-colorBgContainer);
     }
 
     .el-select__suffix {
       .el-select__caret {
-        color: var(--polymas-color-text-tip);
+        color: var(--aix-colorTextQuaternary);
       }
     }
   }
@@ -243,10 +243,10 @@
   height: fit-content;
 
   --el-input-border-radius: 8px;
-  --el-input-text-color: var(--polymas-color-text-title);
-  --el-input-border-color: var(--polymas-color-border-default);
-  --el-input-hover-border-color: var(--polymas-color-border-emphasize);
-  --el-input-focus-border-color: var(--polymas-color-border-emphasize);
+  --el-input-text-color: var(--aix-colorTextHeading);
+  --el-input-border-color: var(--aix-colorBorder);
+  --el-input-hover-border-color: var(--aix-colorTextTertiary);
+  --el-input-focus-border-color: var(--aix-colorTextTertiary);
 
   padding: 8px 12px;
 
@@ -263,11 +263,11 @@
       width: 1px;
       height: 10px;
       transform: translate(0, -50%);
-      background: var(--polymas-color-border-profound);
+      background: var(--aix-colorBorder);
     }
 
     .iconfont {
-      color: var(--polymas-color-text-content);
+      color: var(--aix-colorTextSecondary);
       line-height: 1;
     }
   }
@@ -284,7 +284,7 @@
     height: 22px;
 
     &::placeholder {
-      color: var(--polymas-color-text-tip);
+      color: var(--aix-colorTextQuaternary);
     }
   }
 
@@ -301,7 +301,7 @@
       height: 20px;
 
       &::placeholder {
-        color: var(--polymas-color-text-tip);
+        color: var(--aix-colorTextQuaternary);
       }
     }
   }
@@ -315,11 +315,11 @@
   padding: 0 4px !important;
   border: 1px solid #ebeef5;
   border-radius: 6px !important;
-  background: var(--polymas-color-bg-container);
+  background: var(--aix-colorBgContainer);
   box-shadow: 0 6px 36px rgb(0 0 0 / 0.12);
   font-family: 'PingFang SC';
 
-  --el-dropdown-menuItem-hover-fill: var(--polymas-color-bg-shallow);
+  --el-dropdown-menuItem-hover-fill: var(--aix-colorFillQuaternary);
 
   .el-scrollbar {
     padding: 0;
@@ -338,7 +338,7 @@
       margin-top: 4px;
       padding: 4px 8px;
       border-radius: 4px;
-      color: var(--polymas-color-text-content);
+      color: var(--aix-colorTextSecondary);
       font-size: 14px;
       font-weight: 400;
       line-height: 20px;
@@ -355,8 +355,8 @@
 
       &:not(.is-disabled):hover,
       &:not(.is-disabled):has(.active) {
-        background: var(--polymas-color-bg-shallow);
-        color: var(--polymas-color-text-title);
+        background: var(--aix-colorFillQuaternary);
+        color: var(--aix-colorTextHeading);
         font-weight: 500;
       }
     }
@@ -388,7 +388,7 @@
         &:not(.is-disabled):has(.active),
         &:hover:not(.is-disabled) {
           background: rgb(29 33 41 / 0.12);
-          color: var(--polymas-color-text-title);
+          color: var(--aix-colorTextHeading);
         }
       }
     }

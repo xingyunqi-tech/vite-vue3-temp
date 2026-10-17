@@ -59,19 +59,15 @@ describe('validateConfig', () => {
   });
 
   it('解析不了的颜色被剔除', () => {
-    const { value, issues } = validateConfig({ theme: { primaryColor: 'not-a-color' } });
-    expect(value.theme).toEqual({});
-    expect(issues.map(i => i.path)).toEqual(['theme.primaryColor']);
+    const { value, issues } = validateConfig({ watermark: { color: 'not-a-color' } });
+    expect(value.watermark).toEqual({});
+    expect(issues.map(i => i.path)).toEqual(['watermark.color']);
   });
 
-  it('水印色允许透明度，主题色不允许', () => {
-    // watermark.color 的默认值本身就带 alpha，schema 必须声明 alpha: true
+  it('水印色允许透明度', () => {
     expect(validateConfig({ watermark: { color: 'rgba(0,0,0,0.15)' } }).value.watermark?.color).toBe(
       'rgba(0,0,0,0.15)',
     );
-    const { value, issues } = validateConfig({ theme: { primaryColor: 'rgba(0,0,0,0.5)' } });
-    expect(value.theme).toEqual({});
-    expect(issues.map(i => i.path)).toEqual(['theme.primaryColor']);
   });
 
   it('超过上限的内联图片被剔除', () => {
@@ -94,9 +90,9 @@ describe('diffConfig', () => {
   });
 
   it('颜色按解析结果比对，不比字符串写法', () => {
-    // 取色器会把 rgb(21 70 242) 归一化成 #1546f2，比字符串会误判成改过
-    const diff = diffConfig({ theme: { primaryColor: '#1546f2' } });
-    expect(diff.theme).toBeUndefined();
+    // 取色器 emit 的是 `rgba(0, 0, 0, 0.15)`，与默认值 `rgba(0,0,0,0.15)` 写法不同但等值
+    const diff = diffConfig({ watermark: { color: 'rgba(0, 0, 0, 0.15)' } });
+    expect(diff.watermark).toBeUndefined();
   });
 
   it('全部维持默认时产出空对象', () => {

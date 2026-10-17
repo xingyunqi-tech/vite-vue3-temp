@@ -2,8 +2,7 @@
  * 与 Element Plus el-loading 全屏样式对齐，供 index.html 在 JS 未执行前展示。
  * 变量与 node_modules/element-plus/theme-chalk/el-var.css、el-loading.css 保持一致。
  *
- * 主色取自 theme.css 的 --aix-colorPrimary（index.html 里 theme.css 先于本文件引入），
- * 这样品牌色只有 BRAND_PRIMARY 一个来源，改完跑 genThemeCss 首屏转圈会自动跟上。
+ * 主色取自 theme.css 的 --aix-colorPrimary（index.html 里 theme.css 先于本文件引入）。
  *
  * 遮罩底色保持固定浅色：本文件在 JS 执行前生效，那时 data-theme 尚未写入，
  * 引用随主题翻转的变量也只会解析到浅色一侧。

@@ -1,14 +1,14 @@
 // ==================== 数据表格统一样式 ====================
 // 列表页共用的表格皮肤（对齐设计稿）
 // 用法：<el-table class="data-table" ...>
-// 颜色统一取自 src/styles/theme.scss 的 --polymas-* 设计变量
+// 颜色统一取自 public/assets/theme.css 的 --aix-* 设计变量
 
 .el-table.data-table {
-  --el-table-border-color: var(--polymas-color-border-default);
-  --el-table-header-bg-color: var(--polymas-color-bg-sub);
-  --el-table-header-text-color: var(--polymas-color-text-content);
-  --el-table-text-color: var(--polymas-color-text-title);
-  --el-table-row-hover-bg-color: var(--polymas-color-bg-shallow);
+  --el-table-border-color: var(--aix-colorBorder);
+  --el-table-header-bg-color: var(--aix-colorFillTertiary);
+  --el-table-header-text-color: var(--aix-colorTextSecondary);
+  --el-table-text-color: var(--aix-colorTextHeading);
+  --el-table-row-hover-bg-color: var(--aix-colorFillQuaternary);
   --el-table-bg-color: transparent;
 
   // 去掉 el-table 底部整宽分隔线
@@ -46,7 +46,7 @@
     width: 8px;
     height: 5px;
     border: none;
-    background-color: var(--polymas-color-text-tip);
+    background-color: var(--aix-colorTextQuaternary);
     mask-repeat: no-repeat;
     mask-position: center;
     mask-size: contain;
@@ -64,6 +64,6 @@
 
   .ascending .sort-caret.ascending,
   .descending .sort-caret.descending {
-    background-color: var(--polymas-color-text-content);
+    background-color: var(--aix-colorTextSecondary);
   }
 }

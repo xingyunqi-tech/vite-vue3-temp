@@ -29,14 +29,6 @@ export const DEFAULT_APP_TITLE = 'Vite Vue3 App';
 export const DEFAULT_THEME_STYLE_VALUE = 'light';
 
 /**
- * 项目品牌主色（与 src/styles/theme.scss 的 --polymas-color-theme 对齐）
- *
- * 三处共用的唯一来源：`public/assets/theme.css` 的生成 seed（scripts/cssVars/genThemeCss.ts）、
- * 站点主题运行时派生的基准、设置页主题色的默认值。
- */
-export const BRAND_PRIMARY = 'rgb(21 70 242)';
-
-/**
  * 默认首页落点：读站点配置的 basic.defaultPage 解析不出可用路径时的内置落点
  */
 export const DEFAULT_PAGE = '/home';

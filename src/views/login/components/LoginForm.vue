@@ -133,7 +133,7 @@ const handleLogin = async () => {
     transition: all 0.3s ease;
     border: none;
     border-radius: 6px;
-    background: linear-gradient(92deg, rgb(131 255 228) 0%, rgb(4 203 255) 100%);
+    background: linear-gradient(92deg, var(--aix-tokenCyan2) 0%, var(--aix-tokenBlue4) 100%);
     box-shadow: inset 0 -2px 0 0 var(--aix-colorFillContent);
     color: var(--aix-colorTextLight);
     font-size: 16px;

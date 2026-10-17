@@ -1,7 +1,6 @@
 /**
- * 项目主题变量 —— 由 @aix/theme 设计系统派生生成，请勿手动修改。
+ * 项目主题变量（--aix-*），浅色写在 :root，暗色写在 :root[data-theme='dark'] 与 .dark。
  * 品牌主色: rgb(21 70 242)
- * 运行 pnpm genThemeCss 重新生成（源脚本 scripts/cssVars/genThemeCss.ts）。
  */
 
 :root {

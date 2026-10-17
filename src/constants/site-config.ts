@@ -3,7 +3,7 @@
  * 新增/修改配置只需编辑此文件
  */
 import { DEFAULT_THEME_STYLE } from '@/constants';
-import { BRAND_PRIMARY, DEFAULT_PAGE } from '@/constants/system';
+import { DEFAULT_PAGE } from '@/constants/system';
 import type { SiteSchema } from '@/plugins/site-config/types';
 
 export const siteConfigSchema = {
@@ -57,27 +57,6 @@ export const siteConfigSchema = {
         enumLabels: { light: '浅色', dark: '深色' },
         defaultValue: DEFAULT_THEME_STYLE,
         span: 12,
-      },
-      primaryColor: {
-        type: 'string',
-        title: '主题色',
-        // 默认值就是品牌主色本身——它同时也是 theme.css 的生成 seed，
-        // 所以维持默认时派生结果与静态 CSS 完全一致，diff 为空、不产生任何行内覆盖。
-        description: '作为 seed 由设计系统派生整套色阶（明暗各一套，含 Element 组件主色）',
-        inputType: 'color',
-        required: true,
-        defaultValue: BRAND_PRIMARY,
-        span: 12,
-      },
-      borderRadius: {
-        type: 'number',
-        title: '圆角',
-        description: '基准圆角，其余三档按内置比例同步推导',
-        inputType: 'slider',
-        min: 0,
-        max: 16,
-        defaultValue: 6,
-        span: 24,
       },
     },
   },

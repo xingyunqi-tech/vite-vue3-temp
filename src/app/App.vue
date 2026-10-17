@@ -16,7 +16,6 @@ import type { ThemeStyleKey } from '@/interface/system';
 import { provideLayoutContext } from '@/layout/useLayoutContext';
 import dayjs from '@/plugins/dayjs';
 import { i18n, loadLocaleMessages, getLibraryLocales } from '@/plugins/locale';
-import { deriveThemeVars } from '@/plugins/site-config';
 import { useGlobalStore, useUserInfoStore } from '@/store';
 import { handleError } from '@/utils/error-handler';
 
@@ -75,71 +74,13 @@ watchEffect(onCleanup => {
   void loadLocaleMessages(locale, { signal: controller.signal });
 });
 
-// 上一次写入的站点主题变量名，用于在配置被清空时精确撤销
-let appliedThemeVars: string[] = [];
-
-/** 挂载前 <html> 上的主题状态：被宿主嵌入时它属于宿主，撤销与卸载都还原成它 */
-const htmlBeforeMount = {
-  dataTheme: document.documentElement.getAttribute('data-theme'),
-  themeClasses: ['light', 'dark'].filter(name => document.documentElement.classList.contains(name)),
-  vars: new Map<string, string>(),
-};
-
-function restoreThemeVar(root: HTMLElement, name: string): void {
-  const original = htmlBeforeMount.vars.get(name);
-  if (original) root.style.setProperty(name, original);
-  else root.style.removeProperty(name);
-}
-
-/**
- * 把站点配置推导出的主题变量写到 :root
- *
- * deriveThemeVars 只返回「与品牌基准不同」的变量，维持默认配置时是空对象，
- * 静态 theme.css 原样生效，不产生任何行内覆盖。
- *
- * 撤销时还原成挂载前的行内值（独立运行时即移除），不写回内置值：内置值本身随明暗块变化，
- * 硬写回去等于把某一侧的值钉死，切到另一侧就错了。
- */
-function applySiteThemeVars(root: HTMLElement, mode: ThemeStyleKey): void {
-  const { primaryColor, borderRadius } = siteConfig.config.theme;
-  const vars = deriveThemeVars({ primaryColor, borderRadius }, mode === 'dark' ? 'dark' : 'light');
-
-  for (const name of appliedThemeVars) {
-    if (!(name in vars)) restoreThemeVar(root, name);
-  }
-  for (const [name, value] of Object.entries(vars)) {
-    if (!htmlBeforeMount.vars.has(name)) htmlBeforeMount.vars.set(name, root.style.getPropertyValue(name));
-    root.style.setProperty(name, value);
-  }
-  appliedThemeVars = Object.keys(vars);
-}
-
-/**
- * 卸载时把 <html> 上的主题痕迹还原到挂载前
- *
- * 这些属性挂在应用之外的节点上，不随 unmount 消失。被宿主嵌入时 <html> 由宿主与子应用共用，
- * 只能还原成挂载前的样子，不能直接删除，否则宿主自己的明暗与色阶会一并丢失。
- */
-onBeforeUnmount(() => {
-  const html = document.documentElement;
-  for (const name of htmlBeforeMount.vars.keys()) restoreThemeVar(html, name);
-  appliedThemeVars = [];
-  if (htmlBeforeMount.dataTheme === null) html.removeAttribute('data-theme');
-  else html.setAttribute('data-theme', htmlBeforeMount.dataTheme);
-  html.classList.remove('light', 'dark');
-  html.classList.add(...htmlBeforeMount.themeClasses);
-});
-
-// 监听主题变化：明暗切换与站点主题变量在同一个 effect 里完成，避免两者分帧导致色阶与明暗错配
+// 切换主题：写 data-theme 属性匹配 theme.css 的 :root[data-theme='dark'] 暗色块，class 供 Element Plus 暗色变量使用
 watchEffect(() => {
   const html = document.documentElement;
   const theme = currentTheme.value;
-  // 切换主题：写 data-theme 属性，匹配 theme.css 的 :root[data-theme='dark'] 暗色块
   html.setAttribute('data-theme', theme);
   html.classList.remove('light', 'dark');
   html.classList.add(theme);
-
-  applySiteThemeVars(html, theme);
 });
 </script>
 <style lang="scss">

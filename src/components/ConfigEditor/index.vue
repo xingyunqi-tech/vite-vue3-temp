@@ -33,7 +33,13 @@
     <!-- 代码模式：问题没有字段可挂，汇总成列表 -->
     <div v-else class="config-editor__code">
       <div class="config-editor__code-body">
-        <CodeEditor v-model="jsonText" language="json" :theme="editorTheme" height="100%" />
+        <el-input
+          v-model="jsonText"
+          type="textarea"
+          resize="none"
+          :spellcheck="false"
+          class="config-editor__textarea"
+        />
       </div>
       <div v-if="!parsed.ok" class="config-editor__issues config-editor__issues--fatal">
         JSON 语法错误，暂时无法校验内容
@@ -49,12 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import { CodeEditor } from '@aix/code-editor';
 import { ElMessage } from 'element-plus';
 import { computed, ref } from 'vue';
 import SchemaForm from '@/components/SchemaForm/index.vue';
 import type { SiteSchema, IConfigIssue } from '@/plugins/site-config';
-import { useGlobalStore } from '@/store';
 
 type EditMode = 'visual' | 'code';
 type ConfigValue = Record<string, Record<string, unknown>>;
@@ -74,9 +78,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: ConfigValue];
 }>();
-
-const globalStore = useGlobalStore();
-const editorTheme = computed(() => (globalStore.currentTheme === 'dark' ? 'dark' : 'light'));
 
 const mode = ref<EditMode>('visual');
 
@@ -170,8 +171,7 @@ defineExpose({ mode, parsed, requestMode, reload });
   overflow-y: auto;
 }
 
-// 高度由 flex 轨道给出，逐级传递到 CodeMirror；
-// 不再用 calc(100vh - 280px) 那种和 toolbar 高度隐式耦合的魔法数
+// 高度由 flex 轨道给出，逐级传递到 textarea
 .config-editor__code {
   display: flex;
   flex: 1;
@@ -183,10 +183,16 @@ defineExpose({ mode, parsed, requestMode, reload });
   flex: 1;
   min-height: 0;
 
-  :deep(.aix-code-editor),
-  :deep(.aix-code-editor__content),
-  :deep(.cm-editor) {
+  .config-editor__textarea,
+  :deep(.el-textarea__inner) {
     height: 100%;
+  }
+
+  :deep(.el-textarea__inner) {
+    border-radius: 0;
+    font-family: var(--aix-fontFamilyCode);
+    font-size: 13px;
+    line-height: 20px;
   }
 }
 

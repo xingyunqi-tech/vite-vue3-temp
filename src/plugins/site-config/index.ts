@@ -7,7 +7,7 @@
  */
 
 import { siteConfigSchema } from '@/constants/site-config';
-import { hasAlpha, isSameColor, isValidColor } from '@/plugins/site-config/theme';
+import { hasAlpha, isSameColor, isValidColor } from '@/plugins/site-config/color';
 import type {
   SiteSchema,
   IFieldSchema,
@@ -17,7 +17,7 @@ import type {
 } from '@/plugins/site-config/types';
 
 export * from '@/plugins/site-config/types';
-export * from '@/plugins/site-config/theme';
+export * from '@/plugins/site-config/color';
 // 刻意不 re-export ./source：它反过来依赖本文件的 SiteConfigOverrides，
 // 收进 barrel 就成环。需要存储源的从 '@/plugins/site-config/source' 直接引入。
 
@@ -248,7 +248,7 @@ function validateField(
         issues.push({ path, message: field.patternMessage ?? `不满足格式要求（${field.pattern}）` });
         return { ok: false };
       }
-      // 颜色字段：代码模式可以写任何字符串，解析不了的值会让色阶推导静默失效
+      // 颜色字段：代码模式可以写任何字符串，解析不了的值渲染时会静默失效
       if (field.inputType === 'color' && value !== '') {
         if (!isValidColor(value)) {
           issues.push({ path, message: '不是可识别的颜色值（支持 #rgb / #rrggbb / rgb() / rgba()）' });
