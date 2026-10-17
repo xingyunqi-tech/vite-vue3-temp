@@ -28,6 +28,29 @@ describe('后台路由与菜单', () => {
     expect(store.hasAccessibleRoute('/system/monitor')).toBe(true);
   });
 
+  it('管理员可访问内容管理各页面', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN]);
+
+    [
+      '/content/exams',
+      '/content/questions',
+      '/content/questions/create',
+      '/content/review',
+      '/content/papers',
+      '/content/paper-rules',
+      '/content/daily',
+      '/content/imports',
+    ].forEach(path => expect(store.hasAccessibleRoute(path)).toBe(true));
+  });
+
+  it('非管理员角色无法访问内容管理', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+
+    expect(store.hasAccessibleRoute('/content/questions')).toBe(false);
+  });
+
   it('非管理员角色无法访问系统页面', () => {
     const store = usePermissionStore();
     store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
@@ -36,7 +59,7 @@ describe('后台路由与菜单', () => {
     expect(store.hasAccessibleRoute('/system/monitor')).toBe(false);
   });
 
-  it('管理员菜单含系统页面与预留的业务分组', () => {
+  it('管理员菜单含内容管理、系统页面与预留的业务分组', () => {
     const menus = menusFor(ROLES.ADMIN);
 
     expect(menus.map(menu => menu.title)).toEqual(['首页', '内容管理', '纠错与勘误', 'AI 用量', '系统']);
@@ -44,7 +67,18 @@ describe('后台路由与菜单', () => {
       '/system/config',
       '/system/monitor',
     ]);
-    const reserved = menus.filter(menu => ['/content', '/feedback', '/ai'].includes(menu.path));
+    const content = menus.find(menu => menu.path === '/content')?.children ?? [];
+    expect(content.map(child => child.path)).toEqual([
+      '/content/exams',
+      '/content/questions',
+      '/content/review',
+      '/content/papers',
+      '/content/paper-rules',
+      '/content/daily',
+      '/content/imports',
+    ]);
+    expect(content.some(child => child.disabled)).toBe(false);
+    const reserved = menus.filter(menu => ['/feedback', '/ai'].includes(menu.path));
     expect(reserved.flatMap(menu => menu.children ?? []).every(child => child.disabled)).toBe(true);
   });
 

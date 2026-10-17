@@ -45,7 +45,63 @@ export {
   setDefaultAddress,
 } from './generated/addresses/addresses';
 
-export { getMonitorQueues, getMonitorAlerts, acknowledgeMonitorAlert } from './generated/admin/admin';
+export {
+  getMonitorQueues,
+  getMonitorAlerts,
+  acknowledgeMonitorAlert,
+  adminGetExams,
+  adminCreateExam,
+  adminGetExam,
+  adminUpdateExam,
+  adminDeleteExam,
+  adminPublishExam,
+  adminOfflineExam,
+  adminGetSubjects,
+  adminCreateSubject,
+  adminGetSubject,
+  adminUpdateSubject,
+  adminDeleteSubject,
+  adminPublishSubject,
+  adminOfflineSubject,
+  adminGetSubjectKnowledgePoints,
+  adminCreateKnowledgePoint,
+  adminUpdateKnowledgePoint,
+  adminDeleteKnowledgePoint,
+  adminMoveKnowledgePoint,
+  adminMigrateKnowledgePointQuestions,
+  adminGetQuestions,
+  adminCreateQuestion,
+  adminBatchPublishQuestions,
+  adminGetQuestion,
+  adminUpdateQuestion,
+  adminDeleteQuestion,
+  adminGetQuestionVersions,
+  adminSubmitQuestion,
+  adminPublishQuestion,
+  adminRejectQuestion,
+  adminOfflineQuestion,
+  adminGetPapers,
+  adminCreatePaper,
+  adminGetPaper,
+  adminUpdatePaper,
+  adminDeletePaper,
+  adminSetPaperQuestions,
+  adminPublishPaper,
+  adminOfflinePaper,
+  adminCopyPaper,
+  adminGetPaperRules,
+  adminCreatePaperRule,
+  adminGetPaperRule,
+  adminUpdatePaperRule,
+  adminDeletePaperRule,
+  adminPreviewPaperRule,
+  adminGetDailyQuestionSets,
+  adminRegenerateDailyQuestionSet,
+  adminCreateImport,
+  adminGetImports,
+  adminGetImport,
+  adminDownloadImportErrors,
+} from './generated/admin/admin';
 
 export {
   alipayControllerCreateMobilePaymentV1,
@@ -86,6 +142,8 @@ export { getConfig, upsertConfig, getConfigAsAdmin } from './generated/config/co
 
 export { getAppInfo } from './generated/default/default';
 
+export { getExams, getExamSubjects } from './generated/exams/exams';
+
 export {
   createFavorite,
   getFavorites,
@@ -100,6 +158,8 @@ export { uploadFile } from './generated/files/files';
 
 export { healthCheck, livenessProbe, readinessProbe } from './generated/health/health';
 
+export { getMyExamProfiles, upsertMyExamProfile, deleteMyExamProfile, setMyCurrentExam } from './generated/me/me';
+
 export {
   getNotifications,
   getUnreadCount,
@@ -112,6 +172,8 @@ export {
 } from './generated/notifications/notifications';
 
 export { createOrder, getOrders, getOrder, cancelOrder } from './generated/orders/orders';
+
+export { getPaper } from './generated/papers/papers';
 
 export {
   getProvinces,
@@ -134,6 +196,14 @@ export {
   getAlipayConfig,
 } from './generated/shares/shares';
 
+export {
+  getSubjectKnowledgePoints,
+  getSubjectPapers,
+  getSubjectDaily,
+  getSubjectDailyTrial,
+  checkSubjectDailyTrial,
+} from './generated/subjects/subjects';
+
 export { createUser, getUsers, getUser, updateUser, deleteUser } from './generated/users/users';
 
 export {
@@ -146,5 +216,6 @@ export {
 
 // 3. 自定义工具函数 (自动扫描 modules 目录)
 export * from './modules/auth';
+export * from './modules/content';
 export * from './modules/override';
 export * from './modules/remote-config';

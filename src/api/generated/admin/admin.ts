@@ -7,7 +7,57 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
-import type { AdminAlert, GetMonitorAlertsParams, PaginationAdminAlertResponseDto, QueuesOverviewDto } from '../model';
+import type {
+  AdminAlert,
+  AdminDailyQuestionSetDto,
+  AdminGetDailyQuestionSetsParams,
+  AdminGetExamsParams,
+  AdminGetImportsParams,
+  AdminGetPaperRulesParams,
+  AdminGetPapersParams,
+  AdminGetQuestionsParams,
+  AdminGetSubjectsParams,
+  AdminPaperDto,
+  AdminQuestionDto,
+  AdminQuestionVersionDto,
+  BatchPublishQuestionsDto,
+  BatchPublishQuestionsResultDto,
+  CreateExamDto,
+  CreateImportFileIdBodyDto,
+  CreateImportUploadBodyDto,
+  CreateKnowledgePointDto,
+  CreatePaperDto,
+  CreatePaperRuleDto,
+  CreateQuestionDto,
+  CreateSubjectDto,
+  DailyQuestionSet,
+  Exam,
+  GetMonitorAlertsParams,
+  ImportJob,
+  KnowledgePoint,
+  KnowledgePointTreeNodeDto,
+  MigrateKnowledgePointQuestionsDto,
+  MigrateKnowledgePointQuestionsResultDto,
+  MoveKnowledgePointDto,
+  PaginationAdminAlertResponseDto,
+  PaginationAdminQuestionDtoResponseDto,
+  PaginationExamResponseDto,
+  PaginationImportJobResponseDto,
+  PaginationPaperResponseDto,
+  PaginationPaperRuleResponseDto,
+  PaginationSubjectResponseDto,
+  PaperDraftDto,
+  PaperRule,
+  QueuesOverviewDto,
+  SetPaperQuestionsDto,
+  Subject,
+  UpdateExamDto,
+  UpdateKnowledgePointDto,
+  UpdatePaperDto,
+  UpdatePaperRuleDto,
+  UpdateQuestionDto,
+  UpdateSubjectDto,
+} from '../model';
 
 import { customMutator } from '../../core/mutator';
 
@@ -37,6 +87,623 @@ export const getMonitorAlerts = (
 export const acknowledgeMonitorAlert = (id: number, options?: SecondParameter<typeof customMutator<AdminAlert>>) => {
   return customMutator<AdminAlert>({ url: `/api/v1/admin/monitor/alerts/${id}/ack`, method: 'POST' }, options);
 };
+/**
+ * @summary 考试列表（管理员）
+ */
+export const adminGetExams = (
+  params?: AdminGetExamsParams,
+  options?: SecondParameter<typeof customMutator<PaginationExamResponseDto>>,
+) => {
+  return customMutator<PaginationExamResponseDto>({ url: `/api/v1/admin/exams`, method: 'GET', params }, options);
+};
+/**
+ * @summary 创建考试（草稿）
+ */
+export const adminCreateExam = (
+  createExamDto: CreateExamDto,
+  options?: SecondParameter<typeof customMutator<Exam>>,
+) => {
+  return customMutator<Exam>(
+    {
+      url: `/api/v1/admin/exams`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createExamDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 考试详情（管理员）
+ */
+export const adminGetExam = (id: string, options?: SecondParameter<typeof customMutator<Exam>>) => {
+  return customMutator<Exam>({ url: `/api/v1/admin/exams/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 更新考试
+ */
+export const adminUpdateExam = (
+  id: string,
+  updateExamDto: UpdateExamDto,
+  options?: SecondParameter<typeof customMutator<Exam>>,
+) => {
+  return customMutator<Exam>(
+    {
+      url: `/api/v1/admin/exams/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateExamDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除考试（仅无科目的草稿）
+ */
+export const adminDeleteExam = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/exams/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 上架考试
+ */
+export const adminPublishExam = (id: string, options?: SecondParameter<typeof customMutator<Exam>>) => {
+  return customMutator<Exam>({ url: `/api/v1/admin/exams/${id}/publish`, method: 'POST' }, options);
+};
+/**
+ * @summary 下架考试
+ */
+export const adminOfflineExam = (id: string, options?: SecondParameter<typeof customMutator<Exam>>) => {
+  return customMutator<Exam>({ url: `/api/v1/admin/exams/${id}/offline`, method: 'POST' }, options);
+};
+/**
+ * @summary 科目列表（管理员）
+ */
+export const adminGetSubjects = (
+  params?: AdminGetSubjectsParams,
+  options?: SecondParameter<typeof customMutator<PaginationSubjectResponseDto>>,
+) => {
+  return customMutator<PaginationSubjectResponseDto>({ url: `/api/v1/admin/subjects`, method: 'GET', params }, options);
+};
+/**
+ * @summary 创建科目（草稿）
+ */
+export const adminCreateSubject = (
+  createSubjectDto: CreateSubjectDto,
+  options?: SecondParameter<typeof customMutator<Subject>>,
+) => {
+  return customMutator<Subject>(
+    {
+      url: `/api/v1/admin/subjects`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createSubjectDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 科目详情（管理员）
+ */
+export const adminGetSubject = (id: string, options?: SecondParameter<typeof customMutator<Subject>>) => {
+  return customMutator<Subject>({ url: `/api/v1/admin/subjects/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 更新科目
+ */
+export const adminUpdateSubject = (
+  id: string,
+  updateSubjectDto: UpdateSubjectDto,
+  options?: SecondParameter<typeof customMutator<Subject>>,
+) => {
+  return customMutator<Subject>(
+    {
+      url: `/api/v1/admin/subjects/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateSubjectDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除科目（仅无知识点的草稿）
+ */
+export const adminDeleteSubject = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/subjects/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 上架科目
+ */
+export const adminPublishSubject = (id: string, options?: SecondParameter<typeof customMutator<Subject>>) => {
+  return customMutator<Subject>({ url: `/api/v1/admin/subjects/${id}/publish`, method: 'POST' }, options);
+};
+/**
+ * @summary 下架科目
+ */
+export const adminOfflineSubject = (id: string, options?: SecondParameter<typeof customMutator<Subject>>) => {
+  return customMutator<Subject>({ url: `/api/v1/admin/subjects/${id}/offline`, method: 'POST' }, options);
+};
+/**
+ * @summary 科目知识点树（管理员）
+ */
+export const adminGetSubjectKnowledgePoints = (
+  id: string,
+  options?: SecondParameter<typeof customMutator<KnowledgePointTreeNodeDto[]>>,
+) => {
+  return customMutator<KnowledgePointTreeNodeDto[]>(
+    { url: `/api/v1/admin/subjects/${id}/knowledge-points`, method: 'GET' },
+    options,
+  );
+};
+/**
+ * @summary 新增知识点
+ */
+export const adminCreateKnowledgePoint = (
+  createKnowledgePointDto: CreateKnowledgePointDto,
+  options?: SecondParameter<typeof customMutator<KnowledgePoint>>,
+) => {
+  return customMutator<KnowledgePoint>(
+    {
+      url: `/api/v1/admin/knowledge-points`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createKnowledgePointDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 修改知识点名称或排序
+ */
+export const adminUpdateKnowledgePoint = (
+  id: string,
+  updateKnowledgePointDto: UpdateKnowledgePointDto,
+  options?: SecondParameter<typeof customMutator<KnowledgePoint>>,
+) => {
+  return customMutator<KnowledgePoint>(
+    {
+      url: `/api/v1/admin/knowledge-points/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateKnowledgePointDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除知识点（无子节点且无关联题目）
+ */
+export const adminDeleteKnowledgePoint = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/knowledge-points/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 移动知识点
+ */
+export const adminMoveKnowledgePoint = (
+  id: string,
+  moveKnowledgePointDto: MoveKnowledgePointDto,
+  options?: SecondParameter<typeof customMutator<KnowledgePoint>>,
+) => {
+  return customMutator<KnowledgePoint>(
+    {
+      url: `/api/v1/admin/knowledge-points/${id}/move`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: moveKnowledgePointDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 把知识点的题目迁移到另一叶子知识点
+ */
+export const adminMigrateKnowledgePointQuestions = (
+  id: string,
+  migrateKnowledgePointQuestionsDto: MigrateKnowledgePointQuestionsDto,
+  options?: SecondParameter<typeof customMutator<MigrateKnowledgePointQuestionsResultDto>>,
+) => {
+  return customMutator<MigrateKnowledgePointQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/knowledge-points/${id}/migrate-questions`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: migrateKnowledgePointQuestionsDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 题目列表（管理员）
+ */
+export const adminGetQuestions = (
+  params?: AdminGetQuestionsParams,
+  options?: SecondParameter<typeof customMutator<PaginationAdminQuestionDtoResponseDto>>,
+) => {
+  return customMutator<PaginationAdminQuestionDtoResponseDto>(
+    { url: `/api/v1/admin/questions`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 新建题目（草稿）
+ */
+export const adminCreateQuestion = (
+  createQuestionDto: CreateQuestionDto,
+  options?: SecondParameter<typeof customMutator<AdminQuestionDto>>,
+) => {
+  return customMutator<AdminQuestionDto>(
+    {
+      url: `/api/v1/admin/questions`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createQuestionDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 批量发布待审题目
+ */
+export const adminBatchPublishQuestions = (
+  batchPublishQuestionsDto: BatchPublishQuestionsDto,
+  options?: SecondParameter<typeof customMutator<BatchPublishQuestionsResultDto>>,
+) => {
+  return customMutator<BatchPublishQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-publish`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchPublishQuestionsDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 题目详情（含小题）
+ */
+export const adminGetQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
+  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 编辑题目，已发布过的题目生成新版本
+ */
+export const adminUpdateQuestion = (
+  id: string,
+  updateQuestionDto: UpdateQuestionDto,
+  options?: SecondParameter<typeof customMutator<AdminQuestionDto>>,
+) => {
+  return customMutator<AdminQuestionDto>(
+    {
+      url: `/api/v1/admin/questions/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateQuestionDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除未发布过的草稿题目
+ */
+export const adminDeleteQuestion = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/questions/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 题目版本历史
+ */
+export const adminGetQuestionVersions = (
+  id: string,
+  options?: SecondParameter<typeof customMutator<AdminQuestionVersionDto[]>>,
+) => {
+  return customMutator<AdminQuestionVersionDto[]>(
+    { url: `/api/v1/admin/questions/${id}/versions`, method: 'GET' },
+    options,
+  );
+};
+/**
+ * @summary 提交审核
+ */
+export const adminSubmitQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
+  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/submit`, method: 'POST' }, options);
+};
+/**
+ * @summary 发布题目
+ */
+export const adminPublishQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
+  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/publish`, method: 'POST' }, options);
+};
+/**
+ * @summary 驳回为草稿
+ */
+export const adminRejectQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
+  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/reject`, method: 'POST' }, options);
+};
+/**
+ * @summary 下架题目
+ */
+export const adminOfflineQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
+  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/offline`, method: 'POST' }, options);
+};
+/**
+ * @summary 试卷列表（管理员）
+ */
+export const adminGetPapers = (
+  params?: AdminGetPapersParams,
+  options?: SecondParameter<typeof customMutator<PaginationPaperResponseDto>>,
+) => {
+  return customMutator<PaginationPaperResponseDto>({ url: `/api/v1/admin/papers`, method: 'GET', params }, options);
+};
+/**
+ * @summary 创建试卷（草稿）
+ */
+export const adminCreatePaper = (
+  createPaperDto: CreatePaperDto,
+  options?: SecondParameter<typeof customMutator<AdminPaperDto>>,
+) => {
+  return customMutator<AdminPaperDto>(
+    {
+      url: `/api/v1/admin/papers`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createPaperDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 试卷详情（含题目）
+ */
+export const adminGetPaper = (id: string, options?: SecondParameter<typeof customMutator<AdminPaperDto>>) => {
+  return customMutator<AdminPaperDto>({ url: `/api/v1/admin/papers/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 更新试卷信息
+ */
+export const adminUpdatePaper = (
+  id: string,
+  updatePaperDto: UpdatePaperDto,
+  options?: SecondParameter<typeof customMutator<AdminPaperDto>>,
+) => {
+  return customMutator<AdminPaperDto>(
+    {
+      url: `/api/v1/admin/papers/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updatePaperDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除草稿试卷
+ */
+export const adminDeletePaper = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/papers/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 整体设置分区、题目、顺序与分值（仅草稿）
+ */
+export const adminSetPaperQuestions = (
+  id: string,
+  setPaperQuestionsDto: SetPaperQuestionsDto,
+  options?: SecondParameter<typeof customMutator<AdminPaperDto>>,
+) => {
+  return customMutator<AdminPaperDto>(
+    {
+      url: `/api/v1/admin/papers/${id}/questions`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: setPaperQuestionsDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 发布试卷
+ */
+export const adminPublishPaper = (id: string, options?: SecondParameter<typeof customMutator<AdminPaperDto>>) => {
+  return customMutator<AdminPaperDto>({ url: `/api/v1/admin/papers/${id}/publish`, method: 'POST' }, options);
+};
+/**
+ * @summary 下架试卷
+ */
+export const adminOfflinePaper = (id: string, options?: SecondParameter<typeof customMutator<AdminPaperDto>>) => {
+  return customMutator<AdminPaperDto>({ url: `/api/v1/admin/papers/${id}/offline`, method: 'POST' }, options);
+};
+/**
+ * @summary 复制为新的草稿试卷
+ */
+export const adminCopyPaper = (id: string, options?: SecondParameter<typeof customMutator<AdminPaperDto>>) => {
+  return customMutator<AdminPaperDto>({ url: `/api/v1/admin/papers/${id}/copy`, method: 'POST' }, options);
+};
+/**
+ * @summary 组卷规则列表
+ */
+export const adminGetPaperRules = (
+  params?: AdminGetPaperRulesParams,
+  options?: SecondParameter<typeof customMutator<PaginationPaperRuleResponseDto>>,
+) => {
+  return customMutator<PaginationPaperRuleResponseDto>(
+    { url: `/api/v1/admin/paper-rules`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 创建组卷规则（草稿）
+ */
+export const adminCreatePaperRule = (
+  createPaperRuleDto: CreatePaperRuleDto,
+  options?: SecondParameter<typeof customMutator<PaperRule>>,
+) => {
+  return customMutator<PaperRule>(
+    {
+      url: `/api/v1/admin/paper-rules`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createPaperRuleDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 组卷规则详情
+ */
+export const adminGetPaperRule = (id: string, options?: SecondParameter<typeof customMutator<PaperRule>>) => {
+  return customMutator<PaperRule>({ url: `/api/v1/admin/paper-rules/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 更新组卷规则
+ */
+export const adminUpdatePaperRule = (
+  id: string,
+  updatePaperRuleDto: UpdatePaperRuleDto,
+  options?: SecondParameter<typeof customMutator<PaperRule>>,
+) => {
+  return customMutator<PaperRule>(
+    {
+      url: `/api/v1/admin/paper-rules/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updatePaperRuleDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 删除组卷规则
+ */
+export const adminDeletePaperRule = (id: string, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/paper-rules/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 按规则试生成，不落库
+ */
+export const adminPreviewPaperRule = (id: string, options?: SecondParameter<typeof customMutator<PaperDraftDto>>) => {
+  return customMutator<PaperDraftDto>({ url: `/api/v1/admin/paper-rules/${id}/preview`, method: 'POST' }, options);
+};
+/**
+ * @summary 每日一练题组（按日期区间，含题目摘要）
+ */
+export const adminGetDailyQuestionSets = (
+  id: string,
+  params: AdminGetDailyQuestionSetsParams,
+  options?: SecondParameter<typeof customMutator<AdminDailyQuestionSetDto[]>>,
+) => {
+  return customMutator<AdminDailyQuestionSetDto[]>(
+    { url: `/api/v1/admin/subjects/${id}/daily-sets`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 重新生成当日及以后的题组
+ */
+export const adminRegenerateDailyQuestionSet = (
+  id: string,
+  date: string,
+  options?: SecondParameter<typeof customMutator<DailyQuestionSet>>,
+) => {
+  return customMutator<DailyQuestionSet>(
+    { url: `/api/v1/admin/subjects/${id}/daily-sets/${date}/regenerate`, method: 'POST' },
+    options,
+  );
+};
+/**
+ * @summary 创建导入任务：传已上传导入包的 fileId，或直接上传 file（zip / xlsx / json）
+ */
+export const adminCreateImport = (
+  adminCreateImportBody: CreateImportUploadBodyDto | CreateImportFileIdBodyDto,
+  options?: SecondParameter<typeof customMutator<ImportJob>>,
+) => {
+  return customMutator<ImportJob>(
+    { url: `/api/v1/admin/imports`, method: 'POST', data: adminCreateImportBody },
+    options,
+  );
+};
+/**
+ * @summary 导入任务列表
+ */
+export const adminGetImports = (
+  params?: AdminGetImportsParams,
+  options?: SecondParameter<typeof customMutator<PaginationImportJobResponseDto>>,
+) => {
+  return customMutator<PaginationImportJobResponseDto>(
+    { url: `/api/v1/admin/imports`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 导入任务进度与统计
+ */
+export const adminGetImport = (id: string, options?: SecondParameter<typeof customMutator<ImportJob>>) => {
+  return customMutator<ImportJob>({ url: `/api/v1/admin/imports/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 下载错误行报告（xlsx）
+ */
+export const adminDownloadImportErrors = (id: string, options?: SecondParameter<typeof customMutator<Blob>>) => {
+  return customMutator<Blob>(
+    { url: `/api/v1/admin/imports/${id}/errors`, method: 'GET', responseType: 'blob' },
+    options,
+  );
+};
 export type GetMonitorQueuesResult = NonNullable<Awaited<ReturnType<typeof getMonitorQueues>>>;
 export type GetMonitorAlertsResult = NonNullable<Awaited<ReturnType<typeof getMonitorAlerts>>>;
 export type AcknowledgeMonitorAlertResult = NonNullable<Awaited<ReturnType<typeof acknowledgeMonitorAlert>>>;
+export type AdminGetExamsResult = NonNullable<Awaited<ReturnType<typeof adminGetExams>>>;
+export type AdminCreateExamResult = NonNullable<Awaited<ReturnType<typeof adminCreateExam>>>;
+export type AdminGetExamResult = NonNullable<Awaited<ReturnType<typeof adminGetExam>>>;
+export type AdminUpdateExamResult = NonNullable<Awaited<ReturnType<typeof adminUpdateExam>>>;
+export type AdminDeleteExamResult = NonNullable<Awaited<ReturnType<typeof adminDeleteExam>>>;
+export type AdminPublishExamResult = NonNullable<Awaited<ReturnType<typeof adminPublishExam>>>;
+export type AdminOfflineExamResult = NonNullable<Awaited<ReturnType<typeof adminOfflineExam>>>;
+export type AdminGetSubjectsResult = NonNullable<Awaited<ReturnType<typeof adminGetSubjects>>>;
+export type AdminCreateSubjectResult = NonNullable<Awaited<ReturnType<typeof adminCreateSubject>>>;
+export type AdminGetSubjectResult = NonNullable<Awaited<ReturnType<typeof adminGetSubject>>>;
+export type AdminUpdateSubjectResult = NonNullable<Awaited<ReturnType<typeof adminUpdateSubject>>>;
+export type AdminDeleteSubjectResult = NonNullable<Awaited<ReturnType<typeof adminDeleteSubject>>>;
+export type AdminPublishSubjectResult = NonNullable<Awaited<ReturnType<typeof adminPublishSubject>>>;
+export type AdminOfflineSubjectResult = NonNullable<Awaited<ReturnType<typeof adminOfflineSubject>>>;
+export type AdminGetSubjectKnowledgePointsResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetSubjectKnowledgePoints>>
+>;
+export type AdminCreateKnowledgePointResult = NonNullable<Awaited<ReturnType<typeof adminCreateKnowledgePoint>>>;
+export type AdminUpdateKnowledgePointResult = NonNullable<Awaited<ReturnType<typeof adminUpdateKnowledgePoint>>>;
+export type AdminDeleteKnowledgePointResult = NonNullable<Awaited<ReturnType<typeof adminDeleteKnowledgePoint>>>;
+export type AdminMoveKnowledgePointResult = NonNullable<Awaited<ReturnType<typeof adminMoveKnowledgePoint>>>;
+export type AdminMigrateKnowledgePointQuestionsResult = NonNullable<
+  Awaited<ReturnType<typeof adminMigrateKnowledgePointQuestions>>
+>;
+export type AdminGetQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestions>>>;
+export type AdminCreateQuestionResult = NonNullable<Awaited<ReturnType<typeof adminCreateQuestion>>>;
+export type AdminBatchPublishQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchPublishQuestions>>>;
+export type AdminGetQuestionResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestion>>>;
+export type AdminUpdateQuestionResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestion>>>;
+export type AdminDeleteQuestionResult = NonNullable<Awaited<ReturnType<typeof adminDeleteQuestion>>>;
+export type AdminGetQuestionVersionsResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionVersions>>>;
+export type AdminSubmitQuestionResult = NonNullable<Awaited<ReturnType<typeof adminSubmitQuestion>>>;
+export type AdminPublishQuestionResult = NonNullable<Awaited<ReturnType<typeof adminPublishQuestion>>>;
+export type AdminRejectQuestionResult = NonNullable<Awaited<ReturnType<typeof adminRejectQuestion>>>;
+export type AdminOfflineQuestionResult = NonNullable<Awaited<ReturnType<typeof adminOfflineQuestion>>>;
+export type AdminGetPapersResult = NonNullable<Awaited<ReturnType<typeof adminGetPapers>>>;
+export type AdminCreatePaperResult = NonNullable<Awaited<ReturnType<typeof adminCreatePaper>>>;
+export type AdminGetPaperResult = NonNullable<Awaited<ReturnType<typeof adminGetPaper>>>;
+export type AdminUpdatePaperResult = NonNullable<Awaited<ReturnType<typeof adminUpdatePaper>>>;
+export type AdminDeletePaperResult = NonNullable<Awaited<ReturnType<typeof adminDeletePaper>>>;
+export type AdminSetPaperQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminSetPaperQuestions>>>;
+export type AdminPublishPaperResult = NonNullable<Awaited<ReturnType<typeof adminPublishPaper>>>;
+export type AdminOfflinePaperResult = NonNullable<Awaited<ReturnType<typeof adminOfflinePaper>>>;
+export type AdminCopyPaperResult = NonNullable<Awaited<ReturnType<typeof adminCopyPaper>>>;
+export type AdminGetPaperRulesResult = NonNullable<Awaited<ReturnType<typeof adminGetPaperRules>>>;
+export type AdminCreatePaperRuleResult = NonNullable<Awaited<ReturnType<typeof adminCreatePaperRule>>>;
+export type AdminGetPaperRuleResult = NonNullable<Awaited<ReturnType<typeof adminGetPaperRule>>>;
+export type AdminUpdatePaperRuleResult = NonNullable<Awaited<ReturnType<typeof adminUpdatePaperRule>>>;
+export type AdminDeletePaperRuleResult = NonNullable<Awaited<ReturnType<typeof adminDeletePaperRule>>>;
+export type AdminPreviewPaperRuleResult = NonNullable<Awaited<ReturnType<typeof adminPreviewPaperRule>>>;
+export type AdminGetDailyQuestionSetsResult = NonNullable<Awaited<ReturnType<typeof adminGetDailyQuestionSets>>>;
+export type AdminRegenerateDailyQuestionSetResult = NonNullable<
+  Awaited<ReturnType<typeof adminRegenerateDailyQuestionSet>>
+>;
+export type AdminCreateImportResult = NonNullable<Awaited<ReturnType<typeof adminCreateImport>>>;
+export type AdminGetImportsResult = NonNullable<Awaited<ReturnType<typeof adminGetImports>>>;
+export type AdminGetImportResult = NonNullable<Awaited<ReturnType<typeof adminGetImport>>>;
+export type AdminDownloadImportErrorsResult = NonNullable<Awaited<ReturnType<typeof adminDownloadImportErrors>>>;

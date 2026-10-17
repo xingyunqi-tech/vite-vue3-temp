@@ -1,0 +1,50 @@
+.content-page {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 20px;
+  background: var(--aix-colorBgLayout);
+
+  &__section + &__section {
+    margin-top: 32px;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    margin: 0;
+    color: var(--aix-colorTextHeading);
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__select {
+    width: 140px;
+  }
+
+  &__muted {
+    color: var(--aix-colorTextTertiary);
+  }
+
+  &__stem {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  &__pagination {
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+}

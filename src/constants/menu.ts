@@ -40,11 +40,13 @@ export const DEFAULT_MENU_LIST: MenuItem[] = [
     path: '/content',
     icon: Collection,
     children: [
-      { title: '考试与科目', path: '/content/exams', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
-      { title: '题目', path: '/content/questions', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
-      { title: '试卷', path: '/content/papers', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
-      { title: '批量导入', path: '/content/imports', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
-      { title: '审核发布', path: '/content/review', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '考试与科目', path: '/content/exams' },
+      { title: '题目', path: '/content/questions' },
+      { title: '审核发布', path: '/content/review' },
+      { title: '试卷', path: '/content/papers' },
+      { title: '组卷规则', path: '/content/paper-rules' },
+      { title: '每日一练', path: '/content/daily' },
+      { title: '批量导入', path: '/content/imports' },
     ],
   },
   {
