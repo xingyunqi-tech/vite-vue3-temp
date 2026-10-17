@@ -54,9 +54,9 @@ function currentRoutePath(base: string): string {
 
 export interface LoginReturnPathOptions {
   /**
-   * 停在异常页时是否沿用它带的原目标（query.redirect）
+   * 停在登录页或异常页时是否沿用它带的原目标（query.redirect）
    *
-   * 401 后重新登录是同一个人，回原目标才对；登出是换账号，异常页带的原目标不再沿用。
+   * 401 后重新登录是同一个人，回原目标才对；登出是换账号，原目标不再沿用。
    */
   inheritExceptionTarget?: boolean;
 }
@@ -65,8 +65,7 @@ export interface LoginReturnPathOptions {
  * 计算安全的登录回跳路径（站内路径，不含 router base），所有登录/登出跳转的唯一出口
  *
  * - 站外地址、解析不出来的地址 → `/`，不做开放重定向；
- * - 登录页自身 → `/`；
- * - 全屏 403 → 按 inheritExceptionTarget 换成它带的原目标或 `/`，异常页自身不作回跳目标。
+ * - 登录页、全屏 403 → 按 inheritExceptionTarget 换成它带的原目标或 `/`，两者自身不作回跳目标。
  *
  * @param target 候选回跳路径（站内路径），缺省取当前页面
  */
@@ -82,8 +81,7 @@ export function resolveLoginReturnPath(
     if (url.origin !== window.location.origin) return '/';
 
     const pathname = url.pathname.replace(/\/+$/, '') || '/';
-    if (pathname === LOGIN_PATH) return '/';
-    if (pathname === FORBIDDEN_PATH) {
+    if (pathname === LOGIN_PATH || pathname === FORBIDDEN_PATH) {
       if (!inheritExceptionTarget) return '/';
       const inherited = readSafeRedirect(parseQuery(url.search));
       return inherited ? resolveLoginReturnPath(inherited, { inheritExceptionTarget: false }) : '/';

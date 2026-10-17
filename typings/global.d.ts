@@ -2,7 +2,7 @@
  * 为 TypeScript 编译器提供全局相关的类型定义
  */
 declare global {
-  /** 应用版本号（package.json version），构建时注入 */
+  /** 应用版本号（package.json version + git 短 hash），构建时注入 */
   const __APP_VERSION__: string;
 
   /**

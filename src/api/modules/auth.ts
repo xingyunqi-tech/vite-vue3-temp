@@ -32,7 +32,7 @@ export interface CurrentUser {
 export const login = (params: LoginParams) => post<LoginResult>('/api/auth/login', params, { skipAuthRedirect: true });
 
 /** 退出登录 */
-export const logout = () => post<void>('/api/auth/logout', undefined, { isIgnoreToast: true });
+export const logout = () => post<void>('/api/auth/logout', undefined, { isIgnoreToast: true, skipAuthRedirect: true });
 
 /** 获取当前登录用户 */
 export const getUserInfo = () => get<CurrentUser>('/api/auth/current-user');

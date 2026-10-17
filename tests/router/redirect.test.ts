@@ -89,8 +89,18 @@ describe('resolveLoginReturnPath · 登录回跳路径', () => {
     expect(resolveLoginReturnPath('/\t/evil.com')).toBe('/');
   });
 
-  it('登录页自身回落首页', () => {
-    expect(resolveLoginReturnPath('/login?redirect=%2Fhome')).toBe('/');
+  it('停在登录页时改用 query.redirect', () => {
+    stubLocation(`${ORIGIN}/login?redirect=%2Fsetting%2Ffrontend`);
+    expect(resolveLoginReturnPath()).toBe('/setting/frontend');
+  });
+
+  it('登录页没有 redirect 或关掉继承时回首页', () => {
+    expect(resolveLoginReturnPath('/login')).toBe('/');
+    expect(resolveLoginReturnPath('/login?redirect=%2Fhome', { inheritExceptionTarget: false })).toBe('/');
+  });
+
+  it('登录页带的 redirect 又指向登录页时回首页', () => {
+    expect(resolveLoginReturnPath('/login?redirect=%2Flogin%3Fredirect%3D%252Fhome')).toBe('/');
   });
 
   it('停在 403 时改用 query.redirect', () => {

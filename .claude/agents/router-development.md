@@ -368,8 +368,8 @@ export function setupRouterGuard(router: Router) {
 > **回跳地址只走 `src/router/redirect.ts`。**
 >
 > - `readSafeRedirect(query)`：读取 `query.redirect`，只接受站内单斜杠开头的路径（排除 `//host`、`/\host` 与制表/换行字符），防止开放重定向
-> - `resolveLoginReturnPath(target?, { inheritExceptionTarget })`：所有登录/登出跳转的唯一出口。站外地址、解析失败、登录页自身 → `/`；
->   全屏 403 → 按 `inheritExceptionTarget`（默认 `true`）取它带的 `query.redirect`，否则 `/`
+> - `resolveLoginReturnPath(target?, { inheritExceptionTarget })`：所有登录/登出跳转的唯一出口。站外地址、解析失败 → `/`；
+>   登录页、全屏 403 → 按 `inheritExceptionTarget`（默认 `true`）取它带的 `query.redirect`，否则 `/`
 > - `routerBase()`：归一后的 `VITE_BASE_PATH`，整页跳转拼地址时使用
 >
 > **异常页不能成为死胡同。** 守卫跳 403 时把原目标放进 `query.redirect`；全屏 403 页（`src/views/exception/Forbidden.vue`）

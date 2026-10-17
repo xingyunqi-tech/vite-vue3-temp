@@ -1,7 +1,7 @@
 ---
 name: figma-extraction-guide
 description: Figma MCP 技术专家，负责从 Figma 设计稿提取设计数据和下载资源，不负责组件实现
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, mcp__Framelink_Figma_MCP__get_figma_data, mcp__Framelink_Figma_MCP__download_figma_images
 model: inherit
 ---
 
@@ -27,14 +27,13 @@ model: inherit
 
 ## 📌 关于 Figma MCP
 
-> ⚠️ **前置条件**：项目根目录 `.mcp.json` 已声明 `Framelink Figma MCP`（`figma-developer-mcp`），
-> 需在 `.claude/settings.local.json`（不提交）的 `enabledMcpjsonServers` 中启用，或设置
-> `enableAllProjectMcpServers: true`。启用后可用的工具：
+> ⚠️ **前置条件**：已以服务器名 `Framelink Figma MCP`（包 `figma-developer-mcp`）配置 Figma MCP。
+> 项目 `.mcp.json` 默认为空，需自行在用户级或项目级配置。可用的工具：
 >
 > - `mcp__Framelink_Figma_MCP__get_figma_data` —— 读取设计稿节点数据
 > - `mcp__Framelink_Figma_MCP__download_figma_images` —— 下载切图
 >
-> 工具名由 `.mcp.json` 的 key 转换而来（空格变 `_`），**大小写敏感**。详见 [.claude/README.md#mcp-服务器配置](../README.md#mcp-服务器配置)。
+> 工具名由服务器名转换而来（空格变 `_`），**大小写敏感**，本 Agent 的 `tools` 按此名称授权。详见 [.claude/README.md#mcp-服务器配置](../README.md#mcp-服务器配置)。
 
 **本指南基于社区 Figma-Context-MCP 实现**
 

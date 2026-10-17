@@ -13,7 +13,7 @@
 ├── commands/              # 快速提示（7 个 *.md，/命令名 调用）
 └── skills/                # 代码生成（9 个 <name>/SKILL.md）
 
-.mcp.json                  # 项目根目录：MCP 服务器定义
+.mcp.json                  # 项目根目录：项目级 MCP 服务器定义（默认为空）
 ```
 
 ---
@@ -316,21 +316,22 @@ MCP (Model Context Protocol) 服务器扩展 Claude 的能力。
 
 | 文件 | 用途 |
 |------|------|
-| `.mcp.json` | 项目根目录，定义可用的 MCP 服务器（提交） |
-| `.claude/settings.local.json` | 通过 `enabledMcpjsonServers` 或 `enableAllProjectMcpServers: true` 决定启用哪些（本地配置，不提交） |
+| `.mcp.json` | 项目根目录，项目级 MCP 服务器定义（提交）；**模板默认为空** `{ "mcpServers": {} }` |
+| `.claude/settings.local.json` | 通过 `enabledMcpjsonServers` 或 `enableAllProjectMcpServers: true` 决定启用 `.mcp.json` 里的哪些（本地配置，不提交） |
+| `~/.claude.json` | 用户级 MCP 服务器（`claude mcp add --scope user` 写入），对所有项目生效 |
 
-### 当前实际配置
+### 推荐服务器
 
-`.mcp.json` 定义了 4 个服务器：
+模板不预置任何 MCP 服务器，按需在用户级或项目级配置：
 
-| key | 包 | 用途 |
+| 服务器名 | 包 | 用途 |
 |-----|----|------|
-| `Framelink Figma MCP` | `figma-developer-mcp` | 读取 Figma 设计稿、下载切图（`/figma-to-component` 依赖） |
+| `Framelink Figma MCP` | `figma-developer-mcp` | 读取 Figma 设计稿、下载切图（`/figma-to-component` 与 `figma-extraction-guide` 依赖，**名称须一致**） |
 | `context7` | `@upstash/context7-mcp` | 查询第三方库的最新文档 |
 | `ESLint` | `@eslint/mcp` | 调用项目 ESLint 检查文件 |
 | `chrome-devtools` | `chrome-devtools-mcp` | 驱动浏览器调试页面、截图、性能分析 |
 
-在 `.claude/settings.local.json` 中启用，例如：
+写进项目 `.mcp.json` 时，还需在 `.claude/settings.local.json` 中启用，例如：
 
 ```json
 { "enabledMcpjsonServers": ["Framelink Figma MCP", "context7", "ESLint", "chrome-devtools"] }
