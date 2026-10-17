@@ -49,7 +49,7 @@ export const t = i18n.global.t;
  *
  * - 只负责合并：切换当前语言是调用方的事（App.vue 与 `html[lang]`、dayjs 同步完成），
  *   远端包拉不到时内置语言包仍完整可用，语言切换不受影响
- * - 必须用 mergeLocaleMessage：setLocaleMessage 是整份替换，会冲掉内置语言包与 override 的 locale 维度
+ * - 必须用 mergeLocaleMessage：setLocaleMessage 是整份替换，会冲掉内置语言包
  *
  * @param locale 语言代码
  * @param options.signal 取消信号，语言快速切换时作废过期请求

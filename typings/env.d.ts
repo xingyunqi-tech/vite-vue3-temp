@@ -42,30 +42,6 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_ORG?: string;
   /** Sentry 项目（上传 sourcemap 用） */
   readonly VITE_SENTRY_PROJECT?: string;
-  // #if qiankun
-  /**
-   * 启用主应用能力（注册并加载子应用）
-   * - `'true'` 启用；其它值或未设置 = 禁用
-   */
-  readonly VITE_AS_HOST?: 'true' | 'false';
-  /**
-   * 启用子应用能力（导出 qiankun 生命周期）
-   * - `'true'` 启用；其它值或未设置 = 禁用
-   * - 被父级加载时路由 base 由主应用 props.routerBase 覆盖，独立访问时回落到 VITE_BASE_PATH
-   */
-  readonly VITE_AS_GUEST?: 'true' | 'false';
-  /**
-   * 子应用名称（仅 GUEST 模式有效，须与父级注册名一致）
-   */
-  readonly VITE_APP_NAME?: string;
-  // #endif
-  // #if overrides
-  /**
-   * 定向打包锁定的学校代码：构建期裁掉其余学校的模块，运行时恒按该学校识别
-   * - 留空或未设置 = 通用包，按 Cookie 识别
-   */
-  readonly VITE_BUILD_SCHOOL_CODE?: string;
-  // #endif
 }
 
 interface ImportMeta {

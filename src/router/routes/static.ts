@@ -8,7 +8,7 @@ import { useSiteConfigStore } from '@/store/modules/site-config';
 /**
  * 配置的默认页，当前角色是否够得着
  *
- * 只拦「产品声明过、却被角色过滤掉」这一种：静态路由与租户自定义路由都不在声明表里，
+ * 只拦「产品声明过、却被角色过滤掉」这一种：静态路由不在声明表里，
  * 一律放行以免误伤；权限路由尚未生成时无从判断，同样放行，交给守卫走完整流程。
  */
 function canAccessDefaultPage(pathname: string): boolean {

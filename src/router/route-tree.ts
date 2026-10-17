@@ -34,7 +34,7 @@ function staticRedirectPath(redirect: RouteRecordRaw['redirect']): string | unde
 }
 
 /**
- * redirect 指向的子路由被过滤（权限）或禁用（租户覆盖）后，改指向首个仍存活的叶子路径
+ * redirect 指向的子路由被权限过滤后，改指向首个仍存活的叶子路径
  *
  * 只介入目标原本属于这棵子树、现已不存在的情况；子树外的目标原样保留。比对时去掉 query 与 hash。
  * 目标可能是孙辈（`/setting` → `/setting/frontend`），故按整棵子树比对而非只看直接子节点。

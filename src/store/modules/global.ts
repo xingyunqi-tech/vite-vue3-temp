@@ -1,18 +1,11 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
-// #if i18n
-import { DEFAULT_LOCALE } from '@/constants';
-// #endif
-import { DEFAULT_THEME_STYLE } from '@/constants';
-// #if i18n
-import type { LocaleKey } from '@/interface/system';
-// #endif
-import type { ThemeStyleKey } from '@/interface/system';
+import { DEFAULT_LOCALE, DEFAULT_THEME_STYLE } from '@/constants';
+import type { LocaleKey, ThemeStyleKey } from '@/interface/system';
 
 export const useGlobalStore = defineStore(
   'global',
   () => {
-    // #if i18n
     // ==================== 语言相关 ====================
     const currentLocale = ref<LocaleKey>(DEFAULT_LOCALE as LocaleKey);
 
@@ -34,7 +27,6 @@ export const useGlobalStore = defineStore(
       }
     };
 
-    // #endif
     // ==================== 主题相关 ====================
 
     /** 用户显式选择的主题；`null` 表示从未选择过，此时跟随站点声明的默认主题 */
@@ -99,13 +91,11 @@ export const useGlobalStore = defineStore(
     };
 
     return {
-      // #if i18n
       // 语言相关
       currentLocale,
       switchLocale,
       initLocale,
 
-      // #endif
       // 主题相关
       userTheme,
       siteDefaultTheme,

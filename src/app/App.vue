@@ -9,33 +9,21 @@
 </template>
 <script setup lang="ts">
 import { ElConfigProvider } from 'element-plus';
-// 无条件引入：既是 i18n 关闭时的唯一语言包，也是开启时 elementPlusLocale 的默认值。
-// 开启 i18n 时 @/plugins/locale 也引用同一个模块，打包会去重，不产生额外体积。
-import elZhCN from 'element-plus/es/locale/lang/zh-cn';
 import { computed, watchEffect, onMounted, onBeforeUnmount, toRefs } from 'vue';
 import ErrorBoundary from '@/components/ErrorBoundary/index.vue';
 import { useSiteConfig } from '@/composables/useSiteConfig';
 import type { ThemeStyleKey } from '@/interface/system';
 import { provideLayoutContext } from '@/layout/useLayoutContext';
-// #if i18n
 import dayjs from '@/plugins/dayjs';
 import { i18n, loadLocaleMessages, getLibraryLocales } from '@/plugins/locale';
-// #else
-import '@/plugins/dayjs';
-// #endif
-// 放在条件块之外：裁掉 i18n 特性时 #if 段会被整段删除，import 跟着消失就会构建失败
 import { deriveThemeVars } from '@/plugins/site-config';
 import { useGlobalStore, useUserInfoStore } from '@/store';
 import { handleError } from '@/utils/error-handler';
 
 const globalStore = useGlobalStore();
 const siteConfig = useSiteConfig();
-const { currentTheme } = toRefs(globalStore);
-const { syncSiteDefaultTheme } = globalStore;
-// #if i18n
-const { currentLocale } = toRefs(globalStore);
-const { initLocale } = globalStore;
-// #endif
+const { currentTheme, currentLocale } = toRefs(globalStore);
+const { syncSiteDefaultTheme, initLocale } = globalStore;
 
 // 提供布局上下文给整个应用
 provideLayoutContext();
@@ -49,9 +37,7 @@ onMounted(() => document.addEventListener('visibilitychange', reloadIfAccountSwi
 onBeforeUnmount(() => document.removeEventListener('visibilitychange', reloadIfAccountSwitched));
 
 onMounted(async () => {
-  // #if i18n
   initLocale();
-  // #endif
   // 本地源下是空操作；接了服务端源时先拉到远端配置，再据此同步主题默认值
   // 包一层 try/catch：远端失败不能让整个 mounted 钩子 reject，主题初始化必须照常进行
   try {
@@ -63,18 +49,8 @@ onMounted(async () => {
   syncSiteDefaultTheme(siteConfig.config.theme.defaultMode as ThemeStyleKey);
 });
 
-// Element Plus 语言包：默认中文，启用国际化后跟随当前语言切换
-const elementPlusLocale = computed(() => {
-  const picked = { locale: elZhCN };
-  // #if i18n
-  picked.locale = getLibraryLocales(globalStore.currentLocale);
-  // #endif
-  return picked.locale;
-});
-
-// #if i18n
-/** 挂载前的 html[lang]：被宿主嵌入时属于宿主，卸载时还原。须在下方 watchEffect 首次执行前读取 */
-const langBeforeMount = document.documentElement.getAttribute('lang');
+// Element Plus 语言包跟随当前语言切换
+const elementPlusLocale = computed(() => getLibraryLocales(globalStore.currentLocale));
 
 /**
  * 语言切换：同步的那几处立刻落地，远端语言包异步补齐
@@ -98,12 +74,6 @@ watchEffect(onCleanup => {
   onCleanup(() => controller.abort());
   void loadLocaleMessages(locale, { signal: controller.signal });
 });
-
-onBeforeUnmount(() => {
-  if (langBeforeMount === null) document.documentElement.removeAttribute('lang');
-  else document.documentElement.setAttribute('lang', langBeforeMount);
-});
-// #endif
 
 // 上一次写入的站点主题变量名，用于在配置被清空时精确撤销
 let appliedThemeVars: string[] = [];

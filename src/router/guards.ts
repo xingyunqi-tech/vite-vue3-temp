@@ -1,9 +1,6 @@
 import type { RouteLocationNormalized, RouteRecordRaw, Router } from 'vue-router';
 import { EXCEPTION_QUERY, FORBIDDEN_PATH, FORBIDDEN_REASON, toAbsoluteUrl, type ForbiddenReason } from './redirect';
 import { fallbackRoute, resolveDeclaredRoutes } from './routes';
-// #if overrides
-import { routerManager } from '@/plugins/override';
-// #endif
 import { usePermissionStore } from '@/store/modules/permission';
 import { useUserInfoStore } from '@/store/modules/user-info';
 import { redirectToLoginOnce } from '@/utils/error-handler';
@@ -13,12 +10,7 @@ const WHITE_LIST = [FORBIDDEN_PATH];
 
 function isWhiteListed(path: string): boolean {
   const normalized = path.length > 1 ? path.replace(/\/+$/, '') : path;
-  if (WHITE_LIST.includes(normalized)) return true;
-  // #if overrides
-  // 惰性读取：routerManager 的注册发生在 router/index.ts 模块体，晚于本模块加载
-  if (routerManager.getWhiteList().includes(normalized)) return true;
-  // #endif
-  return false;
+  return WHITE_LIST.includes(normalized);
 }
 
 /** 带上原因与原目标：异常页据 reason 决定动作，据 redirect 决定之后回到哪里，而不是原地落回 /403 */
@@ -80,7 +72,7 @@ export function setupRouterGuard(router: Router) {
         window.location.reload();
         return false;
       }
-      // 静态路由与租户 customRoutes 不经 generateRoutes 过滤，meta.roles 在这里逐层校验
+      // 静态路由不经 generateRoutes 过滤，meta.roles 在这里逐层校验
       const roles = [userStore.info.role];
       return to.matched.every(record => permissionStore.hasRoutePermission(roles, record)) || toException(to);
     }
@@ -94,16 +86,11 @@ export function setupRouterGuard(router: Router) {
         return toForbidden(FORBIDDEN_REASON.NO_ROLE, to);
       }
 
-      // 租户覆盖必须先于角色过滤，见 resolveDeclaredRoutes
       const accessRoutes: RouteRecordRaw[] = permissionStore.generateRoutes(resolveDeclaredRoutes(), [role]);
       accessRoutes.forEach(route => router.addRoute(route));
       // 兜底最后注册：无权限与不存在的路径都落到布局内异常页
       router.addRoute(fallbackRoute);
       permissionStore.generateMenus([role], path => canAccess(router, path, [role]));
-
-      // #if overrides
-      if (import.meta.env.DEV) routerManager.warnUnmatched();
-      // #endif
 
       // replace 避免后退回到路由未生成的状态；展开 to 保留 query/params。
       // 经过 redirect 的从原地址重走：redirect 函数要在路由生成后才能按角色判定落点

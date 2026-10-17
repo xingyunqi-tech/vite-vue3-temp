@@ -1,8 +1,5 @@
 import { reactive, readonly, provide, inject, type DeepReadonly, type InjectionKey } from 'vue';
 import logoUrl from '@/assets/images/common/logo.png';
-// #if overrides
-import { layoutManager } from '@/plugins/override';
-// #endif
 
 // 布局可见性类型
 export interface LayoutVisible {
@@ -71,23 +68,11 @@ export const LayoutContextKey: InjectionKey<LayoutContextType> = Symbol('LayoutC
  * 创建布局上下文
  */
 export function createLayoutContext(): LayoutContextType {
-  const mergedLayoutConfig: LayoutVisible = { ...defaultLayoutConfig };
-  const mergedHeaderConfig: HeaderVisible = { ...defaultHeaderConfig };
-  const mergedLogoConfig: LogoConfig = { ...defaultLogoConfig };
-
-  // #if overrides
-  // 合并 Override 系统注册的默认配置（租户可整体调整可见性 / Logo 默认值）
-  const overrideDefaults = layoutManager.getDefaultConfig();
-  Object.assign(mergedLayoutConfig, overrideDefaults?.layoutVisible);
-  Object.assign(mergedHeaderConfig, overrideDefaults?.headerVisible);
-  Object.assign(mergedLogoConfig, overrideDefaults?.logoConfig);
-  // #endif
-
   // 使用reactive创建响应式状态
   const state = reactive({
-    layoutVisible: { ...mergedLayoutConfig },
-    headerVisible: { ...mergedHeaderConfig },
-    logoConfig: { ...mergedLogoConfig },
+    layoutVisible: { ...defaultLayoutConfig },
+    headerVisible: { ...defaultHeaderConfig },
+    logoConfig: { ...defaultLogoConfig },
   });
 
   const setLayoutVisible = (visible: Partial<LayoutVisible>) => {
@@ -103,15 +88,15 @@ export function createLayoutContext(): LayoutContextType {
   };
 
   const resetLayout = () => {
-    Object.assign(state.layoutVisible, mergedLayoutConfig);
+    Object.assign(state.layoutVisible, defaultLayoutConfig);
   };
 
   const resetHeader = () => {
-    Object.assign(state.headerVisible, mergedHeaderConfig);
+    Object.assign(state.headerVisible, defaultHeaderConfig);
   };
 
   const resetLogo = () => {
-    Object.assign(state.logoConfig, mergedLogoConfig);
+    Object.assign(state.logoConfig, defaultLogoConfig);
   };
 
   const resetAll = () => {

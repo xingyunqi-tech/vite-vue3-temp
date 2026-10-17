@@ -176,11 +176,4 @@ export const customMutator = async <T>(
   return requestPromise;
 };
 
-/**
- * 清空所有待处理的请求
- */
-export const clearPendingRequests = () => {
-  deduplicator.clear();
-};
-
 export default customMutator;

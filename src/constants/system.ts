@@ -24,8 +24,8 @@ export const DEFAULT_PROXY_URI = {
 /** 默认语言 */
 export const DEFAULT_LOCALE_VALUE = 'zh-CN';
 
-/** 浏览器默认标题；合并后的值由 `@/constants` 导出为 APP_TITLE。 */
-export const DEFAULT_APP_TITLE = '管理平台';
+/** 浏览器默认标题，由 `@/constants` 导出为 APP_TITLE */
+export const DEFAULT_APP_TITLE = 'Vite Vue3 App';
 
 /** 默认主题 */
 export const DEFAULT_THEME_STYLE_VALUE = 'light';

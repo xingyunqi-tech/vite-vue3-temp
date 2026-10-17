@@ -16,7 +16,6 @@
       </span>
     </el-dropdown-item>
 
-    <!-- #if i18n -->
     <el-dropdown-item v-if="headerVisible.localeSwitch" :command="`lang:${nextLocale}`">
       <span class="menu-row">
         <SvgIcon class="menu-row__icon" name="common-language" :size="16" />
@@ -24,7 +23,6 @@
         <span class="menu-row__value">{{ localeLabel }}</span>
       </span>
     </el-dropdown-item>
-    <!-- #endif -->
 
     <el-dropdown-item v-if="canAccessSetting" command="setting" :divided="hasSwitcherItems">
       <span class="menu-row">
@@ -46,9 +44,7 @@
 import { Moon, Setting, Sunny, SwitchButton } from '@element-plus/icons-vue';
 import { computed, toRefs } from 'vue';
 import { useLayout } from '../../useLayoutContext';
-// #if i18n
 import { LOCALE_TYPE } from '@/constants';
-// #endif
 import { useGlobalStore, useUserInfoStore } from '@/store';
 
 const globalStore = useGlobalStore();
@@ -66,7 +62,6 @@ const themeLabel = computed(() => (currentTheme.value === 'dark' ? '深色' : '�
  */
 const canAccessSetting = computed(() => headerVisible.setting && userStore.isTeacher);
 
-// #if i18n
 const { currentLocale } = toRefs(globalStore);
 
 /** 语言展示名（key 与 LOCALE_TYPE 取值一致） */
@@ -83,15 +78,9 @@ const nextLocale = computed(() => {
   const current = list.indexOf(currentLocale.value as LOCALE_TYPE);
   return list[(current + 1) % list.length];
 });
-// #endif
 
 // 主题 / 语言这一组是否存在（决定"系统设置"上方是否需要分隔线）
-const hasSwitcherItems = computed(() => {
-  // #if i18n
-  if (headerVisible.localeSwitch) return true;
-  // #endif
-  return headerVisible.themeSwitch;
-});
+const hasSwitcherItems = computed(() => headerVisible.localeSwitch || headerVisible.themeSwitch);
 
 // 退出登录上方是否存在其它菜单项（用于决定是否显示分隔线）
 const hasUpperItems = computed(() => hasSwitcherItems.value || canAccessSetting.value);

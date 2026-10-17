@@ -6,7 +6,7 @@
     :class="{ 'layout-watermark': siteConfig.config.watermark.enabled }"
   >
     <div class="layout-shell">
-      <component :is="resolvedHeader" v-if="layoutVisible.header" />
+      <LayoutHeader v-if="layoutVisible.header" />
       <div class="layout-container" :class="layoutClasses">
         <SkeletonWrap
           v-if="layoutVisible.nav"
@@ -15,9 +15,9 @@
           :skeleton-props="{ isCollapse }"
           class="layout-sidebar"
         >
-          <component :is="resolvedMenu" />
+          <LayoutMenu />
         </SkeletonWrap>
-        <component :is="resolvedMain" class="layout-main" />
+        <LayoutMain class="layout-main" />
       </div>
     </div>
   </component>
@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { ElWatermark } from 'element-plus';
-import { computed, onBeforeUnmount, onMounted, shallowRef, watch, type Component } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import LayoutHeader from './LayoutHeader/index.vue';
 import LayoutMain from './LayoutMain/index.vue';
@@ -35,24 +35,10 @@ import { useLayout } from './useLayoutContext';
 import SkeletonWrap from '@/components/Skeleton/SkeletonWrap/index.vue';
 import { useSiteConfig } from '@/composables/useSiteConfig';
 import { useSkeleton } from '@/composables/useSkeleton';
-// #if overrides
-import { layoutManager } from '@/plugins/override';
-// #endif
 import { useGlobalStore } from '@/store/modules/global';
 
 const route = useRoute();
 const siteConfig = useSiteConfig();
-
-// 区域组件：默认用内置的顶栏/菜单/主区域组件；Override 系统注册了同名插槽时替换掉。
-// 用 shallowRef 而非 let 重赋值：条件块被裁掉后 let 就成了「从未重赋值」，会触发 prefer-const
-const resolvedHeader = shallowRef<Component>(LayoutHeader);
-const resolvedMenu = shallowRef<Component>(LayoutMenu);
-const resolvedMain = shallowRef<Component>(LayoutMain);
-// #if overrides
-resolvedHeader.value = layoutManager.getSlotComponent('header', LayoutHeader);
-resolvedMenu.value = layoutManager.getSlotComponent('menu', LayoutMenu);
-resolvedMain.value = layoutManager.getSlotComponent('main', LayoutMain);
-// #endif
 
 // 骨架屏：首次挂载时展示，onMounted 后自然消失
 const layoutSkeleton = useSkeleton({ minDuration: 300 });

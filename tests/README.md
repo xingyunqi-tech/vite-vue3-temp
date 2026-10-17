@@ -274,6 +274,4 @@ await expect(fn()).resolves.toEqual({ ok: true });
 - [Vitest 官方文档](https://vitest.dev/)
 - [Vue Test Utils 文档](https://test-utils.vuejs.org/)
 - [Vue 3 测试指南](https://vuejs.org/guide/scaling-up/testing.html)
-<!-- #if aiDocs -->
 - [.claude/agents/testing.md](../.claude/agents/testing.md) - AI 测试指导（含更多示例）
-<!-- #endif -->

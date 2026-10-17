@@ -17,7 +17,7 @@ export const siteConfigSchema = {
         title: '系统标题',
         inputType: 'text',
         required: true,
-        defaultValue: 'Admin',
+        defaultValue: 'Vite Vue3 App',
         span: 12,
       },
       defaultPage: {

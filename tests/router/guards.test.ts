@@ -19,9 +19,6 @@ const userStore = {
 
 vi.mock('@/store/modules/user-info', () => ({ useUserInfoStore: () => userStore }));
 vi.mock('@/utils/error-handler', () => ({ redirectToLoginOnce: vi.fn() }));
-// #if overrides
-vi.mock('@/plugins/override', () => ({ routerManager: { getWhiteList: () => [], warnUnmatched: () => {} } }));
-// #endif
 
 vi.mock('@/router/routes', () => {
   const Page = { render: () => null };
@@ -36,13 +33,13 @@ vi.mock('@/router/routes', () => {
   };
 });
 
-/** 静态 /home 与租户自定义的 /tenant-admin 都在建 router 时直接注册，不经 generateRoutes */
+/** /home 与 /admin-only 都在建 router 时直接注册，不经 generateRoutes */
 function createGuardedRouter() {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
       { path: '/home', component: View, meta: { roles: ['TEACHER', 'STUDENT'] } },
-      { path: '/tenant-admin', component: View, meta: { roles: ['ADMIN'] } },
+      { path: '/admin-only', component: View, meta: { roles: ['ADMIN'] } },
     ],
   });
   setupRouterGuard(router);
@@ -58,10 +55,10 @@ describe('路由守卫的角色校验', () => {
     userStore.info.role = 'STUDENT';
     const router = createGuardedRouter();
 
-    await router.push('/tenant-admin?tab=1');
+    await router.push('/admin-only?tab=1');
 
     expect(router.currentRoute.value.name).toBe('Exception');
-    expect(router.currentRoute.value.fullPath).toBe('/tenant-admin?tab=1');
+    expect(router.currentRoute.value.fullPath).toBe('/admin-only?tab=1');
   });
 
   it('未登录也能进入全屏 403，不跳 SSO', async () => {

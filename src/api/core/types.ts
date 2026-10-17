@@ -50,8 +50,5 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
  */
 export type RequestOptions = Omit<CustomAxiosRequestConfig, 'url' | 'method' | 'params' | 'data'>;
 
-/** 内置实例名称 */
-export type BuiltinInstanceType = 'default' | 'download';
-
-/** 内置 + Override 扩展的实例名称 */
-export type HttpInstanceType = BuiltinInstanceType | (string & {});
+/** 请求实例名称 */
+export type HttpInstanceType = 'default' | 'download';

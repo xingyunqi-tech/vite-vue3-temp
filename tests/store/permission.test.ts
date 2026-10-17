@@ -233,7 +233,6 @@ describe('权限 Store · 状态管理', () => {
   });
 
   it('resetPermission 清空全部状态', () => {
-    // 守卫失败重试、qiankun 重新挂载都依赖这次复位，不复位会跳过 addRoute 导致整站 404
     const store = usePermissionStore();
     store.generateRoutes(routes, ['ADMIN']);
     store.generateMenus(['ADMIN'], () => true);

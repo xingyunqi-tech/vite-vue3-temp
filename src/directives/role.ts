@@ -47,8 +47,7 @@ function toggle(el: HTMLElement, state: RoleState, allowed: boolean): void {
  * 角色权限指令
  *
  * 角色不匹配时隐藏元素（写 `display: none`），匹配时还原。
- * 跟随 `userStore.info.role` 响应式更新——业务侧刷新身份、或租户覆盖了角色常量之后，
- * 显隐会自动跟上，不需要重新挂载组件。
+ * 跟随 `userStore.info.role` 响应式更新，不需要重新挂载组件。
  *
  * 隐藏是视觉层的：无权限元素的标签与文案仍在 DOM 中，不能用它挡住敏感内容，
  * 也不能替代后端鉴权。需要连内容都不下发时用 `usePermission()` 配合 `v-if`。

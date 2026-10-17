@@ -40,15 +40,8 @@ import { useRouter } from 'vue-router';
 import UserDropdownMenu from './UserDropdownMenu.vue';
 import defaultAvatar from '@/assets/images/common/avatar.png';
 import { useThemeTransition } from '@/composables/useThemeTransition';
-// #if i18n
 import type { LocaleKey } from '@/interface/system';
-// #endif
-import { useUserInfoStore, usePermissionStore } from '@/store';
-// #if i18n
-// 单独从模块取而不并进上一行：`@/store` 那行在 i18n 关闭时仍要保留，
-// 合并会让 useGlobalStore 留在块外变成未用导入；分成两个块是为了让 import/order 的字典序成立
-import { useGlobalStore } from '@/store/modules/global';
-// #endif
+import { useGlobalStore, useUserInfoStore, usePermissionStore } from '@/store';
 
 interface Props {
   /** 侧边栏是否处于收起态 */
@@ -69,9 +62,7 @@ const resolvedPlacement = computed(() => props.placement ?? (props.isCollapse ? 
 
 const userStore = useUserInfoStore();
 const permissionStore = usePermissionStore();
-// #if i18n
 const globalStore = useGlobalStore();
-// #endif
 const router = useRouter();
 const { toggleThemeWithTransition } = useThemeTransition();
 
@@ -85,12 +76,10 @@ const handleCommand = async (command: string) => {
     toggleThemeWithTransition(userBarRef.value);
     return;
   }
-  // #if i18n
   if (command.startsWith('lang:')) {
     globalStore.switchLocale(command.slice(5) as LocaleKey);
     return;
   }
-  // #endif
   if (command === 'setting') {
     router.push('/setting');
     return;

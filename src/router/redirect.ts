@@ -1,7 +1,4 @@
 import { parseQuery, type LocationQuery } from 'vue-router';
-// #if qiankun
-import { resolveRouterBase } from '@/micro/shared/env';
-// #endif
 
 /**
  * 与 SSO 回跳相关的纯函数。刻意不依赖路由表：请求层经 error-handler → utils/auth 依赖到本文件，
@@ -13,13 +10,9 @@ import { resolveRouterBase } from '@/micro/shared/env';
 
 const stripTrailingSlash = (base: string) => base.replace(/\/+$/, '');
 
-/** 路由 base，已归一（去尾斜杠，根路径为空串，与 router.options.history.base 一致）。微前端下由宿主注入 */
+/** 路由 base，已归一（去尾斜杠，根路径为空串，与 router.options.history.base 一致） */
 export function routerBase(): string {
-  // #if qiankun
-  return stripTrailingSlash(resolveRouterBase());
-  // #else
   return stripTrailingSlash((import.meta.env.VITE_BASE_PATH as string) || '/');
-  // #endif
 }
 
 export const FORBIDDEN_PATH = '/403';

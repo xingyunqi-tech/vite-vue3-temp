@@ -1,17 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-// #if qiankun
-import { vi } from 'vitest';
-// #endif
 import { createMemoryHistory, createRouter } from 'vue-router';
 import { APP_TITLE } from '@/constants';
-// #if qiankun
-import { isInQiankun } from '@/micro/shared/env';
-// #endif
 import { setupRouterTitle } from '@/router/title';
-
-// #if qiankun
-vi.mock('@/micro/shared/env', () => ({ isInQiankun: vi.fn(() => false) }));
-// #endif
 
 const page = { template: '<div />' };
 
@@ -34,9 +24,6 @@ function createTestRouter() {
 }
 
 beforeEach(() => {
-  // #if qiankun
-  vi.mocked(isInQiankun).mockReturnValue(false);
-  // #endif
   document.title = '旧页面标题';
 });
 
@@ -74,16 +61,4 @@ describe('浏览器标题', () => {
     await router.push('/feedback');
     expect(document.title).toBe(`${APP_TITLE}-反馈管理`);
   });
-  // #if qiankun
-
-  it('qiankun 子应用保留主应用标题', async () => {
-    vi.mocked(isInQiankun).mockReturnValue(true);
-    document.title = '主应用';
-    const router = createTestRouter();
-    setupRouterTitle(router);
-    expect(document.title).toBe('主应用');
-    await router.push('/chat');
-    expect(document.title).toBe('主应用');
-  });
-  // #endif
 });

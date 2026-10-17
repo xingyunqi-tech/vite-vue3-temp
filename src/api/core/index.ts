@@ -17,6 +17,3 @@ export { polymasApi, downloadApi, instances } from './request';
 
 // 导出便捷请求函数
 export { post, get, put, del } from './request';
-
-// 卸载应用时清空在途请求表，供 destroyApp 调用
-export { clearPendingRequests } from './mutator';
