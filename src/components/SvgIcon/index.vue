@@ -21,7 +21,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  prefix: 'vue-admin-template',
+  prefix: 'vite-vue3-temp',
   size: '1em',
   width: undefined,
   height: undefined,

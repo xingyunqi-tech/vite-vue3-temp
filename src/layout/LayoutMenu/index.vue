@@ -71,7 +71,7 @@ const permissionStore = usePermissionStore();
 const siteConfig = useSiteConfig();
 const { headerVisible, logoConfig } = useLayout();
 
-// 标题来源：站点配置 basic.systemTitle（默认值见 constants/site-config.ts，由模版按项目名注入）
+// 标题来源：站点配置 basic.systemTitle（默认值见 constants/site-config.ts）
 const resolvedTitle = computed(() => {
   if (logoConfig.title === null) return '';
   return logoConfig.title ?? siteConfig.config.basic.systemTitle;

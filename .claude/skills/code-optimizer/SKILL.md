@@ -4,7 +4,7 @@ description: 重构辅助 - 识别重复代码（常量/函数/Composables/组�
 license: MIT
 compatibility: Requires Vue 3, TypeScript
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "1.0.0"
   category: quality
 ---
@@ -160,8 +160,8 @@ pattern: "dialogVisible.*=.*ref|showDialog|closeDialog"
 **常见可提取模式**:
 | 模式 | 出现阈值 | 提取为 |
 |------|---------|--------|
-| 权限判断 | ≥ 3 次 | `usePermission` |
-| Loading 状态 | ≥ 5 次 | `useLoading` |
+| 权限判断 | ≥ 3 次 | 复用 `usePermission` / `v-role` |
+| Loading 状态 | ≥ 5 次 | 复用 `useSkeleton` |
 
 ### 函数提取检测
 
@@ -174,7 +174,7 @@ pattern: "function validate|const validate.*=.*=>"
 ```
 
 **常见可提取函数**:
-- 日期格式化 → `formatDate`, `formatDateTime`
+- 日期格式化 → 复用 `src/utils/datetime.ts` 的 `formatDate` / `formatDateTime`
 - 金额格式化 → `formatMoney`
 - 手机号脱敏 → `maskPhone`
 
@@ -274,10 +274,12 @@ Glob: src/store/modules/*.ts
 
 | 能力 | 已有实现 | 关键接口 |
 |------|---------|---------|
-| 角色 / 资源权限 | `src/composables/usePermission.ts` | `usePermission(config?)` → `isAdmin` / `isTeacher` / `isStudent` / `hasRole(roles)` / `canCreate` / `canEdit` / `canDelete` / `canExport` |
-| 教师-学生身份 | `src/composables/useRole.ts` | `useRole()` → `isTeacher` / `isStudent` / `userIdentityAuthType` / `fetchUserRole()` |
+| 角色 / 资源权限 | `src/composables/usePermission.ts` | `usePermission(config?)` → `currentRole` / `isAdmin` / `isTeacher` / `isStudent` / `hasRole(roles)` / `hasAnyRole` / `isRole` / `canView` / `canCreate` / `canEdit` / `canDelete` / `canExport` / `canAudit` |
+| 模板内按角色显隐 | `src/directives/role.ts` | `v-role="ROLES.ADMIN"` / `v-role="[ROLES.ADMIN, ROLES.TEACHER]"`，跟随 `info.role` 响应式更新 |
 | 加载态 / 骨架屏 | `src/composables/useSkeleton.ts` | `useSkeleton({ delay, minDuration })` → `loading` / `visible` / `withLoading` / `cleanup`，**已含防闪烁，不要另写 `useLoading`** |
 | 站点配置 | `src/composables/useSiteConfig.ts` | — |
+| 主题切换动画 | `src/composables/useThemeTransition.ts` | `useThemeTransition()` → `toggleThemeWithTransition` |
+| 日期 / 文件大小格式化 | `src/utils/datetime.ts` | `formatDate` / `formatDateTime` / `formatRelativeTime` / `formatDateRange` / `formatFileSize` 等 |
 
 ```typescript
 // ✅ 复用：角色判断统一走 usePermission，角色字段是 info.role（单数、大写）
@@ -347,14 +349,6 @@ export const PAGINATION = {
 // src/utils/format.ts
 
 /**
- * 格式化日期
- */
-export function formatDate(date: string | Date | undefined, format = 'YYYY-MM-DD'): string {
-  if (!date) return '-';
-  return dayjs(date).format(format);
-}
-
-/**
  * 手机号脱敏
  */
 export function maskPhone(phone: string | undefined): string {
@@ -365,28 +359,16 @@ export function maskPhone(phone: string | undefined): string {
 
 ### 自定义指令模板
 
+角色显隐已有 `v-role`（`src/directives/role.ts`），不要另写权限指令。新指令照它的形态写，
+并在 `src/directives/index.ts` 的 `setupDirectives` 里注册：
+
 ```typescript
-// src/directives/permission.ts
-import type { Directive, DirectiveBinding } from 'vue';
-import { useUserInfoStore } from '@/store/modules/user-info';
+// src/directives/focus.ts
+import type { Directive } from 'vue';
 
-/**
- * 权限指令
- * @example v-permission="'admin'" 或 v-permission="['admin', 'editor']"
- */
-export const vPermission: Directive = {
-  mounted(el: HTMLElement, binding: DirectiveBinding<string | string[]>) {
-    const userStore = useUserInfoStore();
-    const { value } = binding;
-
-    if (!value) return;
-
-    const roles = Array.isArray(value) ? value : [value];
-    const hasPermission = roles.some((role) => userStore.roles.includes(role));
-
-    if (!hasPermission) {
-      el.parentNode?.removeChild(el);
-    }
+export const focus: Directive<HTMLElement> = {
+  mounted(el) {
+    el.focus();
   },
 };
 ```
@@ -435,7 +417,7 @@ Grep: pattern="function use" glob="src/store/modules/*.ts"
 **集成原则**:
 - ✅ 优先使用项目已有的 Composables
 - ✅ 新增 Composables 放入 `src/composables/`，文件名 camelCase（`useXxx.ts`，ESLint 强制）
-- ❌ 不重复造轮子（`usePermission` / `useRole` / `useSkeleton` / `useSiteConfig` 已存在）
+- ❌ 不重复造轮子（`usePermission` / `useSkeleton` / `useSiteConfig` / `useThemeTransition` 与 `v-role` 指令已存在）
 
 ### 导入方式
 

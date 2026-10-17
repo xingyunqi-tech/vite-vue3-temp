@@ -4,7 +4,7 @@ description: 【无设计稿时使用】按项目规范纯代码生成 Vue 组�
 license: MIT
 compatibility: Requires Vue 3, TypeScript, Element Plus
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "2.0.0"
   category: development
 ---
@@ -144,7 +144,7 @@ Store 与 API；缺失时提示先跑 `pnpm orval` 或 `/store-generator`，不�
 ### 步骤 4：生成路由配置（`--with-router`）
 
 1. 按 `--route-type` 读 `src/router/routes/async.ts` 或 `static.ts`
-2. 用 Edit 把新路由**追加到数组末尾**（catch-all 已移到 `routes/fallback.ts`，由守卫在权限路由注册完成后单独 addRoute，async.ts 里不再有 `/:pathMatch(.*)*`）
+2. 用 Edit 把新路由**追加到数组末尾**（catch-all 由 `routes/fallback.ts` 提供，守卫在权限路由注册完成后单独 addRoute，不要在 async.ts 里加 `/:pathMatch(.*)*`）
 3. 规则与字段以 [router-development.md](../../agents/router-development.md) 为准，要点：
    - `path` 小写短横线，`name` 大驼峰且全局唯一
    - `meta.title` 写**中文明文**

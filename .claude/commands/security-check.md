@@ -55,7 +55,7 @@ router.push(`/search?q=${searchQuery}`);
 ### 2. 身份验证失效 (Broken Authentication)
 
 **检查项:**
-- [ ] **Token 存储在 HttpOnly Cookie**（不在 localStorage）
+- [ ] **Token 只通过 `@/utils/auth` 的 `getToken` / `setToken` / `removeToken` 读写**（存 Cookie，不在 localStorage）
 - [ ] Session 超时后自动登出
 - [ ] 敏感操作需要重新验证（如修改密码）
 - [ ] 密码不在前端明文传输（使用 HTTPS）
@@ -64,9 +64,12 @@ router.push(`/search?q=${searchQuery}`);
 // ❌ 危险：Token 存储在 localStorage
 localStorage.setItem('token', token);
 
-// ✅ 安全：Token 存储在 HttpOnly Cookie（后端设置）
-// Set-Cookie: token=xxx; HttpOnly; Secure; SameSite=Strict
+// ✅ 本项目：Token 写入 Cookie，请求拦截器（src/api/core/request.ts）注入 Authorization 头
+import { setToken } from '@/utils/auth';
+setToken(token);
 ```
+
+> 前端用 js-cookie 写入的 Cookie 不能设置 HttpOnly。对安全要求更高时，由后端以 `Set-Cookie: ...; HttpOnly; Secure; SameSite=Strict` 下发，并相应调整请求层的鉴权方式。
 
 ---
 
@@ -93,8 +96,8 @@ console.log('User password:', password);
 // ❌ 危险：硬编码 API Key
 const API_KEY = 'sk-1234567890abcdef';
 
-// ✅ 安全：使用环境变量
-const API_KEY = import.meta.env.VITE_API_KEY;
+// ✅ 安全：密钥只留在后端，前端调用后端接口
+const result = await post<SearchResult>('/api/search', params);
 ```
 
 ---
@@ -115,10 +118,8 @@ const API_KEY = import.meta.env.VITE_API_KEY;
 - [ ] **禁止通过修改前端代码绕过权限**
 
 ```typescript
-// ✅ 路由级权限在注册阶段完成：声明表按 meta.roles 过滤后才 addRoute（src/router/guards.ts），
-//    无权限的路径在 router 里根本不存在，落到兜底路由（routes/fallback.ts）后由异常页判定为 403
-//    数据源必须是 resolveDeclaredRoutes()：它先应用租户覆盖再交给过滤，
-//    这样租户放宽的 meta.roles 才生效、租户追加的 children 才同样受角色约束
+// ✅ 路由级权限在注册阶段完成（src/router/guards.ts）：声明表按 meta.roles 过滤后才 addRoute，
+//    无权限的路径落到兜底路由（routes/fallback.ts），由异常页判定为 403
 const accessRoutes = permissionStore.generateRoutes(resolveDeclaredRoutes(), [role]);
 accessRoutes.forEach(route => router.addRoute(route));
 router.addRoute(fallbackRoute);
@@ -154,12 +155,12 @@ autoindex off;
 
 ```typescript
 // vite.config.ts
-export default defineConfig({
-  build: {
-    sourcemap: false, // 生产环境禁用 sourcemap
-  },
-});
+build: {
+  sourcemap: uploadToSentry ? 'hidden' : false,
+},
 ```
+
+本项目常规构建不产出 sourcemap；`pnpm uploadToSentry` 时产出 `hidden` sourcemap，上传 Sentry 后删除 `dist/**/*.map`。
 
 ---
 
@@ -253,8 +254,7 @@ console.log('User login attempt:', { userId, timestamp });
 - [ ] **使用 CSRF Token**（后端生成）
 - [ ] **SameSite Cookie 属性**
 
-```nginx
-# Cookie 设置
+```http
 Set-Cookie: token=xxx; HttpOnly; Secure; SameSite=Strict
 ```
 
@@ -309,20 +309,23 @@ pnpm update
 ### 5. 环境变量安全
 
 **检查项:**
-- [ ] **密钥文件 `.env` 不提交到 Git**（`.gitignore` 已忽略）
-  - ⚠️ 注意 `.gitignore` 里的 `.env` **不匹配** `.env.development` / `.env.production`——
-    这两个是**有意提交**的配置模板（只放 baseURL、部署路径等非敏感项，密钥位留空）。
-    往它们里填真实 key 会直接进仓库；真实 key 一律放本地 `.env`
+- [ ] **密钥只放 `.env` / `.env.local`**（`.gitignore` 忽略 `.env` 与 `*.local`）
+  - ⚠️ `.env.development` / `.env.production` 是**有意提交**的配置（baseURL、部署路径、
+    `VITE_SENTRY_DSN`、`SENTRY_ORG` / `SENTRY_PROJECT` 等非敏感项）。
+    往它们里填真实密钥会直接进仓库；`SENTRY_AUTH_TOKEN` 这类密钥一律放 `.env.local`
 - [ ] **敏感信息不在前端代码中**
-- [ ] **使用 VITE_ 前缀的环境变量**
+- [ ] **只有前端需要读取的非敏感配置才用 `VITE_` 前缀**
 
 ```bash
 # .env.production（提交到 Git）
-VITE_API_BASE_URL=
+VITE_BASEURL = ''
+SENTRY_PROJECT = 'vite-vue3-temp'
 
 # .env.local（不提交到 Git）
-VITE_API_BASE_URL=https://api.example.com
+SENTRY_AUTH_TOKEN = '<token>'
 ```
+
+> `VITE_` 前缀的变量会打进前端产物，任何人都能看到，不能放密钥。
 
 ---
 
@@ -381,9 +384,8 @@ grep -r "secret" src/
 # 3. 检查依赖安全
 pnpm audit
 
-# 4. 检查环境变量
-cat .env.production
-cat .env.local
+# 4. 检查提交的环境变量里没有密钥
+cat .env.development .env.production
 ```
 
 ### 自动化检查
@@ -429,8 +431,8 @@ console.log('User token:', token);
 const stolenToken = localStorage.getItem('token');
 
 // ✅ 修复
-// 使用 HttpOnly Cookie（后端设置）
-// 不在日志中输出 Token
+import { setToken } from '@/utils/auth';
+setToken(token);
 ```
 
 ### 漏洞 3: CSRF 攻击

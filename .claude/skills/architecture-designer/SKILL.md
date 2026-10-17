@@ -4,7 +4,7 @@ description: 把 PRD / 需求文档转成完整技术架构：目录结构、路
 license: MIT
 compatibility: Requires Vue 3, Vue Router, Pinia, TypeScript
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "2.0.0"
   category: development
 ---
@@ -104,7 +104,7 @@ src/
 ```
 
 - 页面组件**不直接调 API**，只调 Store Action
-- 请求错误由 `ErrorModule` 统一弹提示，Store 只维护本地 `error` 并向上抛
+- 请求错误由请求层拦截器（`src/api/core/request.ts`）统一弹提示，Store 只维护本地 `error` 并向上抛
 - 详见 [api-development.md](../../agents/api-development.md)、[store-development.md](../../agents/store-development.md)
 
 ### 步骤 5：生成开发计划

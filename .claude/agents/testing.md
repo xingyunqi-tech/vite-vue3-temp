@@ -20,10 +20,10 @@ model: inherit
 | 测试文件位置 | **只在 `tests/` 目录**（`include: ['tests/**/*.{test,spec}.*']`），不放 `src/` 下 |
 | 覆盖率 | `@vitest/coverage-v8`，**模板未设阈值**——`pnpm test:coverage` 不会因覆盖率不足而失败 |
 | 未安装 | ❌ `msw` ❌ `@testing-library/vue` ❌ `@testing-library/jest-dom` ❌ E2E 框架 |
-| 现有用例 | `tests/utils/datetime.test.ts`（1 个文件，26 个用例） |
+| 现有用例 | 18 个文件，按源码目录分布在 `tests/{api,app,components,directives,layout,plugins,router,store,utils,views}/` |
 
-> 用未安装的库写测试会直接 `Cannot find module`。需要拦截 HTTP 时用 `vi.mock` 模块级 Mock，
-> 不要写 MSW。断言 DOM 用 `@vue/test-utils` 的 `wrapper.text()` / `wrapper.find()`，
+> 用未安装的库写测试会直接 `Cannot find module`。需要拦截 HTTP 时用 axios 的 `adapter` 构造响应，
+> 或用 `vi.mock` 模块级 Mock，不要写 MSW。断言 DOM 用 `@vue/test-utils` 的 `wrapper.text()` / `wrapper.find()`，
 > 不要用 `toBeInTheDocument()` 这类 jest-dom 匹配器。
 
 **命令**：`pnpm test`（单次） / `test:watch` / `test:coverage` / `test:ui`
@@ -53,7 +53,7 @@ export default mergeConfig(
       include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
       exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
       setupFiles: ['./tests/setup.ts'],
-      server: { deps: { inline: ['element-plus'] } },  // 避免 element-plus 的 CSS 导入问题
+      server: { deps: { inline: [/element-plus/] } },  // 正则匹配 element-plus 的样式子路径，避免 CSS 导入问题
       coverage: { provider: 'v8', reporter: ['text', 'json', 'html'], reportsDirectory: './coverage' },
     },
   }),
@@ -85,7 +85,9 @@ coverage: {
 
 ### tests/setup.ts 已做的事
 
-已全局 Mock：`matchMedia`、`ResizeObserver`、`IntersectionObserver`、`localStorage`。**不需要在单测里重复 Mock 这些**。
+已全局 Mock：`matchMedia`、`ResizeObserver` / `IntersectionObserver`（class 实现，可 `new`）、`document.documentElement.style`、
+`localStorage` / `sessionStorage`（内存实现，每个用例后清空 `localStorage`）、`fetch`、`URL.createObjectURL` / `revokeObjectURL`。
+**不需要在单测里重复 Mock 这些**。另挂了全局辅助 `globalThis.mockFetch`、`globalThis.mockLocalStorage`。
 未处理的 Promise rejection 会被 Vitest 报错，预期内的失败请在测试里自行 `catch` 或 `await expect(...).rejects`。
 
 Element Plus 组件由 `unplugin-vue-components` 在 SFC 编译期自动注册，
@@ -123,63 +125,63 @@ describe('Date Utils', () => {
 
 ### Pinia Store
 
-本项目的用户 Store 由 **SSO + Cookie** 驱动，没有用户名密码登录：
+用户 Store（`src/store/modules/user-info.ts`）的真实 action：`loginAction(params)` / `getInfoAction()` / `isAccountSwitched()` / `logoutAction(redirect?)` / `setUserInfo()` / `resetUserInfo()`。
 
-- `token` 是 **computed**（读 Cookie），**只读**——`store.token = 'x'` 会抛错
-- 真实 action：`getInfoAction()` / `fetchUserRole()` / `logoutAction()` / `setUserInfo()`
-- **不存在** `login()` / `loginAction()` / `fetchUserInfo()`
+- `token` 是 Cookie 的 **ref 镜像**，由 `refreshToken()` 同步；测试里用 `@/utils/auth` 的真实 `setToken()` / `removeToken()` 操作 Cookie 即可
+- 接口来自 `@/api/modules/auth`（`login` / `logout` / `getUserInfo`），整模块 `vi.mock`
+- 整页跳转函数（`jumpToLogout` 等）在 jsdom 下不能真跳，用 `importOriginal` 只替换这一个导出
 
 ```typescript
-// tests/store/user-info.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setActivePinia, createPinia } from 'pinia';
+// 写法参照 tests/store/user-info.test.ts
+import { createPinia, setActivePinia } from 'pinia';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { getUserInfo, login } from '@/api/modules/auth';
 import { useUserInfoStore } from '@/store/modules/user-info';
-import { ROLES } from '@/constants';
+import { getToken, jumpToLogout, removeToken } from '@/utils/auth';
 
-// token 来自 Cookie，Mock 掉 kit 的 getToken
-vi.mock('@zhs/agent-course-kit', async importOriginal => ({
-  ...(await importOriginal<object>()),
-  getToken: vi.fn(() => 'mock-token'),
+vi.mock('@/api/modules/auth', () => ({
+  login: vi.fn(async () => ({ token: 'token-a' })),
+  logout: vi.fn(async () => undefined),
+  getUserInfo: vi.fn(async () => ({ id: 1, username: 'teacher', realName: '张老师', avatar: '', email: '', phone: '', role: 'TEACHER' })),
 }));
-// 角色来自接口
-vi.mock('@/api/modules/platform', () => ({
-  getCurrentUserIdentity: vi.fn(),
+vi.mock('@/store/plugins/persist', () => ({ removePersistedStore: vi.fn(async () => {}) }));
+vi.mock('@/utils/auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/auth')>()),
+  jumpToLogout: vi.fn(),
 }));
 
-import { getCurrentUserIdentity } from '@/api/modules/platform';
+beforeEach(() => {
+  setActivePinia(createPinia());
+  vi.clearAllMocks();
+});
 
-describe('useUserInfoStore', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-  });
+afterEach(() => {
+  removeToken();
+});
 
-  it('token 存在时 isLoggedIn 为 true', () => {
-    const store = useUserInfoStore();
-    expect(store.isLoggedIn).toBe(true);
-  });
+it('loginAction 写入 token 并同步登录态', async () => {
+  const store = useUserInfoStore();
+  await store.loginAction({ username: '13800000000', password: 'Abcd1234' });
 
-  it('fetchUserRole 应把 identityType 映射为大写角色常量', async () => {
-    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([{ identityType: 1 }]);
+  expect(login).toHaveBeenCalledWith({ username: '13800000000', password: 'Abcd1234' });
+  expect(getToken()).toBe('token-a');
+  expect(store.isLoggedIn).toBe(true);
+});
 
-    const store = useUserInfoStore();
-    const role = await store.fetchUserRole();
+it('接口返回的角色不在 ROLES 内时 role 为空', async () => {
+  vi.mocked(getUserInfo).mockResolvedValueOnce({ id: 2, username: 'u', role: 'UNKNOWN' } as never);
+  const store = useUserInfoStore();
 
-    expect(role).toBe(ROLES.TEACHER);      // 'TEACHER'，注意是大写
-    expect(store.info.role).toBe(ROLES.TEACHER);
-  });
+  await store.getInfoAction();
 
-  it('身份都不匹配时应返回空角色，不得向高权限兜底', async () => {
-    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([]);
+  expect(store.info.role).toBe('');
+});
 
-    const store = useUserInfoStore();
-    expect(await store.fetchUserRole()).toBe('');   // 路由守卫依赖这个空值拦截到 403
-  });
+it('logoutAction 清理后跳转登录页', async () => {
+  const store = useUserInfoStore();
+  await store.logoutAction();
 
-  it('getInfoAction 在 Cookie 缺失时应抛错', async () => {
-    const store = useUserInfoStore();
-    await expect(store.getInfoAction()).rejects.toThrow();
-  });
+  expect(jumpToLogout).toHaveBeenCalled();
 });
 ```
 
@@ -219,9 +221,10 @@ describe('UserCard', () => {
 
 ```typescript
 // ① 手写模块（src/api/modules/*）—— 直接 mock 该模块
-vi.mock('@/api/modules/platform', () => ({
-  getCurrentUserIdentity: vi.fn(),
-  getUserRoleDetail: vi.fn(),
+vi.mock('@/api/modules/auth', () => ({
+  login: vi.fn(),
+  logout: vi.fn(),
+  getUserInfo: vi.fn(),
 }));
 
 // ② Orval 生成的函数 —— mock generated 下的真实模块路径。
@@ -230,6 +233,45 @@ vi.mock('@/api/generated/auth/auth', () => ({ postAuthLogin: vi.fn() }));
 ```
 
 > `src/api/generated/` 要跑过 `pnpm orval` 才存在。模板状态下针对它写的测试会 `Cannot find module`。
+
+### 测试请求层：用 axios adapter 构造响应
+
+测 `src/api/core/request.ts` 的拦截器时不 mock axios，而是给单次请求传 `adapter` 直接返回构造好的响应
+（参考 `tests/api/request.test.ts`）：
+
+```typescript
+import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
+import { httpApi } from '@/api/core/request';
+import { redirectToLoginOnce } from '@/utils/error-handler';
+
+vi.mock('@/utils/error-handler', () => ({
+  redirectToLoginOnce: vi.fn(),
+  toFriendlyMessage: (msg: string) => msg,
+}));
+vi.mock('element-plus', () => ({ ElMessage: { error: vi.fn() } }));
+
+const respond =
+  (data: unknown, status = 200): AxiosAdapter =>
+  async config => {
+    const response = { data, status, statusText: '', headers: {}, config: config as InternalAxiosRequestConfig };
+    if (status >= 400) {
+      throw new AxiosError(`Request failed with status code ${status}`, 'ERR_BAD_RESPONSE', config, null, response);
+    }
+    return response;
+  };
+
+it('业务码 401 时跳转登录页', async () => {
+  await expect(httpApi.get('/x', { adapter: respond({ code: 401, message: '未登录' }) })).rejects.toThrow();
+  expect(redirectToLoginOnce).toHaveBeenCalled();
+});
+
+it('skipAuthRedirect 时不跳转', async () => {
+  await expect(
+    httpApi.get('/x', { adapter: respond({ code: 401, message: '' }), skipAuthRedirect: true }),
+  ).rejects.toThrow();
+  expect(redirectToLoginOnce).not.toHaveBeenCalled();
+});
+```
 
 ### Mock Element Plus 消息
 
@@ -240,21 +282,20 @@ vi.mock('element-plus', async importOriginal => ({
 }));
 ```
 
-### 测试错误处理
+### 测试错误处理与登录跳转
 
-API 错误由 `ErrorModule` 统一处理（弹提示、401 调 `jumpToLogin()` 整体跳 SSO）。
-项目**没有本地 `/login` 路由**，不要断言 `router.push('/login')`：
+API 错误由 `src/api/core/request.ts` 的响应拦截器统一处理（弹提示、401 调 `redirectToLoginOnce()` 清 token 后
+`jumpToLogin()` 整页跳 `/login?redirect=...`）。`jumpToLogin` 是 `window.location.assign`，jsdom 下要 mock：
 
 ```typescript
-vi.mock('@/utils/auth', () => ({ jumpToLogin: vi.fn() }));
-import { jumpToLogin } from '@/utils/auth';
-
-it('401 应跳转 SSO 登录', async () => {
-  mockedApi.getUserList.mockRejectedValueOnce({ response: { status: 401 } });
-  await service.fetchUsers();
-  expect(jumpToLogin).toHaveBeenCalled();
-});
+vi.mock('@/utils/auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/utils/auth')>()),
+  jumpToLogin: vi.fn(),
+}));
 ```
+
+`redirectToLoginOnce` 带模块级「已跳转」标记，需要在用例间复位时用 `vi.resetModules()` + 动态 `import()`
+（参考 `tests/utils/login-redirect.test.ts`）。守卫内的未登录跳转是返回 `/login` 路由，断言导航结果即可（参考 `tests/router/guards.test.ts`）。
 
 ---
 
@@ -298,10 +339,10 @@ await expect(fn()).resolves.toEqual({ ok: true });
 
 ## 🎯 优先测什么
 
-模板只带一个示例测试，按收益排序补充：
+新增测试按收益排序：
 
 1. **`src/utils/`** —— 纯函数，成本最低收益最高
-2. **`src/store/modules/`** —— 角色映射、权限过滤这类逻辑错了会导致越权
+2. **`src/store/modules/`、`src/router/`** —— 角色校验、权限过滤、登录回跳这类逻辑错了会导致越权或开放重定向
 3. **`src/api/modules/`** —— 请求参数拼装、响应解包
 4. **组件** —— 只测有分支逻辑的，纯展示组件不值得测
 

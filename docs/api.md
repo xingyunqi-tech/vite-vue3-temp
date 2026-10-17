@@ -1,18 +1,17 @@
 # API 模块使用指南
 
-> ⚠️ 下文的 `postAuthLogin` / `getAuthUserInfo` / `postAuthLogout` 是 Orval 生成函数的命名示意，本项目并不存在：
-> 登录由 SSO 托管，用户资料由 `src/store/modules/user-info.ts` 从 Cookie 解析；
-> 现有的手写接口在 `src/api/modules/platform.ts`。
+> 下文的 `getUserList` 等 Orval 生成函数名仅作示意：`src/api/generated/` 要在 `orval.config.ts` 填好 `input.target` 并运行 `pnpm orval` 后才存在。
+> 当前仓库的手写接口在 `src/api/modules/auth.ts`（登录、退出、当前用户）。
 
 ## 概述
 
-本项目 API 层基于 **PolymasApi**（`@zhs/agent-course-kit/services/base-request`）+ **Orval 自动生成**，核心特性：
+API 层基于 **axios** + **Orval 自动生成**：
 
-- **自动代码生成**：从 OpenAPI 文档生成类型安全的 API 函数和类型定义
-- **PolymasApi 插件体系**：模块化中间件（Auth、Error、Loading、去重）
-- **多实例管理**：default（普通请求）、download（文件下载）
-- **请求去重**：防止短时间内重复提交
-- **类型安全**：完整的 TypeScript 支持，自动提取响应 data 字段
+- **代码生成**：从 OpenAPI 文档生成类型安全的请求函数与类型定义
+- **统一拦截**：注入 token 与界面语言、校验业务码、401 跳登录、失败自动提示
+- **多实例**：`default`（普通请求）、`download`（文件下载）
+- **请求去重**：mutator 层合并相同的在途 GET / HEAD 请求
+- **自动解包**：生成函数与便捷函数直接返回业务数据（`res.data.data`）
 
 ---
 
@@ -21,315 +20,272 @@
 ```
 src/api/
 ├── core/
-│   ├── request.ts        # PolymasApi 实例创建、实例注册表、便捷函数（get/post/put/del）
-│   ├── mutator.ts        # Orval 适配器（多实例切换、请求去重、提取 data）
-│   ├── types.ts          # 核心类型（ApiResponse、CustomAxiosRequestConfig、ExtractResult 等）
-│   └── index.ts          # 核心模块统一导出
-│
-├── generated/            # 🚫 Orval 自动生成（运行 pnpm orval 后出现，禁止手动修改）
-│
-├── modules/              # 自定义扩展层（手动编写）
-│   ├── platform.ts       # 平台公共接口（用户/认证/IM/课程身份等）
-│   └── override.ts       # 覆盖或补充生成的 API（示例）
-│
-└── index.ts              # API 模块统一导出（modules 优先于 generated）
+│   ├── request.ts        # axios 实例、拦截器、实例注册表、便捷函数（get/post/put/del）
+│   ├── mutator.ts        # Orval 适配器（实例切换、请求去重、提取 data）
+│   ├── types.ts          # ApiResponse、CustomAxiosRequestConfig、RequestOptions 等类型
+│   └── index.ts          # 核心模块导出
+├── generated/            # 🚫 Orval 生成（运行 pnpm orval 后出现，禁止手改）
+├── modules/
+│   ├── auth.ts           # 登录 / 退出 / 当前用户
+│   └── override.ts       # 覆盖生成接口的示例
+└── index.ts              # 统一导出（@/api）
 ```
-
-> 注意：`generated/` 目录由 `pnpm orval` 生成后出现，未配置 `orval.config.ts` 的 `input.target` 时不存在；当前仓库的接口手写在 `modules/` 下。
 
 ---
 
-## API 实例架构
+## 响应约定
 
-### 实例创建（`core/request.ts`）
-
-项目基于 PolymasApi 创建两个内置实例，并通过插件体系注册中间件：
+后端统一返回信封：
 
 ```typescript
-import PolymasApi, { AuthModule, ErrorModule, LoadingModule } from '@zhs/agent-course-kit/services/base-request';
-import { getToken, getZHSUserId } from '@zhs/agent-course-kit/utils/auth';
-import { redirectToLoginOnce } from '@/utils/error-handler';
+interface ApiResponse<T> {
+  code: number; // 200 为成功（API_CODE.SUCCESS）
+  data?: T;
+  message: string;
+}
+```
 
-// 401 统一处理：整体跳 SSO，并发只跳一次。回跳地址由 jumpToLogin 内部过滤
-// （停在 /403 上时改取 query.redirect，避免登录后原地落回异常页），调用点不传
-const handleUnauth = () => {
-  redirectToLoginOnce();
-};
+| 情况 | 请求层行为 |
+|------|-----------|
+| `code === 200` | resolve 完整 axios response |
+| `code !== 200` | 弹出 `message`（`ElMessage.error`），reject `AxiosError`（`code: 'ERR_ERROR_MODULE'`） |
+| 业务码 401 或 HTTP 401 | 清除 token，整页跳转 `/login?redirect=<当前页>`（并发只跳一次），同时按上一行提示并 reject |
+| HTTP / 网络错误 | 文案经 `toFriendlyMessage` 转换后提示，reject 原错误 |
+| 请求被取消 | 不提示，直接 reject |
+| 下载接口返回 JSON 业务错误 | 解析 Blob 后按业务码处理并 reject；正常文件 Blob 原样返回 |
 
-// 默认实例（普通 API 请求）
-export const polymasApi = PolymasApi.create({
-  baseURL: window.location.origin,
-  timeout: 120000,
-  withCredentials: true,
-  headers: { 'Content-Type': 'application/json;charset=utf-8' },
-})
-  .use(AuthModule, { token: () => getToken(), unAuthHandler: handleUnauth, ZHSUserId: () => getZHSUserId() })
-  .use(LoadingModule)      // 加载状态
-  .use(ErrorModule, { successfulCode: 200, unauthorizedHandler: handleUnauth, toastHandler });
-  // 注意：请求去重统一由 mutator 内的 RequestDeduplicator 负责（按实例名 + method + url + params + data + responseType + headers 精确匹配）。
+---
 
-// 下载实例（文件下载，120s 超时，仅 Auth + Error）
-export const downloadApi = PolymasApi.create({
-  baseURL: window.location.origin,
-  timeout: 120000,
-  withCredentials: true,
-  responseType: 'blob',
-})
-  .use(AuthModule, { token: () => getToken(), unAuthHandler: handleUnauth, ZHSUserId: () => getZHSUserId() })
-  .use(ErrorModule, { successfulCode: 200, unauthorizedHandler: handleUnauth, toastHandler });
+## 实例（`core/request.ts`）
 
-// 实例注册表（mutator 按 config.instance 名称从这里取实例）
-export const instances = {
-  default: polymasApi,
+```typescript
+const baseURL = import.meta.env.VITE_BASEURL || window.location.origin;
+
+function createInstance(config: CreateAxiosDefaults): AxiosInstance {
+  const instance = axios.create({ baseURL, timeout: 120000, withCredentials: true, ...config });
+  instance.interceptors.request.use(attachHeaders);
+  instance.interceptors.response.use(checkBusinessCode, handleResponseError);
+  return instance;
+}
+
+export const httpApi = createInstance({ headers: { 'Content-Type': 'application/json;charset=utf-8' } });
+export const downloadApi = createInstance({ responseType: 'blob' });
+
+export const instances: Record<HttpInstanceType, AxiosInstance> = {
+  default: httpApi,
   download: downloadApi,
 };
 ```
 
-### 实例对比
+- `attachHeaders`：`Authorization` 头直接放 `getToken()` 的值（无 `Bearer` 前缀）；`Accept-Language` 取当前界面语言
+- 两个实例共用同一套拦截器，超时均为 120s
 
-| 实例 | 用途 | 超时 | 特点 |
-|------|------|------|------|
-| `polymasApi` (default) | 普通 API 请求、文件上传 | 120s | Auth + 去重 + Loading + Error |
-| `downloadApi` (download) | 文件下载 | 120s | responseType: blob，无 Loading |
+| 实例 | 注册名 | 用途 |
+|------|--------|------|
+| `httpApi` | `default` | 普通请求、文件上传 |
+| `downloadApi` | `download` | 文件下载（`responseType: 'blob'`） |
+
+### 请求配置扩展
+
+`core/types.ts` 给 `AxiosRequestConfig` 增加了两个字段，任何调用方式都可以传：
+
+| 字段 | 作用 |
+|------|------|
+| `isIgnoreToast: true` | 失败时不弹错误提示（轮询、静默上报等） |
+| `skipAuthRedirect: true` | 401 时不清 token、不跳登录页（登录接口本身使用） |
+
+---
+
+## 发请求的三种方式
+
+| 方式 | 返回值 | 适用场景 |
+|------|--------|---------|
+| Orval 生成函数（`@/api`） | 业务数据 `data` | 有 OpenAPI 文档的接口（首选） |
+| 便捷函数 `get / post / put / del`（`@/api`） | 业务数据 `data` | 手写接口 |
+| `httpApi.get() / .post()` 等实例方法 | 完整 axios response，`res.data` 是 `{ code, data, message }` 信封 | 需要响应头、状态码等原始信息 |
+
+### 1. Orval 生成函数
+
+```typescript
+import { getUserList } from '@/api';
+
+const list = await getUserList({ page: 1 });
+const silent = await getUserList({ page: 1 }, { isIgnoreToast: true, signal: controller.signal });
+```
+
+生成函数的最后一个可选参数是 `RequestOptions`（不含 `url / method / params / data`），会合并进本次请求。
+
+### 2. 便捷函数
+
+签名：`get<T>(url, params?, config?)`、`del<T>(url, params?, config?)`、`post<T>(url, data?, config?)`、`put<T>(url, data?, config?)`，调用时显式传入泛型。
+
+```typescript
+// src/api/modules/auth.ts
+import { get, post } from '../core/request';
+
+export const login = (params: LoginParams) => post<LoginResult>('/api/auth/login', params, { skipAuthRedirect: true });
+
+export const logout = () => post<void>('/api/auth/logout', undefined, { isIgnoreToast: true });
+
+export const getUserInfo = () => get<CurrentUser>('/api/auth/current-user');
+```
+
+### 3. 实例方法
+
+```typescript
+import { httpApi } from '@/api';
+import type { ApiResponse } from '@/api/core/types';
+
+const res = await httpApi.get<ApiResponse<User>>('/api/user/1');
+const user = res.data.data;
+```
 
 ---
 
 ## Orval 适配器（`core/mutator.ts`）
 
-Orval 生成的代码通过 `customMutator` 调用 PolymasApi 实例：
+Orval 生成的代码通过 `customMutator` 调用实例：
 
 ```typescript
 export const customMutator = async <T>(
   baseConfig: CustomAxiosRequestConfig,
-  options?: RequestOptions, // 生成函数的最后一个可选参数，合并进本次请求
+  options?: RequestOptions,
 ): Promise<ExtractResult<T>> => {
-  const { instance = 'default', disableDedup = false, ...requestConfig } = { ...baseConfig, ...options };
+  const config = { ...baseConfig, ...options };
+  const { method = 'get', instance: instanceName = 'default', disableDedup = false, enableDedup = false } = config;
 
-  // 请求去重（POST/PUT/PATCH/DELETE 默认启用）
-  if (shouldDedup && deduplicator.has(requestConfig)) {
-    return deduplicator.get(requestConfig) as Promise<ExtractResult<T>>;
+  const isIdempotent = ['get', 'head'].includes(method.toLowerCase());
+  const shouldDedup = !disableDedup && !config.signal && (enableDedup || isIdempotent);
+  if (shouldDedup && deduplicator.has(requestConfig, instanceName)) {
+    return deduplicator.get(requestConfig, instanceName);
   }
 
-  const api = instances[instance]; // 选择实例
-  const response = await api.request(requestConfig);
-
-  // blob / arraybuffer 响应原样返回，其余提取 response.data.data
-  return isBinary(response.config.responseType) ? response.data : response.data.data;
+  const requestPromise = instances[instanceName].request(requestConfig).then(response =>
+    BINARY_RESPONSE_TYPES.has(response.config?.responseType ?? '') ? response.data : response.data.data,
+  );
+  if (shouldDedup) deduplicator.set(requestConfig, instanceName, requestPromise);
+  return requestPromise;
 };
 ```
 
-**类型说明：** `ExtractResult<T>` 自动从 `ApiResponse<T>` 中提取 `data` 字段类型，因此调用方直接得到业务数据，无需手动取 `.data`。
+以上为简化示意，完整实现见源码。
+
+`ExtractResult<T>` 从 `ApiResponse<T>` 中提取 `data` 的类型，调用方直接拿到业务数据；`blob / arraybuffer / stream` 响应原样返回。
 
 ---
 
-## 基础使用
+## 扩展场景
 
-### 1. 使用 Orval 生成的 API（80% 场景）
+### 新增手写接口
 
-```typescript
-import { postAuthLogin, getAuthUserInfo } from '@/api';
-import type { LoginRequest } from '@/api';
-
-// 类型安全的登录
-const result = await postAuthLogin({ username: 'admin', password: '123456' });
-// result 已自动提取 data 字段，直接是业务数据
-
-// 获取用户信息
-const userInfo = await getAuthUserInfo();
-```
-
-### 2. 结合 Pinia Store（推荐）
+在 `src/api/modules/` 新建文件，用便捷函数或 `customMutator`：
 
 ```typescript
-import { useUserInfoStore } from '@/store/modules/user-info';
+// src/api/modules/report.ts
+import { get } from '../core/request';
+import { customMutator } from '../core/mutator';
 
-const userStore = useUserInfoStore();
-// 登录由 SSO 托管，Store 只负责从 Cookie 解析用户资料、拉取角色
-await userStore.getInfoAction();
-```
+export const getReport = (id: string) => get<Report>(`/api/report/${id}`);
 
----
-
-## 三种扩展场景
-
-### 场景 1：直接使用生成的 API（80%）
-
-```typescript
-import { postAuthLogin } from '@/api';
-await postAuthLogin({ username, password });
-```
-
-### 场景 2：新增自定义 API（15%）
-
-在 `src/api/modules/` 创建文件，使用 PolymasApi 实例：
-
-```typescript
-// src/api/modules/my-feature.ts
-import { instances } from '@/api/core/request';
-
-export const getMyFeatureData = async (id: string) => {
-  const response = await instances.default.get(`/my-feature/${id}`);
-  return response.data.data; // 手动提取 data（不经过 mutator）
-};
-```
-
-**使用 mutator 的写法（自动提取 data）：**
-
-```typescript
-import { customMutator } from '@/api/core/mutator';
-
-export const getMyFeatureData = (id: string) =>
-  customMutator<MyDataType>({ method: 'get', url: `/my-feature/${id}` });
+export const getReportDetail = (id: string) => customMutator<Report>({ method: 'get', url: `/api/report/${id}/detail` });
 ```
 
 然后在 `src/api/index.ts` 导出：
 
 ```typescript
-export * from './modules/my-feature';
+export * from './modules/report';
 ```
 
-### 场景 3：覆盖/扩展生成的 API（5%）
+### 覆盖生成的接口
 
-在 `src/api/modules/override.ts` 中覆盖生成的同名函数：
+在 `src/api/modules/override.ts` 中定义同名函数，在生成函数前后加缓存、重试等逻辑：
 
 ```typescript
-// src/api/modules/override.ts
-import { someApi as generatedSomeApi } from '@/api/generated/some-module/some-module';
-import type { SomeRequest, SomeResponse } from '@/api/generated/model';
+import { someApi as generatedSomeApi } from '../generated/some-module/some-module';
+import type { SomeRequest, SomeResponse } from '../generated/model';
 
-// 在生成的 API 基础上添加缓存 / 重试 / 日志等额外逻辑（保持函数名一致）
 export const someApi = async (data: SomeRequest): Promise<SomeResponse> => {
   const response = await generatedSomeApi(data);
-  // ...额外业务逻辑
   return response;
 };
 ```
 
-> **注意**：`index.ts` 中 `modules/` 的导出优先级高于 `generated/`，同名函数自动覆盖。
+`scripts/api/update-api-exports.ts` 生成 `src/api/index.ts` 时，会把与 `modules/` 同名的函数从 generated 的显式导出中剔除，因此对外生效的是 `modules/` 的覆盖版本。
 
----
-
-## 使用下载实例
+### 文件下载
 
 ```typescript
 import { customMutator } from '@/api/core/mutator';
 
-// 文件下载（使用 download 实例）
 export const downloadReport = (id: string) =>
-  customMutator<Blob>({
-    method: 'get',
-    url: `/report/${id}/download`,
-    instance: 'download', // 切换到下载实例
-  });
+  customMutator<Blob>({ method: 'get', url: `/api/report/${id}/download`, instance: 'download' });
+```
+
+### 新增实例
+
+需要接入另一个后端时，在 `core/request.ts` 中用 `createInstance` 创建实例并登记到 `instances`，同时在 `core/types.ts` 的 `HttpInstanceType` 中加上实例名：
+
+```typescript
+// src/api/core/request.ts
+export const reportApi = createInstance({ baseURL: 'https://report.example.com' });
+
+export const instances: Record<HttpInstanceType, AxiosInstance> = {
+  default: httpApi,
+  download: downloadApi,
+  report: reportApi,
+};
+```
+
+```typescript
+await customMutator({ method: 'get', url: '/list', instance: 'report' });
 ```
 
 ---
 
 ## 请求去重
 
-### 去重机制（仅 Mutator 层）
-
-请求去重由 `core/mutator.ts` 内的 `RequestDeduplicator` 统一负责：
+由 `core/mutator.ts` 内的 `RequestDeduplicator` 负责，只作用于经过 `customMutator` 的请求（生成函数与直接调用 mutator），便捷函数和实例方法不去重。
 
 | 项 | 说明 |
 |----|------|
-| 去重 key | `实例名 + method + url + params + data + responseType + headers`（FormData 按「字段名 + 文件名/大小」生成） |
-| 生效范围 | 默认只对 `GET / HEAD` 启用；写方法默认不去重，需要时显式传 `enableDedup: true`；带 `signal` 的请求不参与 |
-| 机制 | 相同 key 的在途请求共享同一个 Promise，不重复发起，请求结束后自动从队列移除 |
-
-### 关闭 / 开启去重
+| 去重 key | 实例名 + method + url + params + data + responseType + headers（FormData 按字段名与文件名 / 大小生成） |
+| 生效范围 | 默认只对 GET / HEAD 生效；写方法需显式传 `enableDedup: true`；带 `signal` 的请求不参与 |
+| 机制 | 相同 key 的在途请求共享同一个 Promise，请求结束后自动移除 |
 
 ```typescript
-import { customMutator } from '@/api/core/mutator';
+await customMutator({ method: 'get', url: '/api/task/status', params, disableDedup: true });
 
-// GET 默认去重；轮询这类要每次都发的，显式关掉
-await customMutator({ method: 'get', url: '/task/status', params, disableDedup: true });
-
-// 写方法默认不去重；确需合并并发的相同提交时显式开启
-await customMutator({ method: 'post', url: '/idempotent-op', data, enableDedup: true });
-```
-
-### 清空所有待处理请求
-
-```typescript
-import { clearPendingRequests } from '@/api/core/mutator';
-
-// 路由切换时清理
-router.beforeEach(() => {
-  clearPendingRequests();
-});
-```
-
----
-
-## 新增 API 实例
-
-需要接入另一个后端（不同 baseURL / 鉴权 / 超时）时，在 `src/api/core/request.ts` 里创建实例并登记到 `instances`：
-
-```typescript
-// src/api/core/request.ts
-export const reportApi = PolymasApi.create({ baseURL: 'https://report.example.com' })
-  .use(AuthModule, { token: () => getToken() })
-  .use(ErrorModule, { successfulCode: 200, toastHandler });
-
-export const instances = {
-  default: polymasApi,
-  download: downloadApi,
-  report: reportApi,
-};
-```
-
-同步在 `src/api/core/types.ts` 的 `HttpInstanceType` 里加上实例名，之后调用时用 `instance` 指定：
-
-```typescript
-await customMutator({ url: '/report/list', method: 'get', instance: 'report' });
+await customMutator({ method: 'post', url: '/api/idempotent-op', data, enableDedup: true });
 ```
 
 ---
 
 ## 错误处理
 
-ErrorModule 自动处理以下错误类型：
-
-- **业务错误**（code !== 200）：自动调用 `toastHandler` 显示错误提示
-- **未认证（401）**：调用 `unauthorizedHandler` 跳转登录页
-- **网络错误**：由 PolymasApi 底层处理
-
-在组件中只需处理成功后的业务逻辑，错误已被自动处理：
+请求失败已由拦截器提示，组件里只处理自身逻辑：
 
 ```typescript
 try {
-  const result = await postAuthLogin({ username, password });
-  // 成功处理
-} catch (error) {
-  // 错误已由 ErrorModule 自动展示提示
-  // 此处只处理组件特定逻辑（如重置表单、跳转等）
+  await userStore.loginAction({ username, password });
+  router.replace(redirect);
+} catch {
+  submitting.value = false;
 }
 ```
+
+- 不想要自动提示时传 `isIgnoreToast: true`，再自行 `handleError(error)`（`src/utils/error-handler.ts`）或给出定制提示
+- 不要在组件里自行判断 401 或跳登录页，统一由请求层处理
 
 ---
 
 ## 开发流程
 
-### 后端 API 有更新
-
 ```bash
-# 1. 将新的 openapi.json 放到 src/api/openapi.json（或从后端拉取）
-
-# 2. 重新生成代码
+# 1. 在 orval.config.ts 的 input.target 填写 OpenAPI 文档地址或本地路径
+# 2. 生成代码
 pnpm orval
-
-# 3. 查看生成的代码
-ls src/api/generated/
-
-# 4. 如需自定义某个接口，在 modules/ 创建覆盖文件
-```
-
-### 常用命令
-
-```bash
-pnpm orval          # 生成 API 代码
-pnpm type-check     # TypeScript 类型检查
+# 3. 需要定制的接口在 src/api/modules/ 覆盖
+pnpm type-check
 ```
 
 ---
@@ -338,7 +294,7 @@ pnpm type-check     # TypeScript 类型检查
 
 | 规则 | 说明 |
 |------|------|
-| 🚫 禁止修改 `generated/` | Orval 自动生成，会被覆盖 |
-| ✅ 统一从 `@/api` 导入 | 不直接从 `generated/` 导入 |
-| ✅ 扩展在 `modules/` 编写 | 覆盖或新增接口 |
-| ✅ 优先使用 Pinia Store | 状态管理推荐封装到 Store |
+| 🚫 禁止修改 `generated/` | Orval 生成目录，重新生成会覆盖（已由 hook 拦截编辑） |
+| ✅ 统一从 `@/api` 导入 | 不直接从 `generated/` 导入，否则 `modules/` 的覆盖不生效 |
+| ✅ 手写接口放 `modules/` | 用便捷函数或 `customMutator`，不要另建 axios 实例 |
+| ✅ 登录类接口传 `skipAuthRedirect` | 避免账号密码错误返回 401 时被跳回登录页 |

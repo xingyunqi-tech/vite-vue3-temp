@@ -4,7 +4,7 @@ description: 生成 Pinia Store（Composition API 风格、类型安全、可选
 license: MIT
 compatibility: Requires Vue 3, Pinia, TypeScript
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "2.0.0"
   category: development
 ---
@@ -25,7 +25,7 @@ metadata:
 |---------|--------------|
 | 完整的 Store 结构（state / computed / action / 持久化） | `src/store/modules/user-info.ts` |
 | 纯计算逻辑、无 API 依赖的 Store | `src/store/modules/permission.ts` |
-| 配置类 Store + 条件编译 | `src/store/modules/global.ts` |
+| 配置类 Store（语言 / 主题） | `src/store/modules/global.ts` |
 | 持久化机制本身（localforage + syncCache） | `src/store/plugins/persist.ts` |
 
 ## 使用方式
@@ -59,7 +59,7 @@ metadata:
 - **Actions 命名规范** —— `xxxAction` 后缀
 
 错误处理见 [common-patterns.md#错误处理模式](../../agents/common-patterns.md#错误处理模式)：
-**API 错误已由 `ErrorModule` 自动弹提示，Action 里不要再调 `ElMessage.error`**，
+**API 错误已由请求层拦截器（`src/api/core/request.ts`）自动弹提示，Action 里不要再调 `ElMessage.error`**，
 只维护本地 `error` 状态并把异常向上抛。
 
 ### 步骤 1：收集信息
@@ -93,7 +93,8 @@ metadata:
 - 文件名必须 **kebab-case**（ESLint `check-file` 强制，`productStore.ts` 直接 lint error）
 - 生成前先看 `src/store/modules/` 有没有同名文件或同名 `defineStore` id
 - ⚠️ **`'user'` 这个 id 已被 `user-info.ts` 占用**。用户 / 认证相关一律复用 `useUserInfoStore`，
-  不要新建 `user.ts` —— 登录由 SSO 托管，token 是读 Cookie 的 computed，不存在 `loginAction`
+  不要新建 `user.ts` —— 登录 / 登出 / 拉取用户资料已由 `loginAction` / `logoutAction` / `getInfoAction` 提供，
+  token 以 Cookie 为准（`@/utils/auth` 的 `getToken` / `setToken`），Store 里的 `token` 只是镜像
 
 ### 步骤 3：生成代码
 
@@ -133,7 +134,7 @@ function setQueryParams(params: Partial<ListXxxParams>) {
 - [ ] 三段式结构 + 注释分隔
 - [ ] 重置方法叫 `resetXxx()`，不是 `$reset()`
 - [ ] Action 有 `Action` 后缀；异步 Action 有 loading + try/catch/finally
-- [ ] catch 里**没有** `ElMessage.error`（请求错误由 ErrorModule 提示，重复调用会弹两次）
+- [ ] catch 里**没有** `ElMessage.error`（请求错误由请求层拦截器提示，重复调用会弹两次）
 - [ ] 分页字段是 `pageSize`
 - [ ] 持久化只写 `persist: true` / `pick` / `omit`，不指定 storage
 - [ ] `pnpm type-check` 通过

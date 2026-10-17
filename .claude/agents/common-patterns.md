@@ -380,27 +380,26 @@ const statsData = ref([
 
 项目在 `public/assets/theme.css` 中定义了完整的 CSS 变量系统（301 个），所有样式中的颜色**必须**使用这些变量,**禁止硬编码颜色值**。
 
-> ⚠️ **变量一律带 `--aix-` 前缀**（如 `var(--aix-colorText)`）——theme.css 由 `@aix/theme`
-> 设计系统派生生成，运行 `pnpm genThemeCss` 重建，**请勿手改该文件**。
+> ⚠️ **变量一律带 `--aix-` 前缀**（如 `var(--aix-colorText)`）——theme.css 是手工维护的静态文件：
+> 浅色变量写在 `:root`，暗色写在 `:root[data-theme='dark']` 与 `.dark`。
 > 漏掉前缀（如 `--colorText`）就是未定义变量，样式会静默失效且不报错。
 > 不确定变量名时，直接 grep `public/assets/theme.css` 确认。
 
 #### 品牌主色只有一个来源
 
-`src/constants/system.ts` 的 `BRAND_PRIMARY` 是品牌色的**唯一声明处**：它既是 theme.css 的生成
-seed，也是设置页运行时覆盖主题色的派生基准，还是主题色字段的默认值。换品牌色只改这一行，
-然后跑 `pnpm genThemeCss`。**不要在 scss 里另写色值**——`src/styles/theme.scss` 的
-`--polymas-color-theme` 已经是 `var(--aix-colorPrimary)` 的别名，写死就会漂移。
+品牌主色就是 theme.css 里的 `--aix-colorPrimary`（及其 `colorPrimary*` 派生变量）。
+**不要在 scss 里另写色值**——业务样式一律引用 `var(--aix-colorPrimary)`，写死就会漂移。
+硬编码色值可用 `pnpm checkCssVars` 巡检列出。
 
 #### Element Plus 组件怎么跟随主题
 
-Element 不读 `--aix-*`，它有自己的一套变量，项目通过三条链把两边接起来：
+Element 不读 `--aix-*`，它有自己的一套变量，`src/styles/theme.scss` 把两边接起来：
 
 | Element 变量 | 怎么跟随 | 在哪 |
 |---|---|---|
-| `--el-color-primary` | 指向 `--polymas-color-theme` → `--aix-colorPrimary` | `styles/theme.scss` |
-| `--el-color-primary-light-3/5/7/8/9`、`-dark-2` | `color-mix` 复刻 Element 自身算法，跟随 `--aix-colorPrimary` | `styles/theme.scss` |
-| `--el-border-radius-base` / `-small` | 站点主题运行时写入行内样式 | `plugins/site-config/theme.ts` |
+| `--el-color-primary` | 直接指向 `--aix-colorPrimary` | `styles/theme.scss` |
+| `--el-color-primary-light-3/5/7/8/9`、`-dark-2` | `color-mix` 复刻 Element 自身算法，跟随 `--aix-colorPrimary`，明暗两侧各写一次 | `styles/theme.scss` |
+| `--el-color-success` / `-warning` / `-danger` | 指向 `--aix-colorSuccess` / `--aix-colorWarning` / `--aix-colorError` | `styles/theme.scss` |
 
 > ⚠️ 只改 `--el-color-primary` 是不够的：Element 的 hover / plain / 禁用态、tag 浅底、
 > menu 选中底读的都是 `light-*` 阶梯，漏掉就会「主色变了但这些地方还是原生蓝」。
@@ -741,7 +740,7 @@ div {
 
 ```typescript
 // ✅ 正确：完整的错误处理
-// 注意：API 请求错误已由 ErrorModule（src/api/core/request.ts）自动弹出提示，
+// 注意：API 请求错误已由请求层拦截器（src/api/core/request.ts）自动弹出提示，
 // 这里只需维护本地状态，不要重复调用 ElMessage.error 导致提示弹两次
 const fetchUserInfo = async (): Promise<void> => {
   loading.value = true;
@@ -777,7 +776,7 @@ const loginAction = async (credentials: ILoginRequest): Promise<void> => {
     userInfo.value = response.userInfo;
 
     // 持久化：Store 用 defineStore 的 persist 选项（localforage + IndexedDB）；
-    // token 不在这里存 —— 本项目由 SSO 写入 Cookie，Store 里是 computed(() => getToken())
+    // token 不进 Store 持久化 —— 由 setToken() 写入 Cookie，Store 里的 token 是 Cookie 的 ref 镜像
   } catch (error) {
     console.error('登录失败:', error);
     throw error;  // 重新抛出,让调用方处理
@@ -864,10 +863,10 @@ import type { LoginRequest } from '@/api';
 
 本文档作为通用模式的单一真实来源,被以下 agent 文档引用:
 
-- [coding-standards.md#编码规范概览](coding-standards.md#编码规范概览) - 编码规范
+- [coding-standards.md](coding-standards.md) - 编码规范
 - [component-development.md#组件开发规范](component-development.md#组件开发规范) - 组件开发
 - [store-development.md#store设计原则](store-development.md#store设计原则) - 状态管理
-- [testing.md#测试策略](testing.md#测试策略) - 测试规范
+- [testing.md](testing.md) - 测试规范
 
 当其他文档中需要使用这些通用模式时,应该引用本文档,避免重复定义。
 

@@ -16,7 +16,7 @@ description: 快速修复常见问题的诊断和解决方案
 | **Vue 组件** | Props 类型不匹配 | 检查 Props 定义 | [详见](#vue-组件问题) |
 | **Vue 组件** | Emits 未定义 | 添加 defineEmits | [详见](#vue-组件问题) |
 | **API** | Network Error | 检查后端服务 → CORS | [详见](#api-调用问题) |
-| **API** | 401 Unauthorized | 检查 token → 重新登录 | [详见](#api-调用问题) |
+| **API** | 401 Unauthorized | 自动跳登录页 → 重新登录 | [详见](#api-调用问题) |
 | **API** | Orval 生成失败 | 检查 `orval.config.ts` 的 `input.target` → `pnpm orval` | [详见](#api-调用问题) |
 | **路由** | 404 Not Found | 检查路由配置 → path | [详见](#路由问题) |
 | **路由** | 403 Forbidden | 检查权限配置 → roles | [详见](#路由问题) |
@@ -69,7 +69,7 @@ pnpm type-check
 pnpm lint
 ```
 
-**详细文档:** [coding-standards.md#TypeScript规范](../agents/coding-standards.md#typescript规范)
+**详细文档:** [coding-standards.md](../agents/coding-standards.md)
 
 ---
 
@@ -141,7 +141,7 @@ pnpm type-check
 |---------|------|---------|
 | `404 Not Found` | API 路径错误 | 检查路径 → 检查代理配置 |
 | `CORS policy blocked` | 跨域请求被阻止 | 配置 Vite 代理 → 后端 CORS |
-| `401 Unauthorized` | Token 失效 | 检查 token → 重新登录 |
+| `401 Unauthorized` | Token 失效或缺失 | 请求层会清 token 并整页跳 `/login?redirect=<当前页>`；登录接口本身需带 `skipAuthRedirect: true` |
 | `Type mismatch` | API 类型不匹配 | 1️⃣ `pnpm orval` → 2️⃣ `pnpm type-check` |
 | `Network Error` | 后端服务未启动 | 启动后端 → 检查端口 |
 
@@ -168,6 +168,8 @@ pnpm lint                    # 代码检查
 |---------|------|---------|
 | `router.push 不跳转` | 路由未注册或路径错误 | 检查路由配置 → 检查路径格式(需要 `/`) |
 | `403 Forbidden` | 用户角色不匹配 | 检查 `meta.roles` → 确认用户角色 |
+| 跳到 `/403?reason=no-role` | 当前用户接口未返回角色 | 检查 `/api/auth/current-user` 返回的 `role` |
+| 跳到 `/403?reason=fetch-failed` | 拉取当前用户失败 | 检查后端服务与代理（`config/devServer.ts`） |
 | `404 Not Found` | 路由未注册 | 添加路由配置到 routes/ 目录 |
 
 **工具命令:**
@@ -261,20 +263,18 @@ pnpm analyzer
 
 **解决方案:**
 ```typescript
-// 启用持久化
-export const useUserStore = defineStore(
-  'user',
+// 启用持久化（存储介质由 src/store/plugins/persist.ts 统一提供，不指定 storage）
+export const useProductStore = defineStore(
+  'product',
   () => {
-    const userInfo = ref<IUserInfo | null>(null);
-    return { userInfo };
+    const currentProduct = ref<ProductDTO | null>(null);
+    return { currentProduct };
   },
   {
     persist: {
-      key: 'user-store',
-      storage: localStorage,
-      pick: ['userInfo'],
+      pick: ['currentProduct'],
     },
-  }
+  },
 );
 ```
 
@@ -300,7 +300,7 @@ export const useUserStore = defineStore(
 
 **工具命令:**
 ```bash
-pnpm test -- UserCard.spec.ts        # 运行单个测试
+pnpm test -- tests/utils/auth.test.ts   # 运行单个测试
 pnpm test -- --reporter=verbose      # 详细错误信息
 pnpm test -- -u                       # 更新快照
 ```

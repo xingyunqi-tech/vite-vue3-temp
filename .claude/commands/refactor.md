@@ -19,8 +19,8 @@ description: 重构代码时的最佳实践提示，确保安全、高效、符�
 #### 重构中
 - [ ] **小步快跑** - 每次只改一小部分
 - [ ] 每次改动后立即运行测试：`pnpm test`
-- [ ] 每次改动后提交：`git commit -m "refactor: xxx"`
-- [ ] 遇到问题立即回滚：`git reset --hard HEAD`
+- [ ] 改动停在工作区，由用户确认后再提交
+- [ ] 遇到问题时说明现状，回滚前先征得用户同意
 
 #### 重构后
 - [ ] 运行完整测试套件：`pnpm test`
@@ -34,7 +34,7 @@ description: 重构代码时的最佳实践提示，确保安全、高效、符�
 
 #### 消除重复代码（DRY）
 
-> ⚠️ 下面只是演示"提取重复逻辑"这个重构手法本身，不代表项目真实的登录实现——本项目登录由 SSO 驱动、token 存于 Cookie（见 [router-development.md](../agents/router-development.md)），不要把 Token 写入 `localStorage`（[security-check.md](security-check.md) 强制要求 HttpOnly Cookie）。
+> ⚠️ 下面只是演示"提取重复逻辑"这个重构手法本身，不代表项目真实的登录实现——本项目登录走本地登录页（`src/views/login/`）与 `useUserInfoStore().loginAction`，token 由 `@/utils/auth` 存于 Cookie（见 [router-development.md](../agents/router-development.md)），不要把 Token 写入 `localStorage`（见 [security-check.md](security-check.md)）。
 
 ```typescript
 // ❌ 重复代码
@@ -287,11 +287,7 @@ const { loading, error, data, execute } = useAsync(() => getUserInfo());
   </Parent>
 </GrandParent>
 
-// ✅ 使用 Pinia Store
-// 1. 生成 Store
-/store-generator UserStore
-
-// 2. 在组件中使用
+// ✅ 使用 Pinia Store（用户信息复用 useUserInfoStore，其他共享状态用 /store-generator 生成）
 import { useUserInfoStore } from '@/store/modules/user-info';
 
 const userStore = useUserInfoStore();
@@ -352,9 +348,7 @@ pnpm test
 # 4. 每次改动后测试
 pnpm test
 
-# 5. 每次改动后提交
-git add .
-git commit -m "refactor: extract common logic"
+# 5. 改动停在工作区，等用户确认后再提交
 
 # 6. 重构完成后，运行完整检查
 pnpm type-check

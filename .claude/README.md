@@ -2,6 +2,20 @@
 
 > 本项目的 Claude Code 完整配置，包括 Agents、Skills、Commands 和 Hooks
 
+## 目录结构
+
+```text
+.claude/
+├── README.md              # 本文件
+├── settings.json          # 团队共享配置：permissions + hooks（提交）
+├── settings.local.json    # 个人本地配置：额外权限、启用的 MCP 服务器（.gitignore 忽略）
+├── agents/                # 深度指导（10 个 *.md）
+├── commands/              # 快速提示（7 个 *.md，/命令名 调用）
+└── skills/                # 代码生成（9 个 <name>/SKILL.md）
+
+.mcp.json                  # 项目根目录：MCP 服务器定义
+```
+
 ---
 
 ## 四层工具体系
@@ -45,7 +59,7 @@ Skills 用于快速完成重复性开发任务。
 | `/component-generator` | 智能组件生成，支持基础/业务/页面组件 | `/component-generator UserList --type page --smart` |
 | `/store-generator` | 智能 Pinia Store 生成，自动集成 API | `/store-generator UserStore --smart` |
 | `/page-assembler` | 页面拼装器，组装组件为完整页面 | `/page-assembler src/views/user/index.vue` |
-| `/api-generator` | 自定义 API 生成 (Orval 无法覆盖的 20% 场景) | `/api-generator uploadFile --type upload` |
+| `/api-generator` | 自定义 API 生成 (Orval 无法覆盖的 20% 场景) | `/api-generator uploadFile --type custom --with-progress` |
 | `/figma-to-component` | 从 Figma 设计稿生成 Vue 组件 | `/figma-to-component <figma-url>` |
 
 #### 质量保障类
@@ -118,7 +132,7 @@ pnpm orval                                             # 2. API 同步
 /page-assembler src/views/user/index.vue                 # 5. 页面拼装
 /code-optimizer src/views/user/ --full                   # 6. 代码优化
 /test-coverage-checker --auto-generate                   # 7. 质量检查
-pnpm commit                                              # 8. 提交代码
+# 8. 停在工作区，等用户确认后再提交
 ```
 
 ---
@@ -160,7 +174,7 @@ Agents 提供专业领域的深度指导，Claude 根据任务内容自动选择
 
 | Agent | 文件 | 职责 | 适用场景 |
 |-------|------|------|----------|
-| `common-patterns` | `common-patterns.md` | 通用开发模式 (SSoT)，Props/Emits/CSS变量/盒模型/数据驱动/错误处理 | 查询通用模式和规范 |
+| `common-patterns` | `common-patterns.md` | 通用开发模式（单一真实来源），Props/Emits/CSS变量/盒模型/数据驱动/错误处理 | 查询通用模式和规范 |
 | `api-development` | `api-development.md` | Orval API 开发，四层架构/自定义扩展/工作流 | API 使用和扩展 |
 | `component-development` | `component-development.md` | 组件开发规范，设计原则/Figma 还原/样式规范 | 组件设计和开发 |
 | `router-development` | `router-development.md` | 路由配置，两层路由体系/权限控制/路由守卫 | 路由和权限配置 |
@@ -179,10 +193,10 @@ Agents 提供专业领域的深度指导，Claude 根据任务内容自动选择
 ### Agent 依赖关系
 
 ```
-common-patterns (单一真实来源 SSoT：Props/Emits、CSS 变量、盒模型、数据驱动、错误处理)
+common-patterns (单一真实来源：Props/Emits、CSS 变量、盒模型、数据驱动、错误处理)
     ├── component-development (引用 Props/CSS/盒模型/骨架屏)
     │   └── figma-extraction-guide
-    ├── coding-standards (引用 Props/CSS/错误处理；另含文件命名与条件编译规范)
+    ├── coding-standards (引用 Props/CSS/错误处理；另含文件命名规范)
     ├── api-development
     ├── router-development
     ├── store-development
@@ -302,56 +316,34 @@ MCP (Model Context Protocol) 服务器扩展 Claude 的能力。
 
 | 文件 | 用途 |
 |------|------|
-| `.mcp.json` | 项目根目录，定义可用的 MCP 服务器 |
-| `settings.local.json` | 通过 `enabledMcpjsonServers` 决定启用哪些（本地配置，不提交） |
+| `.mcp.json` | 项目根目录，定义可用的 MCP 服务器（提交） |
+| `.claude/settings.local.json` | 通过 `enabledMcpjsonServers` 或 `enableAllProjectMcpServers: true` 决定启用哪些（本地配置，不提交） |
 
 ### 当前实际配置
 
-`.mcp.json` 目前**只定义了一个**服务器：
+`.mcp.json` 定义了 4 个服务器：
+
+| key | 包 | 用途 |
+|-----|----|------|
+| `Framelink Figma MCP` | `figma-developer-mcp` | 读取 Figma 设计稿、下载切图（`/figma-to-component` 依赖） |
+| `context7` | `@upstash/context7-mcp` | 查询第三方库的最新文档 |
+| `ESLint` | `@eslint/mcp` | 调用项目 ESLint 检查文件 |
+| `chrome-devtools` | `chrome-devtools-mcp` | 驱动浏览器调试页面、截图、性能分析 |
+
+在 `.claude/settings.local.json` 中启用，例如：
 
 ```json
-{
-  "mcpServers": {
-    "aix": {
-      "command": "npx",
-      "args": ["@aix/mcp-server@latest"]
-    }
-  }
-}
+{ "enabledMcpjsonServers": ["Framelink Figma MCP", "context7", "ESLint", "chrome-devtools"] }
 ```
 
-`settings.local.json` 启用它：
-
-```json
-{ "enabledMcpjsonServers": ["aix"] }
-```
-
-> ⚠️ `enabledMcpjsonServers` 里写 `.mcp.json` 中不存在的名字是无效的（既不报错也不生效）。
-> 增删服务器时**两个文件要同步改**。
-
-### 新增服务器示例
-
-按需往 `.mcp.json` 追加，再到 `settings.local.json` 的 `enabledMcpjsonServers` 里启用：
-
-```json
-{
-  "mcpServers": {
-    "aix": { "command": "npx", "args": ["@aix/mcp-server@latest"] },
-    "figma": {
-      "command": "npx",
-      "args": ["-y", "figma-developer-mcp", "--figma-api-key=<YOUR_FIGMA_API_KEY>", "--stdio"]
-    },
-    "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] }
-  }
-}
-```
-
+> ⚠️ `enabledMcpjsonServers` 里的名字必须与 `.mcp.json` 的 key 完全一致，写不存在的名字既不报错也不生效。
+>
 > **安全提醒**: 不要把真实 API Key 提交到仓库，用环境变量或只写在不提交的本地配置里。
 
 ### MCP 工具命名
 
-工具名形如 `mcp__<服务器名>__<工具名>`，**服务器名大小写敏感**，必须与 `.mcp.json` 的 key 完全一致。
-配了 `"figma"` 就是 `mcp__figma__get_figma_data`，不是 `mcp__Figma__...`。
+工具名形如 `mcp__<服务器名>__<工具名>`，**服务器名大小写敏感**，key 中的空格转换为 `_`。
+例如 `Framelink Figma MCP` 的工具是 `mcp__Framelink_Figma_MCP__get_figma_data`、`mcp__Framelink_Figma_MCP__download_figma_images`。
 
 ---
 
@@ -363,15 +355,15 @@ Permissions 控制 Claude 可以自动执行哪些命令（无需确认），配
 
 | 分类 | 命令 | 说明 |
 |------|------|------|
+| **只读查看** | `ls`, `find`, `rg`, `grep`, `cat`, `head`, `tail`, `wc`, `echo` | 浏览与搜索 |
 | **开发脚本** | `pnpm start:*`, `pnpm build:*` | 启动和构建 |
 | **代码生成** | `pnpm orval` | Orval API 生成 |
-| **代码质量** | `pnpm lint:*`, `pnpm type-check:*` | ESLint 和 TypeScript 检查 |
+| **代码质量** | `pnpm lint:*`, `pnpm type-check:*` | ESLint / Stylelint / markdownlint 与 TypeScript 检查 |
 | **测试** | `pnpm test:*` | 单元测试（项目未配置 E2E） |
-| **Git 只读** | `git status`, `git diff`, `git log`, `git branch`, `git fetch` | 查看状态 |
-| **Git 写入** | `git add`, `git commit`, `git mv`, `git stash`, `git checkout`, `git pull`, `git merge` | 本地变更 |
+| **Git 只读** | `git status`, `git diff`, `git log`, `git fetch` | 查看状态 |
 
-> **刻意不放进 allow 的**：`git push`（外发，推出去就收不回）、`git rebase`（改写历史）、
-> `git rm`（删文件）。这三个每次都需要你确认，与下方「安全原则」一致。
+> **不放进 allow 的**：`git add` / `git commit` / `pnpm commit`（提交需要人确认）、`git merge` / `git pull`（会改动分支历史）、
+> `git push`（外发，推出去就收不回）、`git rebase`（改写历史）、`git rm` / `git mv`（改动文件与暂存区）、`git checkout` / `git switch` / `git stash` / `git branch`（改动工作区或分支）。这些每次都需要你确认，与下方「安全说明」一致。
 
 ### 配置示例
 
@@ -381,8 +373,7 @@ Permissions 控制 Claude 可以自动执行哪些命令（无需确认），配
     "allow": [
       "Bash(pnpm start:*)",
       "Bash(pnpm lint:*)",
-      "Bash(git status:*)",
-      "Bash(git commit:*)"
+      "Bash(git status:*)"
     ],
     "deny": []
   }
@@ -395,6 +386,7 @@ Permissions 控制 Claude 可以自动执行哪些命令（无需确认），配
 - **deny**: 明确禁止的命令（当前为空）
 - 使用 `*` 通配符匹配命令参数
 - 未列出的命令需要用户手动确认
+- 个人额外放行的命令写在 `.claude/settings.local.json`，不要写进共享的 `settings.json`
 
 ---
 

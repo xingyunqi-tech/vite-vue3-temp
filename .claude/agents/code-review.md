@@ -94,13 +94,12 @@ const BASE_URL = 'http://192.168.1.100:8080'; // 内网 IP 泄露
 console.log('用户登录:', { userId, token, password }); // 生产环境泄露！
 
 // ✅ 正确：使用环境变量
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_BASEURL;
 
 // ✅ 正确：token 走 Cookie，不落 localStorage
-import { setAuthTokenCookie } from '@/utils/auth';
-import { getToken } from '@zhs/agent-course-kit';
+import { getToken, setToken } from '@/utils/auth';
 
-setAuthTokenCookie(tokenValue);   // 按 KNOWN_SSO_DOMAINS 决定 Cookie 共享域
+setToken(tokenValue);   // 写入当前域名下的 host-only Cookie（key 为 TOKEN_KEY）
 const token = getToken();
 
 // ✅ 正确：非敏感的 UI 偏好才用原生 storage（项目无通用封装）
@@ -327,7 +326,7 @@ watch(
 
 ### API 接口检查 (Orval 架构)
 
-**重要**: 项目使用 Orval 自动生成 API，详细架构说明参考 [api-development.md#核心架构决策](api-development.md#核心架构决策)
+**重要**: 项目使用 Orval 自动生成 API，详细架构说明参考 [api-development.md#核心架构决策](api-development.md)
 
 **Orval 架构下的检查要点**:
 - [ ] **绝不修改** `generated/` 目录的文件
@@ -388,7 +387,7 @@ export const useProductStore = defineStore('product', () => {
       productList.value = res.records ?? [];
       total.value = res.total ?? 0;
     } catch (err) {
-      // 请求失败的提示已由 ErrorModule 弹出，这里只维护本地状态
+      // 请求失败的提示已由请求层拦截器弹出，这里只维护本地状态
       error.value = err as Error;
       throw err;
     } finally {
@@ -416,8 +415,8 @@ export const useProductStore = defineStore('product', () => {
 ```
 
 > ⚠️ **认证状态不要新建 Store**，一律复用 `useUserInfoStore`（`src/store/modules/user-info.ts`）：
-> 登录由 SSO 托管，`token` 是 Cookie 的 ref 镜像（真源在 Cookie，靠 `refreshToken()` 同步、不参与持久化），
-> 用户资料从 Cookie 解析，角色走 `get-current-user-identity` 接口。
+> 登录走本地登录页（`loginAction`），`token` 是 Cookie 的 ref 镜像（真源在 Cookie，靠 `refreshToken()` 同步、不参与持久化），
+> 用户资料与角色由 `getInfoAction()` 调 `GET /api/auth/current-user` 获取，以接口为准。
 > 清理持久化副本用 `removePersistedStore('<storeId>')`。
 
 **检查要点**:
@@ -517,7 +516,7 @@ const loading = ref(false);
 
 onMounted(async () => {
   loading.value = true;
-  // getInfoAction 从 Cookie 解析用户资料
+  // getInfoAction 调接口拉取当前用户资料与角色
   await userStore.getInfoAction();
   loading.value = false;
 });
@@ -617,31 +616,25 @@ const addStudent = async (studentData: CreateStudentRequest): Promise<Student> =
 
 ### 权限控制
 
-**项目已封装**: 角色判断走 `src/composables/usePermission.ts` / `useRole.ts`，不要自己写比较逻辑。
-角色字段是 `userStore.info.role`（单数，值为大写常量）。
+**项目已封装**: 角色判断走 `src/composables/usePermission.ts` 或 `v-role` 指令，不要自己写比较逻辑。
+角色字段是 `userStore.info.role`（单数，取值见 `@/constants` 的 `ROLES`），来自 `getInfoAction()` 拉取的接口数据。
 
 ```typescript
 import { usePermission } from '@/composables/usePermission';
-import { useRole } from '@/composables/useRole';
 import { ROLES } from '@/constants';
 
-// ✅ 细粒度资源权限：默认配置见 usePermission 内的 DEFAULT_PERMISSION_CONFIG，可按资源覆盖
-const { isAdmin, isTeacher, hasRole, canCreate, canEdit, canDelete } = usePermission({
+// ✅ 细粒度资源权限：默认配置见 usePermission 内的 DEFAULT_RESOURCE_CONFIG，可按资源覆盖
+const { isAdmin, isTeacher, isStudent, hasRole, canCreate, canEdit, canDelete } = usePermission({
   delete: [ROLES.ADMIN], // 只有管理员可以删除
 });
 
 // hasRole 返回的是 computed，直接用在模板里
 const canManage = hasRole([ROLES.ADMIN, ROLES.TEACHER]);
-
-// ✅ 只需要教师/学生身份判断时用 useRole（数据源是 info.userIdentityAuthType）
-const { isTeacher: isTeacherIdentity, isStudent } = useRole();
 ```
 
-**路由级权限不要在组件里重写**——`src/router/guards.ts` 已统一处理：登录态缺失时
-`jumpToLogin()` 整体跳 SSO，角色拿不到时跳 `/403`，权限路由由
-`permissionStore.generateRoutes(resolveDeclaredRoutes(), [role])` 过滤后动态注册。
-过滤的数据源是 `resolveDeclaredRoutes()`（`router/routes/declared.ts`）而非 `asyncRoutes` 本身：
-覆盖先于过滤，租户放宽的 `meta.roles` 才生效、租户追加的 `children` 才同样受角色约束。
+**路由级权限不要在组件里重写**——`src/router/guards.ts` 已统一处理：未登录时跳 `/login?redirect=<目标>`，
+角色为空或拉取用户信息失败时跳 `/403`，权限路由由
+`permissionStore.generateRoutes(resolveDeclaredRoutes(), [role])` 按 `meta.roles` 过滤后动态注册。
 审查时确认改动没有在守卫之外另起一套判断即可。
 
 ---

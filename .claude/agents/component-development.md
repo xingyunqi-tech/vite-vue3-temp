@@ -43,7 +43,7 @@ model: inherit
 ## 🎨 视觉规范补充
 
 - **颜色和尺寸** ⚠️ **重要**: 还原 Figma 设计稿时,**优先使用 Figma 中标注的颜色和尺寸数值**，先保证还原度；等设计体系稳定后再统一替换为 CSS 变量。只有在 Figma 没有明确标注时,才直接使用 `public/assets/theme.css` 中的变量。
-  - 📌 硬编码色值会被 `pnpm checkCssVars` 列出——**这是「待替换清单」，不是错误**。该脚本是手动巡检工具，不在 pre-commit 门禁内（门禁是 lint-staged、type-check、test，模板真源另加 check:template），不会阻塞提交。
+  - 📌 硬编码色值会被 `pnpm checkCssVars` 列出——**这是「待替换清单」，不是错误**。该脚本是手动巡检工具，不在 pre-commit 门禁内（门禁是 lint-staged，以及改动涉及源码时的 type-check、test），不会阻塞提交。
   - 替换时机：设计稿定稿、或该色值在多处复用时，去 `theme.css` 找语义最接近的 `var(--aix-*)` 换掉。
 - **字体**: 默认字体使用 `"'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif"`。当设计稿的 `font-family` 明确为其他字体时，再在组件/页面样式中单独声明该字体；不得自行更换或追加未标注的字体。
 - **间距**: 组件和页面的 `padding`、`margin` 必须严格遵循设计稿标注，禁止随意估计数值；建议在开发前记录关键尺寸，确保还原度。
@@ -301,7 +301,7 @@ import BaseCalendar from '@/components/BaseCalendar/index.vue';
 完成以下步骤后，进入组件实现阶段：
 
 - [ ] 提取 fileKey 和 nodeId（从 Figma URL）
-- [ ] 使用 `mcp__figma__get_figma_data` 获取设计数据
+- [ ] 使用 `mcp__Framelink_Figma_MCP__get_figma_data` 获取设计数据
 - [ ] 提取设计 Token（间距、颜色、字体、特效）
 - [ ] 下载 SVG 图标到 `src/assets/icons/[project-name]/`（使用小写短横线格式 kebab-case）
 - [ ] 下载 PNG 图片到 `src/assets/images/[project-name]/`（使用小写短横线格式 kebab-case）

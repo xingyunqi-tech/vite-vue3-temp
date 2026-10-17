@@ -62,7 +62,8 @@
     "deepseek",
     "lifecycles",
     "vnode",
-    "rtg"
+    "rtg",
+    "Pii"
   ],
   "patterns": [
     {

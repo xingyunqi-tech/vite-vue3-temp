@@ -42,9 +42,9 @@ src/store/
 ├── plugins/
 │   └── persist.ts              # localforage(IndexedDB) + pinia-plugin-persistedstate
 └── modules/                    # Store模块（以下是项目全部 4 个 Store）
-    ├── user-info.ts            # 用户信息（useUserInfoStore，SSO/Cookie 驱动）
+    ├── user-info.ts            # 用户信息（useUserInfoStore：登录 / 拉取用户信息 / 登出）
     ├── permission.ts           # 权限路由与菜单（usePermissionStore）
-    ├── global.ts               # 全局状态（语言/主题/高级模式）
+    ├── global.ts               # 全局状态（语言/主题/侧边栏）
     └── site-config.ts          # 站点配置（useSiteConfigStore）
 ```
 
@@ -52,18 +52,19 @@ src/store/
 
 ### 用户Store示例（useUserInfoStore，项目真实实现）
 
-> 项目登录态由 SSO 驱动：token 来自 Cookie（`getToken()`，非本 Store 手动 set），用户资料从 SSO 写入的 Cookie 解析，角色需要单独通过接口拉取。**不存在**用户名密码 `loginAction`。
+> 登录走本地登录页：`loginAction` 调 `POST /api/auth/login` 拿到 token 并经 `setToken()` 写入 Cookie；
+> 用户资料与角色由 `getInfoAction` 调 `GET /api/auth/current-user` 获取，以接口为准；`logoutAction` 清理后整页跳转登录页。
+> token 的真源是 Cookie，Store 里的 `token` 只是响应式镜像。
 
 ```typescript
-// store/modules/user-info.ts
-import { getToken, jumpToSsoLogout } from '@zhs/agent-course-kit';
+// store/modules/user-info.ts（节选）
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { getCurrentUserIdentity } from '@/api/modules/platform';
-import { ROLES, IDENTITY_ROLE_TYPE, mapIdentityToRole } from '@/constants';
+import { getUserInfo, login, logout, type LoginParams } from '@/api/modules/auth';
+import { ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 import { removePersistedStore } from '@/store/plugins/persist';
-import { getUserInfoCookieRaw } from '@/utils/auth';
+import { getToken, jumpToLogout, setToken } from '@/utils/auth';
 
 export interface UserInfo {
   id: number | undefined;
@@ -72,94 +73,96 @@ export interface UserInfo {
   avatar: string;
   email: string;
   phone: string;
-  /** 系统角色，统一使用 @/constants 的 ROLES（来自身份接口映射） */
+  /** 系统角色，统一使用 @/constants 的 ROLES（来自 getUserInfo 接口） */
   role: RoleType | '';
   // ... 其余字段详见 src/store/modules/user-info.ts
 }
 
+const isRole = (value: unknown): value is RoleType => (Object.values(ROLES) as unknown[]).includes(value);
+
 export const useUserInfoStore = defineStore(
   'user',
   () => {
-    const info = ref<UserInfo>(/* 初始空状态，见真实文件 createInitialState() */ {} as UserInfo);
+    const info = ref<UserInfo>(createInitialState());
 
-    // ==================== 计算属性 ====================
-    /** Token 的真源是 Cookie，这里是响应式镜像：读 Cookie 不产生依赖，computed 会被永久缓存，所以用 ref + 主动刷新 */
+    /** 登录 token 的响应式镜像，真源是 Cookie；读 Cookie 不产生响应式依赖，所以用 ref + 主动刷新 */
     const token = ref<string>(getToken());
     const refreshToken = (): string => {
       token.value = getToken();
       return token.value;
     };
+
     const isLoggedIn = computed(() => !!token.value);
     const isAdmin = computed(() => info.value.role === ROLES.ADMIN);
+    const isTeacher = computed(() => info.value.role === ROLES.TEACHER || info.value.role === ROLES.ADMIN);
+    const isStudent = computed(() => info.value.role === ROLES.STUDENT);
 
-    const setUserInfo = (partial: Partial<UserInfo>) => {
-      Object.assign(info.value, partial);
+    /** 本页加载用户信息时的 token，换账号检测的基准；不持久化 */
+    let loadedToken = '';
+
+    const resetUserInfo = () => {
+      info.value = createInitialState();
+      loadedToken = '';
     };
 
-    /**
-     * 从 Cookie 中解析用户信息（SSO 登录后写入，仅含身份资料，不含 role）
-     *
-     * 不同部署环境写入的 Cookie key 不一致，getUserInfoCookieRaw() 会依次尝试
-     * @/utils/auth 中 USER_INFO_COOKIE_KEYS 列表里的每个 key，命中第一个有值的。
-     */
+    /** 账号密码登录：写入 token 并同步镜像 */
+    const loginAction = async (params: LoginParams) => {
+      const newToken = (await login(params))?.token;
+      if (!newToken) throw new Error('登录失败：未获取到登录凭证');
+      setToken(newToken);
+      refreshToken();
+    };
+
+    /** 拉取当前用户资料与角色；role 不在 ROLES 内时留空，由路由守卫拦截到 403 */
     const getInfoAction = async () => {
-      const userInfoStr = getUserInfoCookieRaw();
-      if (!userInfoStr) {
-        throw new Error('无法从 Cookie 中获取用户信息');
-      }
-      const data = JSON.parse(decodeURIComponent(userInfoStr));
-      setUserInfo({
-        id: data.userId || data.id,
-        username: data.userName || data.username || '',
-        // 安全敏感字段：缺失时不得向高权限兜底，留空由路由守卫的「角色为空」校验拦截
-        role: data.role || '',
-      });
+      const user = await getUserInfo();
+      info.value = { ...createInitialState(), ...user, role: isRole(user?.role) ? user.role : '' };
+      loadedToken = getToken();
     };
 
-    /**
-     * 角色不在登录 Cookie 里，需单独调接口拉取并映射为系统角色。
-     * 注意：教师/学生身份都不满足时 identityType 为 undefined，
-     * mapIdentityToRole 会返回空字符串——不要向高权限兜底，
-     * 路由守卫依赖这个空值把用户拦截到 403（见 router-development.md）。
-     */
-    const fetchUserRole = async (): Promise<RoleType | ''> => {
-      const list = (await getCurrentUserIdentity()) as Array<{ identityType?: number }> | null;
-      const identities = Array.isArray(list) ? list : [];
-      const hasTeacher = identities.some(item => item.identityType === IDENTITY_ROLE_TYPE.TEACHER);
-      const hasStudent = identities.some(item => item.identityType === IDENTITY_ROLE_TYPE.STUDENT);
-      const identityType = hasTeacher
-        ? IDENTITY_ROLE_TYPE.TEACHER
-        : hasStudent
-          ? IDENTITY_ROLE_TYPE.STUDENT
-          : undefined;
-      const role = mapIdentityToRole(identityType);
-      setUserInfo({ role });
-      return role;
+    /** Cookie 里的 token 是否已不是本页加载用户信息时的 token（其他标签页换了账号） */
+    const isAccountSwitched = (): boolean => {
+      const current = getToken();
+      return !!current && !!loadedToken && current !== loadedToken;
     };
 
-    const logoutAction = async () => {
+    /** 退出登录：通知后端、清理本地用户数据后整页跳转登录页 */
+    const logoutAction = async (redirect?: string) => {
+      await logout().catch(error => console.warn('退出登录接口调用失败:', error));
       resetUserInfo();
-      token.value = ''; // 镜像要跟着清，否则 isLoggedIn 在跳转完成前仍是 true
-      await removePersistedStore('user');
-      jumpToSsoLogout(); // 整体跳转 SSO 登出，不是清空本地状态就结束
+      token.value = '';
+      await removePersistedStore('user').catch(error => console.warn('清理用户持久化数据失败:', error));
+      jumpToLogout(redirect);
     };
 
-    return { info, token, isLoggedIn, refreshToken, isAdmin, setUserInfo, getInfoAction, fetchUserRole, logoutAction };
+    return {
+      info, token, isLoggedIn, refreshToken, isAdmin, isTeacher, isStudent,
+      setUserInfo, resetUserInfo, loginAction, getInfoAction, isAccountSwitched, logoutAction,
+    };
   },
   {
-    // 只持久化身份资料：token 的真源是 Cookie，把镜像持久化会在 hydrate 时还原出过期的登录态
-    persist: { pick: ['info'] },
+    // 只持久化身份资料，不含 role：角色每次进入应用都以接口为准；token 的真源是 Cookie
+    persist: { pick: ['info.id', 'info.username', 'info.realName', 'info.avatar', 'info.email', 'info.phone'] },
   },
 );
 ```
 
-新建其他业务 Store 时，`loginAction`/`postAuthLogin` 这类用户名密码登录模式**不适用于本项目**——用户认证相关逻辑请直接复用 `useUserInfoStore`，上面这段代码作为字段定义、computed、持久化写法的参考模板。
+各 action 的调用方：
+
+| Action | 调用方 | 说明 |
+|---|---|---|
+| `loginAction(params)` | `views/login/components/LoginForm.vue` | 登录接口带 `skipAuthRedirect: true`，失败只提示不跳转 |
+| `getInfoAction()` | `router/guards.ts` 首次导航 | 失败时守卫跳 `/403?reason=fetch-failed` |
+| `isAccountSwitched()` | `router/guards.ts` | 为真时整页刷新 |
+| `logoutAction(redirect?)` | 头像菜单、异常页 | 登出接口带 `isIgnoreToast: true`，失败不阻断登出 |
+
+用户认证相关逻辑请直接复用 `useUserInfoStore`，不要另建 Store；上面这段代码可作为字段定义、computed、持久化写法的参考模板。
 
 ### 全局Store示例
 ```typescript
 // store/modules/global.ts
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 // ⚠️ 从 @/constants 导入，不是 @/constants/system
 //    system.ts 导出的是 DEFAULT_LOCALE_VALUE / DEFAULT_THEME_STYLE_VALUE，
 //    去掉 _VALUE 后缀的名字只在 constants/index.ts（唯一合并点）导出
@@ -234,38 +237,17 @@ export const useGlobalStore = defineStore(
       userTheme.value = null;
     };
 
-    // ==================== 高级模式相关 ====================
-    const advanceMode = ref<boolean>(false);
-    const clickCount = ref<number>(0);
-    const clickTimer = ref<ReturnType<typeof setTimeout> | null>(null);  // 浏览器环境不要用 NodeJS.Timeout
+    // ==================== 侧边栏相关 ====================
+    const sidebar = reactive({ opened: true, withoutAnimation: false });
 
-    /**
-     * 切换高级模式
-     */
-    const toggleAdvanceMode = () => {
-      advanceMode.value = !advanceMode.value;
+    const toggleSidebar = () => {
+      sidebar.opened = !sidebar.opened;
+      sidebar.withoutAnimation = false;
     };
 
-    /**
-     * 处理Logo连续点击逻辑
-     */
-    const handleLogoClick = (onAdvanceModeToggle?: (isEnabled: boolean) => void) => {
-      clickCount.value++;
-
-      if (clickTimer.value) {
-        clearTimeout(clickTimer.value);
-      }
-
-      if (clickCount.value === 5) {
-        toggleAdvanceMode();
-        onAdvanceModeToggle?.(advanceMode.value);
-        clickCount.value = 0;
-        return;
-      }
-
-      clickTimer.value = setTimeout(() => {
-        clickCount.value = 0;
-      }, 500);
+    const closeSidebar = (withoutAnimation: boolean) => {
+      sidebar.opened = false;
+      sidebar.withoutAnimation = withoutAnimation;
     };
 
     return {
@@ -283,9 +265,10 @@ export const useGlobalStore = defineStore(
       syncSiteDefaultTheme,
       applySiteDefaultTheme,
 
-      // 高级模式相关
-      advanceMode,
-      handleLogoClick,
+      // 侧边栏相关
+      sidebar,
+      toggleSidebar,
+      closeSidebar,
     };
   },
   {
@@ -320,7 +303,7 @@ const getIsLoggedIn = () => !!token.value;
 ```
 
 ### 3. Actions命名规范
-Action 用 `xxxAction` 后缀，动词开头、语义明确（与项目现有 `getInfoAction` / `logoutAction` 一致）：
+Action 用 `xxxAction` 后缀，动词开头、语义明确（与项目现有 `loginAction` / `getInfoAction` / `logoutAction` 一致）：
 
 ```typescript
 // ✅ 正确
@@ -332,7 +315,7 @@ const updateConfigAction = async (config: SiteConfig) => { /* 更新配置 */ };
 const doIt = async (data: any) => {};
 ```
 
-> 本项目没有用户名密码登录（SSO 托管），不要新建 `loginAction`。
+> 登录 / 登出已由 `useUserInfoStore` 的 `loginAction` / `logoutAction` 实现，其他 Store 不要重复实现。
 
 ### 4. 状态重置规范
 ```typescript
@@ -347,9 +330,7 @@ const resetState = () => {
   info.value = createInitialState();
 };
 
-// ⚠️ 镜像外部真源的状态，重置时要连同镜像一起清
-// token 是 Cookie 的 ref 镜像（见 user-info.ts），logoutAction 里除了 resetUserInfo()
-// 还要 token.value = ''，否则 isLoggedIn 在跳转 SSO 完成前仍是 true
+// token 是 Cookie 的 ref 镜像，logoutAction 中与 resetUserInfo() 一起清空
 ```
 
 > 清理持久化数据用 **`removePersistedStore('<storeId>')`**（storeId 是 `defineStore` 的第一个参数），
@@ -521,7 +502,7 @@ export const useOrderStore = defineStore(
 src/store/modules/
 ├── user-info.ts        # 用户信息（useUserInfoStore）
 ├── permission.ts       # 权限路由与菜单（usePermissionStore）
-├── global.ts           # 全局配置状态（语言/主题/高级模式）
+├── global.ts           # 全局配置状态（语言/主题/侧边栏）
 └── site-config.ts      # 站点配置（useSiteConfigStore）
 ```
 
@@ -586,8 +567,9 @@ const userStore = useUserInfoStore();
 console.log(userStore.token);        // Cookie 的响应式镜像，路由守卫每次导航调用 refreshToken() 同步
 console.log(userStore.info.role);
 
-// 调用 Actions（登录本身由 SSO 完成，这里只是拉取信息/角色）
-await userStore.getInfoAction();
+// 调用 Actions
+await userStore.loginAction({ username, password }); // 登录页使用
+await userStore.getInfoAction();                     // 拉取用户资料与角色
 
 // 使用 computed
 const isLoggedIn = computed(() => userStore.isLoggedIn);
@@ -614,7 +596,7 @@ export const useStore1 = defineStore('store1', () => {
 ### Q: 如何处理Store中的异步操作？
 **A**:
 ```typescript
-import { getUserRoleDetail } from '@/api/modules/platform';
+import { getUserInfo } from '@/api';
 
 // ✅ 正确：完善的异步处理
 const fetchDetail = async () => {
@@ -622,9 +604,9 @@ const fetchDetail = async () => {
   error.value = null;
 
   try {
-    detail.value = await getUserRoleDetail();
+    detail.value = await getUserInfo();
   } catch (err) {
-    // API 错误已由 ErrorModule 自动弹提示，这里只维护本地状态，不要重复 ElMessage.error
+    // API 错误已由请求层拦截器自动弹提示，这里只维护本地状态，不要重复 ElMessage.error
     error.value = err instanceof Error ? err.message : '获取失败';
     throw err;   // 重新抛出，让调用方能感知失败
   } finally {
@@ -652,7 +634,7 @@ export const useStore = defineStore('store', () => {
   // ...
 }, {
   persist: {
-    pick: ['token'], // 只持久化token
+    pick: ['currentId'], // 只持久化必要字段（登录 token 的真源是 Cookie，不要持久化）
   },
 });
 ```

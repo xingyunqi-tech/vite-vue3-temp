@@ -4,7 +4,7 @@ description: 把已有的组件、Store、API 集成进页面，并补齐 loadin
 license: MIT
 compatibility: Requires Vue 3, Vue Router, Pinia, TypeScript
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "1.0.0"
   category: development
 ---
@@ -86,7 +86,7 @@ metadata:
    ☐ 添加分页逻辑
 ```
 
-> 项目统一使用 **Pinia Store 直调 `polymasApi.get()/.post()`** 的数据请求模式（详见 [api-development.md](../../agents/api-development.md)、[store-generator](../store-generator/SKILL.md)）。页面组件只调用 Store Action，不直接调用 API 函数，也**不存在** `useXxxList()`/`useXxxCreate().mutateAsync()` 这类 Hook 式请求 API 或 `src/api/hooks/` 目录。
+> 项目统一使用 **Pinia Store Action 调 `@/api` 的函数（Orval 生成函数或 `get/post/put/del` 便捷函数）** 的数据请求模式（详见 [api-development.md](../../agents/api-development.md)、[store-generator](../store-generator/SKILL.md)）。页面组件只调用 Store Action，不直接调用 API 函数，也**不存在** `useXxxList()`/`useXxxCreate().mutateAsync()` 这类 Hook 式请求 API 或 `src/api/hooks/` 目录。
 
 ---
 
@@ -133,7 +133,7 @@ import UserTable from './components/UserTable.vue';
 import UserForm from './components/UserForm.vue';
 
 // ========== Store 导入 ==========
-// 页面只导入业务 Store，不直接导入 API 函数——Store Action 内部才调用 polymasApi
+// 页面只导入业务 Store，不直接导入 API 函数，API 由 Store Action 调用
 import { useUserManagementStore } from '@/store/modules/user-management';
 
 // ========== 类型导入 ==========
@@ -150,7 +150,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 ```typescript
 // ========== Store 初始化 ==========
 // 列表数据、分页状态（queryParams/total）、loading、error 全部由 Store 维护，
-// 页面组件不再本地重复维护 pagination ref。
+// 页面组件不另外维护 pagination ref。
 // 约定（与 implementation-validator 的 fetchXxxListAction 范例一致）：
 // fetchUserListAction(params?) 若收到 params 会先 setQueryParams(params) 合并进 queryParams，
 // 再用合并后的 queryParams 发请求；不传 params 时直接用当前 queryParams——
@@ -172,8 +172,7 @@ const handleEdit = (user: UserDTO) => {
   dialogVisible.value = true;
 };
 
-// 注意：deleteUserAction/createUserAction 请求失败时的提示已由 ErrorModule 自动弹出（见下方"选项2:
-// 添加错误处理"），这里的 catch 只处理 ElMessageBox 的取消场景，不再重复调用 ElMessage.error
+// deleteUserAction/createUserAction 请求失败时的提示由请求层拦截器弹出，这里的 catch 只处理 ElMessageBox 的取消场景
 const handleDelete = async (id: string) => {
   try {
     await ElMessageBox.confirm('确定要删除吗？', '提示', {
@@ -185,7 +184,7 @@ const handleDelete = async (id: string) => {
     await userManagementStore.fetchUserListAction(); // CRUD 后重新拉取列表
   } catch (error: any) {
     if (error === 'cancel') return; // 用户取消确认框，无需提示
-    // 其余错误（请求失败）已由 ErrorModule 弹出提示，这里不重复处理
+    // 请求失败的提示由请求层拦截器弹出
   }
 };
 
@@ -196,7 +195,7 @@ const handleSubmit = async (data: UserCreateRequest) => {
     dialogVisible.value = false;
     await userManagementStore.fetchUserListAction();
   } catch {
-    // 请求失败的提示已由 ErrorModule 弹出，这里不重复调用 ElMessage.error
+    // 请求失败的提示由请求层拦截器弹出
   }
 };
 
@@ -351,8 +350,7 @@ onMounted(() => {
 
 ```typescript
 // 错误状态直接读 Store 的 error ref（fetchUserListAction 的 catch 分支已写入）
-// API 请求错误已由 ErrorModule（src/api/core/request.ts）自动弹出提示，
-// 这里不要重复调用 ElMessage.error，只需要提供重试入口。
+// API 请求错误由请求层拦截器（src/api/core/request.ts）弹出提示，这里只提供重试入口。
 // 非请求类错误（如本地校验）用 src/utils/error-handler.ts 的 handleError/handleErrorSilently。
 
 // 添加重试逻辑
@@ -524,7 +522,7 @@ pnpm type-check
 pnpm start
 
 # 访问页面测试
-http://localhost:5173/user
+https://localhost:9091/user
 ```
 
 ---
@@ -636,9 +634,7 @@ pnpm start
 # 步骤 6: 如果有问题，调整代码
 # 编辑 src/views/user-management/index.vue
 
-# 步骤 7: 提交代码
-git add src/views/user-management/
-git commit -m "feat: assemble user management page"
+# 步骤 7: 停在工作区，汇报改动与验证结果，等用户确认后再提交
 ```
 
 ---

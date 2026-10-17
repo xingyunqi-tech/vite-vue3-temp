@@ -4,7 +4,7 @@ description: 在 Orval 覆盖不到的 20% 场景生成自定义 API 代码。�
 license: MIT
 compatibility: Requires Vue 3, TypeScript, Axios, Orval
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "2.0.0"
   category: development
 ---
@@ -24,7 +24,7 @@ metadata:
 
 | 想学什么 | 看哪个真实文件 |
 |---------|--------------|
-| 用便捷函数写接口（**最常用的形态**） | `src/api/modules/platform.ts` |
+| 用便捷函数写接口（**最常用的形态**） | `src/api/modules/auth.ts` |
 | 覆盖 Orval 生成的同名函数 | `src/api/modules/override.ts` |
 | 实例定义、`get/post/put/del` 便捷函数 | `src/api/core/request.ts` |
 | Orval 适配器、请求去重 | `src/api/core/mutator.ts` |
@@ -58,7 +58,7 @@ metadata:
 2. **统一从 `@/api` 导入**，不从 `generated/` 直接导（ESLint `no-restricted-imports` 会报错）
 3. **两种调用形态的解包语义不同**（最常见的坑）：
    - `get/post/put/del` 便捷函数 → 已解好 `{ code, data, message }` 包络，**返回值就是业务数据**
-   - `polymasApi.xxx()` 实例方法 → 返回完整 AxiosResponse，业务数据在 **`res.data.data`（两层）**
+   - `httpApi.xxx()` / `downloadApi.xxx()` 实例方法 → 返回完整 AxiosResponse，业务数据在 **`res.data.data`（两层）**
 4. **请求去重只对 GET/HEAD 默认开启**，写方法默认不去重；防重复提交请在 UI 层做
 
 ### 步骤 1：收集信息
@@ -80,7 +80,7 @@ metadata:
 ### 步骤 2：确定文件路径
 
 一律放 `src/api/modules/`，按功能模块分文件（`upload.ts` / `download.ts` / `polling.ts`）。
-目前目录下只有 `platform.ts` 和 `override.ts` 两个真实文件。
+目前目录下只有 `auth.ts`（登录 / 当前用户接口）和 `override.ts`（覆盖示例）两个真实文件。
 
 ### 步骤 3：生成代码
 
@@ -90,16 +90,19 @@ metadata:
 import { get, post } from '../core/request';
 
 // 显式传泛型 —— 这些函数不经过 Orval 类型生成，不传就是 unknown
-export const getUserDetail = (id: string) => get<UserDetail>(`/console/v1/user/${id}`);
-export const createUser = (data: CreateUserReq) => post<UserDetail>('/console/v1/user', data);
+export const getUserDetail = (id: string) => get<UserDetail>(`/api/user/${id}`);
+export const createUser = (data: CreateUserReq) => post<UserDetail>('/api/user', data);
 ```
 
 **只有需要 `onUploadProgress` / `responseType: 'blob'` / 覆盖 `baseURL` 时才直接用实例**，
 此时**必须自己解两层**：
 
 ```typescript
-const res = await polymasApi.post('/api/upload', formData, { onUploadProgress: … });
-return (res.data as ApiResponse<UploadResponse>).data as UploadResponse;
+import { httpApi } from '../core/request';
+import type { ApiResponse } from '../core/types';
+
+const res = await httpApi.post<ApiResponse<UploadResponse>>('/api/upload', formData, { onUploadProgress: … });
+return res.data.data as UploadResponse;
 //      ↑ 忘记这一层是本项目最高频的运行时 bug：拿到的是包络而不是数据
 ```
 
@@ -108,16 +111,19 @@ return (res.data as ApiResponse<UploadResponse>).data as UploadResponse;
 WebSocket / 轮询等更长的模板参考
 [api-development.md 的场景 3](../../agents/api-development.md)。
 
-### 步骤 4：刷新 index.ts 导出（不要手写）
+### 步骤 4：刷新 index.ts 导出
 
-🚫 **不要编辑 `src/api/index.ts`**。它是生成物：`orval.config.ts` 的 `afterAllFilesWrite`
-会调用 `scripts/api/update-api-exports.ts` 自动重写，按「先 generated 后 modules」排序，
-所以 `modules/` 里的同名函数天然覆盖生成版本。手写的内容下次 `pnpm orval` 会被整份覆盖。
+`src/api/index.ts` 由 `orval.config.ts` 的 `afterAllFilesWrite` 调用 `scripts/api/update-api-exports.ts`
+自动重写：generated 函数显式导出（与 `modules/` 同名的剔除），`modules/` 用 `export *`，
+所以 `modules/` 里的同名函数覆盖生成版本。手写的内容下次 `pnpm orval` 会被整份覆盖。
 
 ```bash
 pnpm orval                                    # 常规做法
-npx tsx scripts/api/update-api-exports.ts     # 尚未配置 input.target 时的单独刷新
+npx tsx scripts/api/update-api-exports.ts     # 只刷新导出
 ```
+
+> ⚠️ `src/api/generated/` 里还没有任何模块时（`orval.config.ts` 的 `input.target` 未配置），
+> 脚本保持 `src/api/index.ts` 不变。此时在 `index.ts` 里手动补一行 `export * from './modules/xxx';`。
 
 ### 步骤 5：验证
 
@@ -133,7 +139,7 @@ pnpm type-check && pnpm lint
 - [ ] 返回类型与实际返回值一致（不要标 `ApiResponse<T>` 却返回 AxiosResponse）
 - [ ] `override` 类型保持了函数名不变，并调用了原始生成函数
 - [ ] 没有往 localStorage 写 token
-- [ ] 没有手写 `src/api/index.ts`
+- [ ] 新模块已进入 `src/api/index.ts` 的导出（脚本刷新或按上文手动补）
 - [ ] `pnpm type-check` 通过
 
 ### 步骤 6：展示结果
@@ -144,7 +150,7 @@ pnpm type-check && pnpm lint
 📄 函数: uploadFile
 📁 文件: src/api/modules/upload.ts
 🔧 类型: 文件上传（带进度）
-📤 导出: 跑 pnpm orval 后自动进入 @/api
+📤 导出: 已进入 @/api
 
 💬 下一步:
    1. pnpm type-check
@@ -181,12 +187,12 @@ pnpm type-check && pnpm lint
 
 ### Q2: 为什么拿到的数据是 `{ code, data, message }`？
 
-用实例方法（`polymasApi.get()`）时没解两层。要么改用便捷函数，要么取 `res.data.data`。
+用实例方法（`httpApi.get()`）时没解两层。要么改用便捷函数，要么取 `res.data.data`。
 
 ### Q3: 怎么防止重复提交？
 
 **不要依赖请求去重**——写方法默认不去重（合并掉第二次会静默丢请求）。请在 UI 层做按钮
-`disabled` / `loading`。确需去重时显式传 `enableDedup: true`。
+`disabled` / `loading`。确需去重时给 Orval 生成函数的请求参数显式传 `enableDedup: true`（只对走 mutator 的请求生效）。
 
 ### Q4: 怎么测试自定义 API？
 
@@ -195,4 +201,4 @@ pnpm type-check && pnpm lint
 
 ---
 
-**提示**: 本文件只讲流程；写法拿不准时回 [api-development.md](../../agents/api-development.md) 和 `src/api/modules/platform.ts`。
+**提示**: 本文件只讲流程；写法拿不准时回 [api-development.md](../../agents/api-development.md) 和 `src/api/modules/auth.ts`。

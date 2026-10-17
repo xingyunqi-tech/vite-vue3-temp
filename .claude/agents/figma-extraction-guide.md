@@ -21,21 +21,20 @@ model: inherit
 - ❌ Vue 组件实现（详见 [component-development.md#组件开发规范](component-development.md#组件开发规范)）
 - ❌ CSS 变量定义和映射（详见 [common-patterns.md#css-变量使用规范](common-patterns.md#css-变量使用规范)）
 - ❌ 路由配置（详见 [router-development.md#路由配置规范](router-development.md#路由配置规范)）
-- ❌ 代码规范检查（详见 [coding-standards.md#编码规范概览](coding-standards.md#编码规范概览)）
+- ❌ 代码规范检查（详见 [coding-standards.md](coding-standards.md)）
 
 ---
 
 ## 📌 关于 Figma MCP
 
-> ⚠️ **前置条件：本仓库的 `.mcp.json` 只声明了 `aix` 一个 MCP Server，没有 figma。**
-> 直接调用 `mcp__figma__*` 会因为工具不存在而失败。使用前需要：
+> ⚠️ **前置条件**：项目根目录 `.mcp.json` 已声明 `Framelink Figma MCP`（`figma-developer-mcp`），
+> 需在 `.claude/settings.local.json`（不提交）的 `enabledMcpjsonServers` 中启用，或设置
+> `enableAllProjectMcpServers: true`。启用后可用的工具：
 >
-> 1. 在项目根目录 `.mcp.json` 的 `mcpServers` 里加一项（key 必须是 `figma`，
->    工具名 `mcp__<key>__<tool>` **大小写敏感**）：
->    `"figma": { "command": "npx", "args": ["-y", "figma-developer-mcp", "--figma-api-key=<KEY>", "--stdio"] }`
-> 2. 在**不提交**的 `.claude/settings.local.json` 里启用：`{ "enabledMcpjsonServers": ["aix", "figma"] }`
+> - `mcp__Framelink_Figma_MCP__get_figma_data` —— 读取设计稿节点数据
+> - `mcp__Framelink_Figma_MCP__download_figma_images` —— 下载切图
 >
-> API Key 不要提交进仓库，用环境变量或只写在本地配置里。详见 [.claude/README.md#mcp-服务器配置](../README.md)。
+> 工具名由 `.mcp.json` 的 key 转换而来（空格变 `_`），**大小写敏感**。详见 [.claude/README.md#mcp-服务器配置](../README.md#mcp-服务器配置)。
 
 **本指南基于社区 Figma-Context-MCP 实现**
 
@@ -47,7 +46,7 @@ Figma 提供两种 MCP Server：
    - 适合：从设计直接生成代码的场景
 
 2. **社区 Figma-Context-MCP** (本指南使用)
-   - 工具：`mcp__figma__get_figma_data`, `mcp__figma__download_figma_images`
+   - 工具：`mcp__Framelink_Figma_MCP__get_figma_data`, `mcp__Framelink_Figma_MCP__download_figma_images`
    - 优势：完整设计数据提取，灵活的资源下载
    - 适合：需要提取设计 Token、下载资源、自定义实现的场景
 
@@ -97,7 +96,7 @@ https://www.figma.com/design/uQThu1lq4c1jqkQ2lGeqaN/xxx?node-id=1-191
 
 ```typescript
 // 获取整个文件的顶层结构（探索文件内容）
-mcp__figma__get_figma_data({
+mcp__Framelink_Figma_MCP__get_figma_data({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   depth: 1  // 只获取顶层，查看有哪些 Page 和 Frame
 });
@@ -107,7 +106,7 @@ mcp__figma__get_figma_data({
 
 ```typescript
 // 深度获取目标节点（提取完整设计信息）
-mcp__figma__get_figma_data({
+mcp__Framelink_Figma_MCP__get_figma_data({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   nodeId: "1-191",
   depth: 5  // 根据复杂度调整：简单 3，中等 5，复杂 8-10
@@ -270,7 +269,7 @@ function hasImageRef(node, globalVars) {
 - MCP 会并行处理下载，效率更高
 
 ```typescript
-mcp__figma__download_figma_images({
+mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/absolute/path/to/src/assets/icons/ai-home-page",  // ⭐ 注意路径规范
   nodes: [
@@ -323,7 +322,7 @@ import SvgIcon from '@/components/SvgIcon/index.vue';
 
 ```typescript
 // 下载背景图片到 backgrounds/ 目录
-mcp__figma__download_figma_images({
+mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/absolute/path/to/src/assets/images/ai-home-page/backgrounds",  // ⭐ 注意路径规范
   nodes: [
@@ -344,7 +343,7 @@ mcp__figma__download_figma_images({
 });
 
 // 下载头像到 avatars/ 目录
-mcp__figma__download_figma_images({
+mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/absolute/path/to/src/assets/images/ai-home-page/avatars",
   nodes: [
@@ -625,7 +624,7 @@ Frame 1000004439:
 **组件实现请参考**：
 - **[component-development.md#组件开发规范](component-development.md#组件开发规范)** - 组件开发规范、视觉规范、布局约定
 - **[common-patterns.md#vue-组件模式](common-patterns.md#vue-组件模式)** - CSS 变量使用、Props 定义、数据驱动模式
-- **[coding-standards.md#编码规范概览](coding-standards.md#编码规范概览)** - TypeScript 规范、命名规范、代码风格
+- **[coding-standards.md](coding-standards.md)** - TypeScript 规范、命名规范、代码风格
 
 ### 组件实现流程
 
@@ -671,7 +670,7 @@ Figma 提取完成
 ```
 1. 提取 fileKey + nodeId (从 Figma URL)
    ↓
-2. 获取设计数据 (mcp__figma__get_figma_data)
+2. 获取设计数据 (mcp__Framelink_Figma_MCP__get_figma_data)
    ├─ depth: 1 探索文件结构
    └─ depth: 5-10 深度提取节点数据
    ↓
@@ -685,7 +684,7 @@ Figma 提取完成
    ├─ SVG: imageRef 为空 → src/assets/icons/[project-name]/
    └─ PNG: 有 imageRef → src/assets/images/[project-name]/
    ↓
-5. 批量下载图片 (mcp__figma__download_figma_images)
+5. 批量下载图片 (mcp__Framelink_Figma_MCP__download_figma_images)
    ├─ SVG: 使用 nodeId，imageRef 留空
    └─ PNG: 使用 imageRef，pngScale: 2
    ↓
@@ -778,13 +777,13 @@ URL: https://www.figma.com/design/uQThu1lq4c1jqkQ2lGeqaN/xxx?node-id=1-191
 
 ```typescript
 // 先探索文件结构
-const overview = await mcp__figma__get_figma_data({
+const overview = await mcp__Framelink_Figma_MCP__get_figma_data({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   depth: 1
 });
 
 // 深度获取目标节点
-const data = await mcp__figma__get_figma_data({
+const data = await mcp__Framelink_Figma_MCP__get_figma_data({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   nodeId: "1-191",
   depth: 5
@@ -808,7 +807,7 @@ SVG 图标: 15 个 (有 nodeId，无 imageRef)
 PNG 图片: 9 个 (有 imageRef)
 
 // 下载 SVG 图标
-await mcp__figma__download_figma_images({
+await mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/path/to/src/assets/icons/ai-home-page",
   nodes: [
@@ -819,7 +818,7 @@ await mcp__figma__download_figma_images({
 });
 
 // 下载 PNG 图片（分目录）
-await mcp__figma__download_figma_images({
+await mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/path/to/src/assets/images/ai-home-page/backgrounds",
   nodes: [
@@ -830,7 +829,7 @@ await mcp__figma__download_figma_images({
   pngScale: 2
 });
 
-await mcp__figma__download_figma_images({
+await mcp__Framelink_Figma_MCP__download_figma_images({
   fileKey: "uQThu1lq4c1jqkQ2lGeqaN",
   localPath: "/path/to/src/assets/images/ai-home-page/avatars",
   nodes: [

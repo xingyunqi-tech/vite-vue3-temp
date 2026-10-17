@@ -4,7 +4,7 @@ description: 【有 Figma 设计稿时使用】从设计稿还原 Vue 组件：�
 license: MIT
 compatibility: Requires Vue 3, TypeScript, Figma MCP Server
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "1.0.0"
   category: development
 ---
@@ -13,15 +13,14 @@ metadata:
 
 ## 功能概述
 
-> ⚠️ **前置条件：本仓库的 `.mcp.json` 只声明了 `aix` 一个 MCP Server，没有 figma。**
-> 直接调用 `mcp__figma__*` 会因为工具不存在而失败。使用前需要：
+> ⚠️ **前置条件**：项目根目录 `.mcp.json` 已声明 `Framelink Figma MCP`（`figma-developer-mcp`），
+> 需在 `.claude/settings.local.json`（不提交）的 `enabledMcpjsonServers` 中启用，或设置
+> `enableAllProjectMcpServers: true`。启用后可用的工具：
 >
-> 1. 在项目根目录 `.mcp.json` 的 `mcpServers` 里加一项（key 必须是 `figma`，
->    工具名 `mcp__<key>__<tool>` **大小写敏感**）：
->    `"figma": { "command": "npx", "args": ["-y", "figma-developer-mcp", "--figma-api-key=<KEY>", "--stdio"] }`
-> 2. 在**不提交**的 `.claude/settings.local.json` 里启用：`{ "enabledMcpjsonServers": ["aix", "figma"] }`
+> - `mcp__Framelink_Figma_MCP__get_figma_data` —— 读取设计稿节点数据
+> - `mcp__Framelink_Figma_MCP__download_figma_images` —— 下载切图
 >
-> API Key 不要提交进仓库，用环境变量或只写在本地配置里。详见 [.claude/README.md#mcp-服务器配置](../../README.md)。
+> 工具名由 `.mcp.json` 的 key 转换而来（空格变 `_`），**大小写敏感**。详见 [.claude/README.md#mcp-服务器配置](../../README.md#mcp-服务器配置)。
 
 从 Figma 设计稿自动提取设计数据,生成符合项目规范的 Vue 组件代码,包括样式、切图、类型定义等。
 
@@ -61,7 +60,7 @@ metadata:
 # 指定拆分深度
 /figma-to-component <figma-url> --type page --auto-split --depth 2
 
-# 自动下载切图到指定目录（默认已按项目名分目录，一般不用传）
+# 自动下载切图到指定目录（默认按模块名分目录，一般不用传）
 /figma-to-component <figma-url> --images-dir src/assets/images/user-card
 
 # 使用自定义颜色映射
@@ -133,13 +132,13 @@ metadata:
 
 | 类型 | 目录 | 引用方式 |
 |------|------|---------|
-| SVG 图标 | `src/assets/icons/[project-name]/` | `<SvgIcon name="[project-name]-[file-name]" :size="16" />` |
-| PNG / JPG | `src/assets/images/[project-name]/` | `<img src="@/assets/images/[project-name]/xxx.png" />` |
+| SVG 图标 | `src/assets/icons/[module]/` | `<SvgIcon name="[module]-[file-name]" :size="16" />` |
+| PNG / JPG | `src/assets/images/[module]/` | `<img src="@/assets/images/[module]/xxx.png" />` |
 
 - 🚫 **不要落到 `public/`** —— 那里不走 Vite 资源管线，拿不到 hash、压缩和构建期校验。
 - 🚫 **禁止内联 `<svg>` 标签或 `v-html`**。
 - ✅ SVG 一律用 `SvgIcon`：`vite.config.ts` 的 `createSvgIconsPlugin` 已把
-  `src/assets/icons/**` 按 `symbolId: '<项目名>-[dir]-[name]'` 注册为 symbol，
+  `src/assets/icons/**` 按 `symbolId: 'vite-vue3-temp-[dir]-[name]'` 注册为 symbol（`SvgIcon` 的 `prefix` 默认值与之一致），
   用 `SvgIcon` 可以通过 `color` / `currentColor` 直接换色，无需为每种颜色准备一份切图。
   文件 `src/assets/icons/user-card/icon-more.svg` → `<SvgIcon name="user-card-icon-more" />`。
 - ✅ `<img>` 只用于**纯装饰、不需要换色**的图片型 SVG。
@@ -920,8 +919,7 @@ UserCard (Frame)
 pnpm type-check
 pnpm lint
 
-# 步骤 5: 提交代码
-pnpm commit
+# 步骤 5: 停在工作区，等用户确认后再提交
 ```
 
 ### 生成页面组件 + 路由
@@ -1131,9 +1129,6 @@ pnpm lint
 pnpm type-check
 pnpm lint
 
-# 8. 提交代码
-git add src/components/UserCard/
-git add src/assets/images/user-card/ src/assets/icons/user-card/
-git commit -m "feat: add UserCard component from Figma"
+# 8. 停在工作区，等用户确认后再提交
 
 ```

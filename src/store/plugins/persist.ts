@@ -6,8 +6,8 @@ import { createPersistedState } from 'pinia-plugin-persistedstate';
  * localforage配置
  */
 export const piniaStorage = localforage.createInstance({
-  name: 'vue-admin-template',
-  storeName: 'vue-admin-template-persist',
+  name: 'vite-vue3-temp',
+  storeName: 'vite-vue3-temp-persist',
   description: 'Pinia 持久化存储',
   driver: localforage.INDEXEDDB,
 });

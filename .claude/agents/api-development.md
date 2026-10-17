@@ -28,12 +28,12 @@ model: inherit
 ```
 src/api/
 ├── core/                      # 1️⃣ 核心基础设施层
-│   ├── request.ts            # polymasApi / downloadApi 实例 + get/post/put/del 便捷函数
+│   ├── request.ts            # httpApi / downloadApi 实例 + get/post/put/del 便捷函数
 │   ├── mutator.ts            # Orval适配器（请求去重、实例切换）
-│   ├── types.ts              # ApiResponse / CustomAxiosRequestConfig 等
+│   ├── types.ts              # ApiResponse / CustomAxiosRequestConfig / RequestOptions 等
 │   └── index.ts              # 对外导出
 │
-├── generated/                 # 2️⃣ 代码生成层（Orval自动生成）
+├── generated/                 # 2️⃣ 代码生成层（Orval自动生成，首次 pnpm orval 后出现）
 │   ├── auth/                 # 认证模块API
 │   ├── config/               # 配置模块API
 │   └── model/                # 类型定义（分文件存储）
@@ -42,7 +42,7 @@ src/api/
 │       └── ...
 │
 ├── modules/                   # 3️⃣ 自定义扩展层（手动编写）
-│   ├── platform.ts           # 真实示例：公共平台接口
+│   ├── auth.ts               # 真实示例：登录 / 登出 / 当前用户接口
 │   └── override.ts           # 示例：覆盖生成的 API
 │
 └── index.ts                  # API模块统一导出（由 orval hook 自动生成，勿手写）
@@ -99,6 +99,9 @@ AI开发时必须根据场景选择正确的方式：
 
 大部分接口直接使用Orval生成的代码即可。
 
+> 本节及下文的 `postAuthLogin`、`getAuthUserInfo`、`LoginRequest` 等名称只是演示 Orval 生成物的形状，
+> 实际函数名由 OpenAPI 文档决定。项目当前手写的登录接口是 `src/api/modules/auth.ts` 的 `login / logout / getUserInfo`。
+
 ```typescript
 // ✅ 正确：直接从 @/api 导入
 import { postAuthLogin, getAuthUserInfo, postAuthLogout } from '@/api';
@@ -132,7 +135,7 @@ const getUserInfo = async () => {
 
 需要在自动生成的基础上添加额外业务逻辑。
 
-**示例：登录后自动保存Token**
+**示例：登录接口追加业务逻辑**
 
 ```typescript
 import { postAuthLogin as generatedLogin } from '../generated/auth/auth';
@@ -140,15 +143,13 @@ import type { LoginRequest, LoginResponse } from '../generated/model';
 
 /**
  * 登录接口（覆盖版本）
- * 自动保存 token 到 localStorage
  */
 export const postAuthLogin = async (data: LoginRequest): Promise<LoginResponse> => {
   // 1. 调用原始生成的函数
   const response = await generatedLogin(data);
 
   // 2. 额外业务逻辑
-  //    ⚠️ 注意：本项目的 token 由 SSO 写入 Cookie，通过 getToken() 读取，
-  //    不要用 localStorage 自行保存 token。这里仅示意「在原函数前后插入逻辑」这一模式。
+  //    token 统一由 useUserInfoStore().loginAction 经 setToken() 写入 Cookie，这里不要自行保存
   if (response.data) {
     // 数据加工、缓存写入等
   }
@@ -166,7 +167,7 @@ export { postAuthLogout, getAuthUserInfo } from '../generated/auth/auth';
 **导出配置**：`src/api/index.ts` **不需要手写**。
 
 `orval.config.ts` 的 `afterAllFilesWrite` hook 会调用 `scripts/api/update-api-exports.ts`
-自动重写它，顺序是「先 generated 后 modules」，因此 `modules/` 里的同名函数天然覆盖生成版本。
+自动重写它：与 `modules/` 同名的函数会从 generated 的显式导出清单中剔除，`modules/` 再整体 `export *`，因此对外生效的是覆盖版本。
 手动改这个文件会在下次 `pnpm orval` 时丢失。
 
 **何时使用**:
@@ -190,7 +191,7 @@ OpenAPI文档中不存在的接口，或需要特殊处理的功能。
 
 ```typescript
 // ✅ 正确：在 modules/ 目录中自定义（如 external.ts）
-import { polymasApi, post } from '../core/request';
+import { httpApi, post } from '../core/request';
 import type { ApiResponse } from '../core/types';
 
 /**
@@ -205,7 +206,7 @@ export const uploadWithProgress = async (
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await polymasApi.post('/upload', formData, {
+  const res = await httpApi.post('/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -270,12 +271,21 @@ export const batchDelete = async (ids: string[]): Promise<void> => {
 
 ### 多实例管理
 
-项目基于 `@zhs/agent-course-kit/services/base-request` 的 `PolymasApi` 提供两个实例：
+`src/api/core/request.ts` 基于 axios 创建两个实例，并通过 `instances` 注册表供 mutator 按名称（`default` / `download`）选用：
 
 | 实例 | 来源 | 配置特点 |
 |------|------|----------|
-| **polymasApi** | `@/api/core/request` | 默认 API 实例，已接入 `AuthModule / LoadingModule / ErrorModule`（请求去重由 Orval mutator 内的 `RequestDeduplicator` 统一负责，不在实例层配置） |
-| **downloadApi** | `@/api/core/request` | 文件下载场景的独立实例，仅接入 `AuthModule / ErrorModule` |
+| **httpApi** | `@/api/core/request` | 默认 API 实例，JSON 请求；成功时返回完整 axios response，`res.data` 为 `{ code, data, message }` |
+| **downloadApi** | `@/api/core/request` | 下载专用实例，`responseType: 'blob'`；正常 Blob 原样返回，后端以 JSON 返回业务错误时按业务码 reject |
+
+两个实例共用同一套拦截器（请求去重由 Orval mutator 内的 `RequestDeduplicator` 负责，不在实例层配置）：
+
+- **请求头**：`Authorization` 直接放 `getToken()` 的值（不加 `Bearer` 前缀），`Accept-Language` 取当前界面语言
+- **业务码**：`code` 等于 `API_CODE.SUCCESS`（200）视为成功，否则弹出后端 `message` 并 reject
+- **401**：业务码 401 与 HTTP 401 都会调用 `redirectToLoginOnce()`——先清 token，再整页跳登录页（并发只跳一次）；
+  请求配置带 `skipAuthRedirect: true` 时不跳（登录接口本身使用）
+- **静默**：请求配置带 `isIgnoreToast: true` 时失败不弹提示（轮询、登出接口等）
+- **取消**：被取消的请求直接 reject，不弹提示
 
 ### 使用示例
 
@@ -292,17 +302,25 @@ export const getUserDetail = (id: string) => get<UserDetail>(`/console/v1/user/$
 export const createUser = (data: CreateUserReq) => post<UserDetail>('/console/v1/user', data);
 ```
 
-真实范例见 `src/api/modules/platform.ts`——该文件所有接口都是这么写的。
+真实范例见 `src/api/modules/auth.ts`：
+
+```typescript
+export const login = (params: LoginParams) => post<LoginResult>('/api/auth/login', params, { skipAuthRedirect: true });
+export const logout = () => post<void>('/api/auth/logout', undefined, { isIgnoreToast: true });
+export const getUserInfo = () => get<CurrentUser>('/api/auth/current-user');
+```
+
+接口路径与字段是约定形态，接入真实后端时按接口文档调整。
 
 #### 直接用实例（少数场景）
 
 只有需要 `onUploadProgress`、`responseType: 'blob'`、覆盖 `baseURL` 这类底层配置时才直接用实例：
 
 ```typescript
-import { polymasApi, downloadApi } from '@/api/core/request';
+import { httpApi, downloadApi } from '@/api/core/request';
 
 // ⚠️ 实例方法返回的是完整 AxiosResponse，业务数据在 res.data.data（两层）
-const res = await polymasApi.get('/users/123');
+const res = await httpApi.get('/users/123');
 const userInfo = res.data.data;          // ← 不是 res.data，更不是 res
 
 // 文件下载：downloadApi 配了 responseType: 'blob'，res.data 直接就是 Blob
@@ -310,7 +328,7 @@ const res2 = await downloadApi.get('/files/report.pdf');
 const blob = res2.data;
 
 // 外部 API 调用（覆盖 baseURL）
-const weather = await polymasApi.get('/weather/beijing', { baseURL: 'https://api.weather.com' });
+const weather = await httpApi.get('/weather/beijing', { baseURL: 'https://api.weather.com' });
 ```
 
 > 忘记解两层是最常见的错误——拿到的是 `{ code, data, message }` 而不是数据本身。
@@ -331,7 +349,7 @@ const userStore = useUserInfoStore();
 const userInfo = computed(() => userStore.info);
 const isLoggedIn = computed(() => userStore.isLoggedIn);
 
-// 初始化用户信息（从 cookie 解析，OAuth 登录由外部完成）
+// 重新拉取当前用户资料与角色（GET /api/auth/current-user）
 const handleInit = async () => {
   try {
     await userStore.getInfoAction();
@@ -366,8 +384,8 @@ const handleLogout = async () => {
 ```typescript
 // ⚠️ 下面是【通用模板】，演示 loading 管理与 action 写法。
 // 本项目的用户 Store 是 src/store/modules/user-info.ts（useUserInfoStore），
-// 登录由 SSO 托管，没有 postAuthLogin 这类用户名密码接口 —— 认证相关请复用现有 Store，
-// 不要照着这段新建 user.ts。
+// 登录 / 登出 / 拉取用户信息已由它的 loginAction / logoutAction / getInfoAction 实现，
+// 认证相关请复用现有 Store，不要照着这段新建 user.ts。
 // src/store/modules/<your-module>.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
@@ -464,7 +482,7 @@ generated/model/
 
 ### 1. 统一错误处理
 
-API 请求错误由请求层 `ErrorModule` 集中处理（配置于 `src/api/core/request.ts`）；非请求类错误（未捕获异常、需要静默处理的场景）使用 `src/utils/error-handler.ts` 提供的 `handleError` / `handleErrorSilently`：
+API 请求错误由 `src/api/core/request.ts` 的响应拦截器集中处理（弹提示、401 跳登录）；非请求类错误（未捕获异常、需要静默处理的场景）使用 `src/utils/error-handler.ts` 提供的 `handleError` / `handleErrorSilently`：
 
 ```typescript
 import { postAuthLogin } from '@/api';
@@ -482,7 +500,7 @@ try {
 **自动处理的错误类型**:
 - 🔴 网络错误：无法连接服务器
 - 🟡 请求错误：超时、取消
-- 🟠 认证错误：401自动跳转登录
+- 🟠 认证错误：401 清 token 后整页跳转登录页（`skipAuthRedirect: true` 时不跳）
 - 🟣 权限错误：403无权限
 - 🔵 业务错误：400参数错误
 - ⚫ 服务器错误：500+
@@ -619,7 +637,7 @@ export const postAuthLogin = async (data) => {
 
 ```typescript
 // src/api/modules/upload.ts
-import { polymasApi } from '../core/request';
+import { httpApi } from '../core/request';
 import type { ApiResponse } from '../core/types';
 
 export interface UploadResult {
@@ -633,7 +651,7 @@ export const uploadWithProgress = async (
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await polymasApi.post('/upload', formData, {
+  const res = await httpApi.post('/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (event) => {
       if (event.total) {
@@ -680,7 +698,7 @@ console.log('文件 URL:', result.url);
 **A**: 通常不需要，以下情况除外：
 - 修改全局拦截器逻辑
 - 添加新的HTTP实例
-- 调整 PolymasApi 核心功能
+- 调整请求头、业务码判定或 401 处理
 
 ---
 
@@ -722,5 +740,5 @@ console.log('文件 URL:', result.url);
 
 - Orval 配置: `orval.config.ts`
 - HTTP 客户端: `src/api/core/request.ts`、`src/api/core/mutator.ts`
-- 自定义模块示例: `src/api/modules/platform.ts`、`src/api/modules/override.ts`
+- 自定义模块示例: `src/api/modules/auth.ts`、`src/api/modules/override.ts`
 - Store 开发规范: `.claude/agents/store-development.md`

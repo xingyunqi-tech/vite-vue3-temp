@@ -233,12 +233,12 @@ pnpm add -D vite-plugin-imagemin
 #### 4.1 使用 Pinia Store 缓存
 
 ```typescript
-// ✅ Pinia Store 自动缓存和去重
+// ✅ 在 Store 里保存已拉取的数据，页面间共享
 import { useUserInfoStore } from '@/store/modules/user-info';
 import { storeToRefs } from 'pinia';
 
 const userStore = useUserInfoStore();
-const { userInfo, loading } = storeToRefs(userStore);
+const { info, isLoggedIn } = storeToRefs(userStore);
 ```
 
 #### 4.2 并行请求
@@ -260,7 +260,7 @@ const [user, orders, products] = await Promise.all([
 #### 4.3 请求去重
 
 ```typescript
-// ✅ Orval mutator 自动去重（已配置）
+// ✅ Orval mutator 对 GET/HEAD 默认去重，写方法默认不去重
 // 参考 src/api/core/mutator.ts
 ```
 
@@ -343,19 +343,8 @@ import _ from 'lodash';
 
 #### 6.3 代码压缩
 
-```typescript
-// vite.config.ts（项目当前实际配置：minify: 'esbuild'，比 terser 快 20-40 倍，但不支持 terserOptions）
-export default defineConfig({
-  build: {
-    minify: 'esbuild',
-  },
-  esbuild: {
-    drop: ['console', 'debugger'], // esbuild 下的等效写法：删除 console/debugger
-  },
-});
-```
-
-> 如果需要 terser 才有的更细粒度压缩选项，需要先 `pnpm add -D terser` 并把 `minify` 改回 `'terser'`；项目当前没有这样配置，不要假设 `terserOptions` 已经生效。
+`vite.config.ts` 的 `build` 未配置 `minify`，沿用 Vite 8 的默认压缩器；项目没有配置删除 `console` / `debugger`，
+不要假设构建产物里的 `console` 已被移除。需要时在 `build` 段显式配置，并以 Vite 8 文档为准。
 
 #### 6.4 CSS 优化
 

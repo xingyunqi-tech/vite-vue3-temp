@@ -32,18 +32,13 @@ model: inherit
 - **函数组合**: 通过函数组合构建复杂逻辑
 - **错误处理**: 完善的错误处理机制
 
-<!-- #if i18n -->
 ### 3. 国际化原则
-- **禁止使用 i18n API**: AI 生成的代码中禁止使用 `$t`、`t()` 等国际化 API
-- **使用明文文本**: 所有文本内容使用中文明文编写
-- **统一翻译处理**: 国际化由 i18n 脚本统一扫描和处理，无需在代码中显式调用
+- **默认使用明文文本**: 新增文案默认用中文明文编写，不主动引入 `$t`、`t()`
+- **没有自动抽取工具**: 项目不提供文案扫描 / 翻译脚本，语言包全部手工维护
+- **确需多语言时**: 在 `src/locale/{zh-CN,en-US}.json`（内置，随构建打包）中手工添加 flat key（层级用 `__` 分隔），
+  两种语言同时补齐，再在代码中用 `t()` / `$t` 引用；需要免构建更新的文案写进 `public/locale/*.json`（运行时增量合并）
 
-<!-- #endif -->
-<!-- #if i18n -->
 ### 4. 全局插件使用原则（重要）
-<!-- #else -->
-### 3. 全局插件使用原则（重要）
-<!-- #endif -->
 
 项目在 `src/plugins/` 目录下已配置全局插件，**禁止在组件或页面中重复配置**。
 
@@ -78,10 +73,9 @@ const isTodayCheck = dayjs().isToday();  // isToday 插件已配置
 
 **全局 Dayjs 配置位置**: `src/plugins/dayjs.ts`
 
-<!-- #if i18n -->
 #### i18n 插件（国际化）
 
-> 与上方「国际化原则」的边界：AI 生成的新文本内容**禁止**调用 `t()`/`$t()`，一律使用中文明文，翻译由脚本统一扫描处理。下面的 `useI18n()` 用法仅适用于**切换语言**这类确实需要读写 i18n 实例状态的场景，不是"可以用 t() 生成文案"的例外。
+> 与上方「国际化原则」的边界：新文案默认使用中文明文；只有在语言包 JSON 中补齐了 key 的文案才用 `t()`/`$t()` 引用。下面的 `useI18n()` 用法用于切换语言等需要读写 i18n 实例状态的场景。
 
 ```typescript
 // ❌ 错误：在组件中重新创建 i18n 实例
@@ -98,16 +92,15 @@ import { useI18n } from 'vue-i18n';
 const { locale } = useI18n();
 locale.value = 'en'; // 切换语言
 
-// ❌ 错误：AI 生成的新文案不要调用 t()/$t()
-// const title = t('common.submit');
+// ❌ 错误：引用语言包里不存在的 key（项目没有抽取工具，不会自动补齐）
+// const title = t('common__submit');
 
-// ✅ 正确：新文案直接写中文明文，由 i18n 脚本统一扫描翻译
+// ✅ 正确：新文案默认直接写中文明文
 const title = '提交';
 ```
 
-**全局 i18n 配置位置**: `src/plugins/locale.ts`
+**全局 i18n 配置位置**: `src/plugins/locale.ts`（导出 `i18n` 实例与便捷函数 `t`；语言切换联动 Element Plus、dayjs 与 `html[lang]`）
 
-<!-- #endif -->
 #### 持久化存储
 
 项目**没有通用 Storage 封装**。请根据场景选择合适方案：
@@ -123,15 +116,13 @@ export const useUserStore = defineStore('user', () => { /* ... */ }, {
 localStorage.setItem('table-density', 'compact');
 const density = localStorage.getItem('table-density');
 
-// 🚫 token 不落 localStorage：写用 setAuthTokenCookie()（@/utils/auth），读用 kit 的 getToken()
+// 🚫 token 不落 localStorage：读写一律用 @/utils/auth 的 getToken() / setToken() / removeToken()（Cookie）
 ```
 
 #### 全局插件使用检查清单
 
 - [ ] 使用 dayjs 时不重复配置插件（RelativeTime、utc、isoWeek、isToday 已全局配置）
-<!-- #if i18n -->
 - [ ] 使用 i18n 时通过 `useI18n()` 获取实例，不重新创建
-<!-- #endif -->
 - [ ] Pinia 状态需要持久化时，优先使用 Store 的 `persist` 选项
 - [ ] 查看 `src/plugins/` 目录了解已有的全局配置
 - [ ] 新增全局插件时，添加到 `src/plugins/` 目录并导出
@@ -265,48 +256,6 @@ defineExpose({ fetchUserInfo });
 |------|------|
 | 从 `@/api/generated/**` 导入 | 绕过 `modules/` 的覆盖逻辑，统一走 `@/api` |
 | `views/` 子目录间用 `@/views/**` 互相引用 | 页面应彼此隔离；同目录内用相对路径 `./components/Foo.vue` |
-| 核心代码 import `@/overrides/**` | 依赖方向护栏，只有 `main.ts` / `src/overrides/**` / `router/**` / `constants/**` 可以引用（内核 `@/plugins/override` 不受限） |
-
----
-
-## 🔀 条件编译标记（仅模板真源仓库适用）
-
-> 📌 **先判断你在哪**：仓库根目录有 `.template/config.ts` 才是模板真源。
-> 用 `create-app` 生成出来的项目**不含**该文件，源码里的 `#if` 标记在生成时已裁剪完毕，
-> 本节整节不适用——看到这段可以直接跳过。
-
-模板真源的源码里带 `#if` 标记，`create-app` 生成项目时会按启用的特性裁掉对应代码块：
-
-标记必须**独占一行**，前缀随文件类型而变（下表用 `␣` 表示空格，实际书写时去掉）：
-
-| 文件类型 | 前缀 | 一个完整的块长这样 |
-|---|---|---|
-| `.ts` `.vue` `.scss` | `//` | `//␣#if overrides` … `//␣#endif` |
-| `.md` `.html` | `<!--` … `-->` | `<!--␣#if i18n␣-->` … `<!--␣#endif␣-->` |
-| `.env.*` | `#` + 空格 | `#␣#if qiankun` … `#␣#endif` |
-
-真实例子直接看 `src/router/guards.ts`（`overrides` 分支）和 `src/constants/index.ts`
-（`#if` + `#else` 双分支）——本文不内联示例代码块，因为那些标记会被裁剪器当真处理。
-
-**写法要点**：
-
-- `#else` 可选，但 `#if` 必须有配对的 `#endif`；**不支持嵌套**
-- 表达式只能是单个特性 id 或其取反（`!overrides`），不支持 `&&` / `||`
-- 优先写「纯增量块」：先写出特性关闭时也成立的形态，再在条件块里追加。
-  两个分支**不得声明同名 const / import**——本仓库是全开形态，两支都是活代码，重名直接 tsc 失败
-- 给 `import` 打标记后要复跑 `pnpm lint:script`，确认 `import/order` 的自动修复没把标记挪出块外
-
-**当前特性**：`overrides`（多租户，默认关闭）、`qiankun`（微前端）、`i18n`。
-**涉及文件**：`main.ts`、`router/guards.ts`、`store/modules/global.ts`、`constants/index.ts`、`CLAUDE.md` 等。
-
-编辑这些文件时：
-
-- ❌ 不要删除、移动或打乱 `#if` / `#else` / `#endif` 的配对
-- ✅ 新增代码先判断属于哪个特性分支；与特性无关的写在标记之外
-- ✅ 注意裁剪后的形态：条件块内的 `let x = ...; // #if\nx = ...\n// #endif` 在裁掉后会变成"从未重赋值"而触发 `prefer-const`——项目里用 `splice` 就地替换来规避
-- ✅ 改完跑 `pnpm check:template` 自检（真源专属脚本，pre-commit 检测到 `.template/config.ts` 时会自动跑）
-
-完整的标记规范、清单字段语义与自检项，见真源仓库的 `docs/template-authoring.md`（该文件不进产物）。
 
 ---
 
@@ -321,7 +270,6 @@ export const DEFAULT_LOCALE = 'zh-CN';
 
 // ✅ 对象常量使用 as const
 export const PROXY_URI = {
-  API: '/apiService',
   LOCAL: '/localService',
 } as const;
 
@@ -485,11 +433,11 @@ export function isValidIdCard(idCard: string): boolean {
 // ✅ 普通请求：使用 Orval 生成或 modules/ 目录下的封装函数
 import { getAuthUserInfo } from '@/api';
 
-// ✅ 特殊场景：直接使用 PolymasApi 实例
-import { polymasApi, downloadApi } from '@/api/core/request';
+// ✅ 特殊场景：直接使用 axios 实例（返回完整 response，业务数据在 res.data.data）
+import { httpApi, downloadApi } from '@/api/core/request';
 
 // 文件上传
-await polymasApi.post('/upload', formData, { timeout: 60000 });
+await httpApi.post('/upload', formData, { timeout: 60000 });
 
 // 文件下载
 await downloadApi.get('/files/report.pdf', { responseType: 'blob' });
@@ -497,7 +445,7 @@ await downloadApi.get('/files/report.pdf', { responseType: 'blob' });
 
 ## 🔍 错误处理规范
 
-详见 [错误处理模式](common-patterns.md#错误处理模式)：API 请求错误由 `ErrorModule`（`src/api/core/request.ts`）自动弹出提示并处理 401 跳转，组件内通常无需重复调用 `ElMessage.error`；非请求类错误（未捕获异常、需要静默处理的场景）使用 `src/utils/error-handler.ts` 提供的 `handleError` / `handleErrorSilently`。
+详见 [错误处理模式](common-patterns.md#错误处理模式)：API 请求错误由 `src/api/core/request.ts` 的响应拦截器自动弹出提示并处理 401 跳转（请求配置 `isIgnoreToast: true` 时静默），组件内通常无需重复调用 `ElMessage.error`；非请求类错误（未捕获异常、需要静默处理的场景）使用 `src/utils/error-handler.ts` 提供的 `handleError` / `handleErrorSilently`。
 
 ---
 

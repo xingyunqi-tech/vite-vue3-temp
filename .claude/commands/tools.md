@@ -40,7 +40,7 @@ description: 快速查看所有可用工具的索引,包括 Skills、Commands、
 
 | Agent | 功能 |
 |-------|------|
-| `@common-patterns` | 通用开发模式 (SSoT) |
+| `@common-patterns` | 通用开发模式（单一真实来源） |
 | `@component-development` | 组件开发规范 |
 | `@api-development` | API 开发指导 |
 | `@router-development` | 路由配置指导 |

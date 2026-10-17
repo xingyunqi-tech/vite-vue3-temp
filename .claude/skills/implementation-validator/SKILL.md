@@ -4,7 +4,7 @@ description: 校验代码实现与 PRD 需求、API 接口规范是否一致。�
 license: MIT
 compatibility: Requires Vue 3, TypeScript
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "1.0.0"
   category: quality
 ---
@@ -266,15 +266,14 @@ try {
   }
 } catch (error: any) {
   if (error === 'cancel') return;                  // ✅ 用户取消确认框
-  // ✅ 请求失败的提示已由 ErrorModule 弹出，这里不重复调用 ElMessage.error，
-  //    也不要去读 error.response.data.message —— 那是绕开统一错误层
+  // ✅ 请求失败的提示由请求层拦截器弹出，不读 error.response.data.message
 }
 ```
 
 **⚠️ 需改进点**:
 1. 部分组件缺少全局错误边界
-2. 建议添加错误监控埋点
-3. 在 catch 里对**请求错误**调用 `ElMessage.error` 属于扣分项（与 ErrorModule 重复弹窗）
+2. 未捕获异常由 `setupGlobalErrorHandler` 统一上报（配置 `VITE_SENTRY_DSN` 后接入 Sentry），业务代码不另加上报
+3. 在 catch 里对**请求错误**调用 `ElMessage.error` 属于扣分项（与请求层拦截器重复弹窗）
 ```
 ```
 

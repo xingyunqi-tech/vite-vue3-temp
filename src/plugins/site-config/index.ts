@@ -2,7 +2,7 @@
  * 站点配置内核：默认值提取、合并、差分与校验
  *
  * 内核放 plugins，配置数据放别处：
- * schema 本体在 `@/constants/site-config`（模版构建脚本按路径替换其中的 defaultValue，勿搬迁）。
+ * schema 本体在 `@/constants/site-config`。
  * 内部分层见 ./types.ts 顶部说明。
  */
 

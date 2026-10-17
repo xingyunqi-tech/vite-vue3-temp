@@ -18,13 +18,16 @@ model: inherit
 
 ```
 src/router/
-├── index.ts                    # 路由入口,创建 router 实例
-├── guards.ts                   # 路由守卫配置
+├── index.ts                    # 路由入口：createAppRouter()，base 取 VITE_BASE_PATH
+├── guards.ts                   # 路由守卫（登录态、白名单、动态路由）与 canAccess()
+├── redirect.ts                 # 登录回跳纯函数：readSafeRedirect / resolveLoginReturnPath / routerBase
+├── title.ts                    # 按 meta.title 设置页面标题
+├── route-tree.ts               # 路由树工具（全路径解析等）
 └── routes/                     # 路由配置目录
     ├── index.ts                # 路由统一导出
     ├── static.ts               # 静态路由(初始直接注册，无需动态权限)
     ├── async.ts                # 异步路由(需要权限控制，登录后动态注册)
-    ├── declared.ts             # 声明式全量表(已应用租户覆盖、未按角色过滤，守卫与兜底页共用)
+    ├── declared.ts             # 声明式全量表(未按角色过滤的异步路由，守卫与兜底页共用)
     └── fallback.ts             # 兜底路由(守卫在权限路由之后注册，布局内区分 403 / 404)
 ```
 
@@ -36,9 +39,9 @@ src/router/
 
 | 路由类型 | 文件 | 特点 | 适用场景 |
 |---------|------|------|---------|
-| **静态路由** | `static.ts` | 初始直接注册，无需动态权限 | 全屏 403、首页、个人中心 |
+| **静态路由** | `static.ts` | 初始直接注册，无需动态权限 | 登录页、全屏 403、首页 |
 | **异步路由** | `async.ts` | 需要登录+权限,动态注册 | 管理页面、设置页面 |
-| **全量表** | `declared.ts` | `resolveDeclaredRoutes()`：已应用租户覆盖、未按角色过滤的异步路由全量表（结果缓存） | 守卫过滤后注册；兜底页据此区分 403 / 404 |
+| **全量表** | `declared.ts` | `resolveDeclaredRoutes()`：未按角色过滤的异步路由全量表 | 守卫过滤后注册；兜底页据此区分 403 / 404 |
 | **兜底路由** | `fallback.ts` | 守卫在权限路由之后单独注册，不参与角色过滤 | 布局内 403 / 404（保留原 URL） |
 
 ---
@@ -56,6 +59,12 @@ src/router/
 
 // 无需登录的页面（直接添加在数组顶层，须同步加入 guards.ts 的 WHITE_LIST）
 {
+  path: LOGIN_PATH,          // '/login'，常量来自 @/constants
+  name: 'Login',
+  component: () => import('@/views/login/index.vue'),
+  meta: { title: '登录' },
+},
+{
   path: '/403',
   name: 'Forbidden',
   component: () => import('@/views/exception/Forbidden.vue'),
@@ -66,7 +75,7 @@ src/router/
 {
   path: '/',
   component: AppLayout,
-  redirect: '/home',
+  redirect: resolveDefaultPage, // 站点配置的默认页（basic.defaultPage），当前角色无权访问时回 /home
   children: [
     {
       path: 'home',          // 子路由用相对路径，不带前导斜杠 → 实际路径 /home
@@ -78,9 +87,9 @@ src/router/
 }
 ```
 
-> 项目登录页由 SSO 统一托管（不是本仓库内的路由），登录跳转通过 `src/utils/auth.ts` 的 `jumpToLogin()`（内部调用 `@zhs/agent-course-kit` 的 `jumpToSsoLogin()`）整体离开当前应用完成，因此 `staticRoutes` 中不存在 `/login` 路由，也无需在白名单中配置它。
+> 登录页是本仓库内的路由 `/login`（`src/views/login/`），与全屏 403 一起列在 `guards.ts` 的 `WHITE_LIST` 中。
 
-**适用场景:** 全屏 403、公开页面，以及首页、个人中心等所有登录用户可访问的功能。404 不是静态路由——见下方「兜底路由」
+**适用场景:** 登录页、全屏 403 等免登录页面，以及首页等所有登录用户可访问的功能。404 不是静态路由——见下方「兜底路由」
 
 **完整示例:** 查看 `src/router/routes/static.ts`
 
@@ -273,15 +282,14 @@ import type { RoleType } from '@/constants';
 ⚠️ 常见错误：写成小写 `roles: ['admin']`。角色比对是严格相等，大小写不匹配会让权限判断
 **恒为假**——路由被过滤掉、菜单不显示，且不会有任何报错，极难排查。一律用 `ROLES.XXX` 常量。
 
-> `ADMIN` 是**预留角色**：身份接口 `get-current-user-identity` 只返回教师/学生
-> （`identityType` 1/0，见 `mapIdentityToRole`），当前流程下 `info.role` 不会是 `ADMIN`。
-> 路由 `meta.roles` 里写 `ROLES.ADMIN` 目前恒不命中，属预留占位，非 bug。
+> 当前角色是 `userStore.info.role`，来自 `getInfoAction()` 调用的 `GET /api/auth/current-user`（以接口为准，不持久化）。
+> 接口返回的 `role` 不在 `ROLES` 取值内时会被置空，守卫随即跳 `/403?reason=no-role`。
 
 ### 路由与菜单权限
 
 权限只在路由的 `meta.roles` 上声明一处，菜单和设置页导航都由路由推导：
 
-- `usePermissionStore().generateRoutes(asyncRoutes, roles)` 按 `meta.roles` 过滤异步路由，守卫随后逐条 `addRoute`
+- `usePermissionStore().generateRoutes(resolveDeclaredRoutes(), roles)` 按 `meta.roles` 过滤异步路由，守卫随后逐条 `addRoute`
 - 路由注册完后，守卫调用 `generateMenus(roles, path => canAccess(router, path, roles))` 生成菜单
 - `canAccess`（`src/router/guards.ts`）：路径命中已注册的真实路由（不是兜底），且每一层 `meta.roles` 都满足
 - 内部菜单（`menuList` 中非外链、非禁用的项）**不要写 `roles`**，可见性跟随对应路由；外链与禁用项没有路由，才用自身 `roles`
@@ -294,131 +302,81 @@ import type { RoleType } from '@/constants';
 
 ### 全局前置守卫
 
-项目在 `src/router/guards.ts` 中实现了完整的路由守卫逻辑，登录态由 **SSO** 驱动（不是本地 `/login` 页面 + 用户名密码）：
+项目在 `src/router/guards.ts` 中实现了完整的路由守卫逻辑，登录态来自本地登录页写入的 Cookie token：
 
 ```typescript
-// src/router/guards.ts（项目真实实现）
-import type { RouteLocationNormalized, Router } from 'vue-router';
-import {
-  EXCEPTION_QUERY,
-  FORBIDDEN_PATH,
-  FORBIDDEN_REASON,
-  toAbsoluteUrl,
-  type ForbiddenReason,
-} from './redirect';
-import { fallbackRoute, resolveDeclaredRoutes } from './routes';
-import { usePermissionStore } from '@/store/modules/permission';
-import { useUserInfoStore } from '@/store/modules/user-info';
-import { jumpToLogin } from '@/utils/auth';
-// #if overrides
-import { routerManager } from '@/plugins/override';
-// #endif
-
-// 白名单：无需登录即可访问。只有全屏 403——它是守卫在「token 有效但拿不到权限」时的落点；
-// 404 不在其中，未登录用户先走 SSO 登录，登录后由布局内的兜底路由渲染
-const WHITE_LIST = ['/403'];
-
-/** 判断路径是否免登录 */
-function isWhiteListed(path: string): boolean {
-  if (WHITE_LIST.includes(path)) return true;
-  // #if overrides
-  // 惰性读取而非模块加载时合并：routerManager 的注册发生在 router/index.ts 的模块体，
-  // 而本模块被它先 import，模块加载时合并只会读到空数组。
-  if (routerManager.getWhiteList().includes(path)) return true;
-  // #endif
-  return false;
-}
-
-// 跳全屏 403：带上原因与原目标路径，异常页据此决定给「重试」还是「重新登录」，以及之后回到哪里
-function toForbidden(reason: ForbiddenReason, to: RouteLocationNormalized) {
-  return {
-    path: '/403',
-    query: { [EXCEPTION_QUERY.REASON]: reason, [EXCEPTION_QUERY.REDIRECT]: to.fullPath },
-    replace: true,
-  };
-}
+// src/router/guards.ts（项目真实实现，节选）
+/** 免登录路径：登录页，以及「token 有效但拿不到权限」时的落点全屏 403 */
+const WHITE_LIST = [LOGIN_PATH, FORBIDDEN_PATH];
 
 export function setupRouterGuard(router: Router) {
-  // 注意：使用「返回值决定导航结果」的写法（Vue Router 4 推荐方式），不是 (to, from, next) 回调风格
   router.beforeEach(async to => {
     const userStore = useUserInfoStore();
     const permissionStore = usePermissionStore();
 
-    // 1. 同步登录态：真源是 Cookie，refreshToken() 重新读取并同步到 store 的响应式镜像。
-    // 放在白名单判断之前，免登录页拿到的镜像同样是最新的
+    // 登录态真源是 Cookie，每次导航重新读取并同步到 store
     const hasToken = userStore.refreshToken();
 
-    // 2. 白名单直接放行
-    if (isWhiteListed(to.path)) {
-      return true;
-    }
+    // 已登录访问登录页：回到它带的目标页
+    if (to.path === LOGIN_PATH && hasToken) return resolveLoginReturnPath(readSafeRedirect(to.query) ?? '/');
 
-    // 3. 未登录：整体跳 SSO
+    if (isWhiteListed(to.path)) return true;
+
     if (!hasToken) {
-      // 整体跳转到 SSO 统一登录页（离开当前应用，不是 router.push）。
-      // 回跳地址传目标路由：本次导航随后被取消，地址栏还停在出发页，直接取 location.href 会回错页
-      jumpToLogin(toAbsoluteUrl(to.fullPath));
-      return false;
+      // 经过 redirect 的取原地址：默认页要等登录后按角色判定
+      const redirect = resolveLoginReturnPath(to.redirectedFrom?.fullPath ?? to.fullPath);
+      return { path: LOGIN_PATH, query: redirect === '/' ? {} : { [EXCEPTION_QUERY.REDIRECT]: redirect } };
     }
 
-    // 4. 已生成权限路由，直接放行
     if (permissionStore.isRoutesGenerated) {
-      return true;
+      // 其他标签页换了账号：整页刷新按新账号重新初始化
+      if (userStore.isAccountSwitched()) {
+        window.location.reload();
+        return false;
+      }
+      // 静态路由不经 generateRoutes 过滤，meta.roles 在这里逐层校验
+      const roles = [userStore.info.role];
+      return to.matched.every(record => permissionStore.hasRoutePermission(roles, record)) || toException(to);
     }
 
-    // 5. 首次访问：获取用户信息 + 角色，生成权限路由
     try {
-      // Cookie 中只有身份资料，不含 role；role 需单独拉取或走 Cookie 已带的兜底值
       await userStore.getInfoAction();
-      let role = userStore.info.role;
-      if (!role) {
-        role = await userStore.fetchUserRole();
-      }
+      const role = userStore.info.role;
+      if (!role) return toForbidden(FORBIDDEN_REASON.NO_ROLE, to);
 
-      if (!role) {
-        // 关键：token 已存在说明 SSO 认为已登录，此时再 jumpToLogin 会被 SSO 直接回弹造成无限刷新，
-        // 因此角色拿不到时跳白名单内的 403，而不是重新登录
-        return toForbidden(FORBIDDEN_REASON.NO_ROLE, to);
-      }
-
-      // resolveDeclaredRoutes()：已应用租户覆盖、未按角色过滤的全量表（routes/declared.ts）。
-      // 覆盖必须先于过滤，租户放宽的 meta.roles 才能生效、追加的 children 才受角色约束
       const accessRoutes = permissionStore.generateRoutes(resolveDeclaredRoutes(), [role]);
-
       accessRoutes.forEach(route => router.addRoute(route));
-      // 最后注册兜底路由：布局内渲染 403/404，所有没匹配上的路径（含无权限的路径）都落到这里
+      // 兜底最后注册：无权限与不存在的路径都落到布局内异常页
       router.addRoute(fallbackRoute);
+      permissionStore.generateMenus([role], path => canAccess(router, path, [role]));
 
-      // #if overrides
-      if (import.meta.env.DEV) routerManager.warnUnmatched();  // 提示没匹配上的 overrideRoutes 配置
-      // #endif
-
-      // { ...to } 保留原始 path/query/params；replace 避免后退回到路由未生成的状态
+      const origin = to.redirectedFrom;
+      if (origin) return { path: origin.path, query: origin.query, hash: origin.hash, replace: true };
       return { ...to, replace: true };
     } catch (error) {
       console.error('获取权限失败:', error);
+      // 重置生成标记，异常页「重试」时会重新走本流程
       permissionStore.resetPermission();
-      // 同理不跳登录页，避免 SSO 回弹死循环；异常页据 reason 给出「重试」，重试导航会重新走本流程
       return toForbidden(FORBIDDEN_REASON.FETCH_FAILED, to);
     }
   });
 }
 ```
 
-> **异常页不能成为死胡同。** SSO 登录/登出的回跳地址默认取 `window.location.href`，在 `/403` 上点「重新登录」
-> 会原地回到 `/403`（白名单直接放行，不会重新拉权限）。因此：守卫跳 403 时把原目标路径放进 `query.redirect`，
-> 全屏 403 页（`src/views/exception/Forbidden.vue`）用 `readSafeRedirect()` 校验后作为重试目标 /
-> `logoutAction(redirect)` 的回跳地址；布局内异常页始终提供「返回首页」。`readSafeRedirect` 只接受站内
-> 相对路径，防止开放重定向。
+`toForbidden(reason, to)` 跳 `/403?reason=<no-role|fetch-failed>&redirect=<原路径>`；`toException(to)` 落到布局内异常页并保留原地址。
+
+> **回跳地址只走 `src/router/redirect.ts`。**
 >
-> **`?auth=` 回调不在守卫里处理。** SSO 登录成功后回跳形如 `/xxx?auth=<JWT>`，这个参数由
-> `writeTokenFromAuthQuery()`（`src/utils/auth.ts`）消费，在 `src/app/render.ts` 中于
-> **`createAppRouter()` 之前**调用——那时还没有 router 实例，所以它直接读 `window.location.search`
-> 而不是 `to.query`。不要在守卫里再写一遍 `?auth=` 处理逻辑。
+> - `readSafeRedirect(query)`：读取 `query.redirect`，只接受站内单斜杠开头的路径（排除 `//host`、`/\host` 与制表/换行字符），防止开放重定向
+> - `resolveLoginReturnPath(target?, { inheritExceptionTarget })`：所有登录/登出跳转的唯一出口。站外地址、解析失败、登录页自身 → `/`；
+>   全屏 403 → 按 `inheritExceptionTarget`（默认 `true`）取它带的 `query.redirect`，否则 `/`
+> - `routerBase()`：归一后的 `VITE_BASE_PATH`，整页跳转拼地址时使用
 >
-> **不要**用 `Cookies.set(TOKEN_AI_POLY, auth, { domain: '.polymas.com', path: '/' })` 硬编码域名写 token，统一调用 `setAuthTokenCookie()`（`src/utils/auth.ts`）。该函数会根据 `window.location.hostname` 判断：命中 `KNOWN_SSO_DOMAINS`（当前为 `polymas.com`、`zhihuishu.com`）时按对应顶级域共享 Cookie，命中不到时落成当前域名下的 host-only Cookie。硬编码域名在自定义部署域名（如学校 `edu.cn` 域名）下会被浏览器静默丢弃 Cookie，导致 `userStore.token` 一直读不到值，在守卫第 2 步反复判定未登录、无限重跳 SSO 登录页（表现为页面无限刷新）。
+> **异常页不能成为死胡同。** 守卫跳 403 时把原目标放进 `query.redirect`；全屏 403 页（`src/views/exception/Forbidden.vue`）
+> 用 `readSafeRedirect()` 取出作为「重试」目标，「重新登录」走 `userStore.logoutAction()`（换账号，落到首页）。
 >
-> 同理，`jumpToLogin()` 也不要直接调用包内 `jumpToSsoLogin()` 默认值——它会固定打到 `SSO_CONFIG.POLYMAS_HOST`（cloudapi.polymas.com）的 `/oauth/login/checkLogin` 路径，这只是 polymas 的业务接口域，不是登录页，在非 polymas.com 部署下（如 zhihuishu.com）会被直接弹回、无法登录，同样造成无限刷新。`jumpToLogin()` 内部已按 `KNOWN_SSO_DOMAINS` 直接跳转对应的 `login.<顶级域>/?service=<回跳地址>`（真正的登录页地址；回跳地址由调用方显式传入，守卫传目标路由、异常页传原目标页，缺省才取当前地址），命中不到时才回退包内默认行为。新增可共享的自有顶级域（同时决定 Cookie 共享域和登录 host）时，去 `KNOWN_SSO_DOMAINS` 里加一项即可，不要在守卫或工具函数里散落写死域名。
+> **请求层 401 不经守卫。** 接口返回 401 时由 `redirectToLoginOnce()` 清 token 并调用 `jumpToLogin()`
+> 整页跳 `${base}/login?redirect=<当前站内路径>`，动态路由与各 Store 随页面重建复位。
 
 ### 路由守卫执行流程
 
@@ -427,19 +385,19 @@ export function setupRouterGuard(router: Router) {
     ↓
 1. 同步登录态（refreshToken：读 Cookie 并写入 store 镜像，白名单路径同样执行）
     ↓
-2. 检查白名单（isWhiteListed：WHITE_LIST + overrides 提供的白名单） → 直接放行
+2. 已登录访问 /login → 回到 readSafeRedirect(query) 指向的页面（经 resolveLoginReturnPath 过滤）
     ↓
-3. 未登录 → 调用 jumpToLogin(目标路由绝对地址) 整体跳转 SSO
+3. 白名单（/login、/403） → 直接放行
     ↓
-4. 检查权限路由是否已生成 → 已生成直接放行
+4. 未登录 → /login?redirect=<目标>（经过 redirect 的路由取原地址）
     ↓
-5. 获取用户信息 + 角色（Cookie 兜底 / 接口拉取）
+5. 权限路由已生成 → 换账号则整页刷新；否则逐层校验 meta.roles，不满足落布局内异常页
     ↓
-6. 角色为空 → 跳 /403?reason=no-role&redirect=<原路径>（不跳登录页，避免 SSO 回弹死循环）
+6. 首次导航：getInfoAction() 拉取用户资料与角色（以接口为准）
     ↓
-7. 按角色过滤 resolveDeclaredRoutes()（已应用租户覆盖的全量表）生成可访问路由
+7. 角色为空 → /403?reason=no-role；拉取失败 → resetPermission() 后 /403?reason=fetch-failed
     ↓
-8. 动态添加路由到 router，最后追加 fallbackRoute（布局内 403/404）
+8. generateRoutes(resolveDeclaredRoutes(), [role]) → addRoute → 最后追加 fallbackRoute → generateMenus
     ↓
 9. 重新导航到目标路由（replace: true）
 ```
@@ -449,44 +407,36 @@ export function setupRouterGuard(router: Router) {
 #### 白名单管理
 ```typescript
 // ✅ 正确:集中管理白名单，不要在守卫里散落判断
-const WHITE_LIST = ['/403'];
-
-if (WHITE_LIST.includes(to.path)) {
-  return true;
-}
+const WHITE_LIST = [LOGIN_PATH, FORBIDDEN_PATH];
 
 // ❌ 错误:分散判断
 if (to.path === '/403') return true;
 if (to.path === '/public') return true;
 
-// ❌ 错误:把 404 放进白名单——未登录用户应先走 SSO 登录，登录后由布局内的兜底路由渲染 404
+// ❌ 错误:把 404 放进白名单——未登录用户应先登录，登录后由布局内的兜底路由渲染 404
 ```
 
-> 登录页不在白名单里——它根本不是本应用内的路由，登录态缺失时是整体跳转离开当前应用，不存在"访问 /login 直接放行"这一分支。
+> 新增免登录页面时，同时加到 `static.ts` 顶层与 `WHITE_LIST`。
 
 #### 未登录跳转
 ```typescript
-// ✅ 正确:未登录时整体跳转 SSO 登录，回跳地址传目标路由（SSO 登录后会带 ?auth= 回跳该地址）
-if (!userStore.refreshToken()) {
-  jumpToLogin(toAbsoluteUrl(to.fullPath));
-  return false;
+// ✅ 正确:守卫内返回登录页路由，回跳地址经 resolveLoginReturnPath 过滤后放进 query.redirect
+if (!hasToken) {
+  const redirect = resolveLoginReturnPath(to.redirectedFrom?.fullPath ?? to.fullPath);
+  return { path: LOGIN_PATH, query: redirect === '/' ? {} : { redirect } };
 }
 
-// ❌ 错误:不传回跳地址——本次导航随后被取消，地址栏停在出发页，用户登录后落回出发页而不是要去的页
-if (!userStore.refreshToken()) {
-  jumpToLogin();
-  return false;
-}
+// ✅ 正确:守卫之外（请求层、工具函数）需要回登录页时整页跳转
+import { jumpToLogin } from '@/utils/auth';
+jumpToLogin(); // 缺省回跳当前页面
 
-// ❌ 错误:本项目没有本地 /login 路由，不要用 router.push('/login') 或 next('/login')
-if (!userStore.refreshToken()) {
-  next('/login');
-}
+// ❌ 错误:把未经校验的 query.redirect 直接交给 router.push / location.href（开放重定向）
+router.push(route.query.redirect as string);
 ```
 
 #### 路由守卫中的错误处理
 ```typescript
-// ✅ 正确:获取权限失败时跳 403（带原因与原路径），而不是跳登录页
+// ✅ 正确:获取权限失败时跳 403（带原因与原路径），并重置生成标记
 try {
   await userStore.getInfoAction();
   // ... 生成路由逻辑
@@ -496,13 +446,11 @@ try {
   return toForbidden(FORBIDDEN_REASON.FETCH_FAILED, to);
 }
 
-// ❌ 错误:失败后跳登录页——token 仍然存在，SSO 会直接回弹，造成无限刷新循环
+// ❌ 错误:失败后直接登出——网络抖动也会把用户踢回登录页，且丢失原目标
 try {
   await userStore.getInfoAction();
-  // ... 生成路由逻辑
 } catch (error) {
   await userStore.logoutAction();
-  next('/login');
 }
 ```
 
@@ -551,8 +499,8 @@ export const staticRoutes: RouteRecordRaw[] = [
 
   {
     path: '/',
-    component: Layout,
-    redirect: '/home',
+    component: AppLayout,
+    redirect: resolveDefaultPage,
     children: [
       // ... 其他路由
 
@@ -714,7 +662,7 @@ export const fallbackRoute: RouteRecordRaw = {
 ```
 
 兜底页（`src/views/exception/index.vue`）用 `matchesDeclaredRoute(route.path)` 拿 `resolveDeclaredRoutes()`
-（已应用租户覆盖、未按角色过滤，与守卫同源）再匹配一次：命中说明「有这个页面但当前账号没权限」→ 展示 403；否则 → 404。无权限的路由本身不会
+（未按角色过滤，与守卫同源）再匹配一次：命中说明「有这个页面但当前账号没权限」→ 展示 403；否则 → 404。无权限的路由本身不会
 注册到 router，所以不要指望在守卫里靠 `to.matched` 区分这两种情况。
 
 ---
@@ -790,17 +738,17 @@ const currentName = route.name;
 - [ ] 使用懒加载 `() => import()`
 
 ### 权限控制检查
-- [ ] 无需动态权限的路由（全屏 403、所有登录用户可访问页面）在 `static.ts` 中配置——登录页由 SSO 整体托管，不是本仓库内的路由；404 由 `fallback.ts` 的兜底路由承担
+- [ ] 无需动态权限的路由（登录页、全屏 403、所有登录用户可访问页面）在 `static.ts` 中配置；404 由 `fallback.ts` 的兜底路由承担
 - [ ] 需要角色权限的路由在 `async.ts` 中配置
 - [ ] 角色常量使用 `ROLES.XXX`
-- [ ] 白名单路由已添加到 `guards.ts` 的 `WHITE_LIST`（overrides 特性下也可由 `routerManager.getWhiteList()` 提供）
+- [ ] 免登录路由已添加到 `guards.ts` 的 `WHITE_LIST`（当前为 `/login` 与 `/403`）
 
 ### 路由守卫检查
 - [ ] 路由守卫中有完整的错误处理
-- [ ] 未登录时调用 `jumpToLogin(toAbsoluteUrl(to.fullPath))` 整体跳转 SSO（回跳目标路由；SSO 登录后自带 `?auth=` 回跳该地址）
-- [ ] 回跳地址不在调用点自己过滤：`jumpToLogin` / `jumpToLogout` 内部统一过 `resolveLoginReturnUrl()`（站外地址、异常页都会换成站内目标）
-- [ ] 动态路由生成后调用了 `router.addRoute()`
-- [ ] 退出登录时调用了 `permissionStore.resetPermission()`
+- [ ] 守卫内未登录时返回 `/login?redirect=<目标>`；守卫之外用 `jumpToLogin()` 整页跳转
+- [ ] 回跳地址不在调用点自己过滤：读 query 用 `readSafeRedirect()`，算落点用 `resolveLoginReturnPath()`（`jumpToLogin` / `jumpToLogout` 内部已调用）
+- [ ] 动态路由生成后调用了 `router.addRoute()`，并最后注册 `fallbackRoute`
+- [ ] 退出登录统一走 `userStore.logoutAction()`（整页跳转登录页，动态路由随页面重建复位）
 
 ---
 
@@ -809,7 +757,7 @@ const currentName = route.name;
 ### Q: 什么时候使用 static.ts 和 async.ts?
 
 **A**:
-- **static.ts**: 无需动态权限的路由——含无需登录的公开页面（全屏 403）以及所有登录用户可访问的页面（首页、个人中心）。登录页不在其中，登录由 SSO 整体托管，不是本仓库内的路由
+- **static.ts**: 无需动态权限的路由——含无需登录的页面（`/login`、全屏 403）以及所有登录用户可访问的页面（首页）
 - **fallback.ts**: 兜底路由，守卫在权限路由之后注册，在布局内渲染 403 / 404 并保留原 URL
 - **async.ts**: 需要特定角色权限的页面(管理页面、设置页面)
 

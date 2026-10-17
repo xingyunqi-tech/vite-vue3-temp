@@ -4,7 +4,7 @@ description: 运行测试覆盖率并列出偏低的文件，可选自动生成�
 license: MIT
 compatibility: Requires Vitest, Vue Test Utils
 metadata:
-  author: "vue-admin-template"
+  author: "vite-vue3-temp"
   version: "1.0.0"
   category: quality
 ---
@@ -566,7 +566,7 @@ pnpm type-check              # TypeScript 类型检查
 pnpm lint                    # ESLint 代码检查
 /test-coverage-checker         # 测试覆盖率检查
 pnpm test                    # 运行测试
-pnpm commit                  # 提交代码
+# 停在工作区，等用户确认后再提交
 ```
 
 ### 3. CI/CD 集成建议
@@ -585,11 +585,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Run tests with coverage
-        run: pnpm test:coverage
-      - name: Check coverage threshold
-        run: |
-          # 检查是否达到 80% 阈值
-          # 如果不达标,CI 失败
+        run: pnpm test:coverage   # 配置 thresholds 后未达标即失败
 ```
 
 ## 最佳实践
@@ -673,14 +669,13 @@ diff coverage-reports/2025-11-01.txt coverage-reports/2025-11-16.txt
 
 ### Q2: 80% 覆盖率是强制的吗？
 
-**A:** 只在**显式跑覆盖率时**强制,不是提交门禁。
-- **项目配置**: `vitest.config.ts` 的 `thresholds` 已扁平配置 80%,
-  跑 `pnpm test:coverage` 未达标会以非零退出码失败
-- **提交门禁**: pre-commit 只跑 `pnpm test`(不带 `--coverage`),所以覆盖率不拦提交
-- **统计范围**: 默认只统计测试运行期间实际被 import 的文件,未被任何测试引用的文件不会出现在报告里,
-  所以这个百分比**不代表全库覆盖率** —— 新增一个无测试的模块不会拉低它。
-  要按全库口径统计需显式配置 `coverage.include`(Vitest 4 已移除旧的 `coverage.all` 选项),
-  但那样当前基线会远低于 80%,需先补测试再开
+**A:** 不是。
+- **项目配置**: `vitest.config.ts` 的 `coverage` 未配置 `thresholds`,
+  `pnpm test:coverage` 只产出报告,不会因覆盖率不足失败
+- **提交门禁**: pre-commit 只跑 `pnpm test`(不带 `--coverage`),覆盖率不拦提交
+- **统计范围**: 未配置 `coverage.include` 时只统计测试运行期间实际被 import 的文件,
+  未被任何测试引用的文件不会出现在报告里,所以这个百分比**不代表全库覆盖率**
+- **加门禁**: 在 `coverage` 里扁平配置 `thresholds`(不要套 `global: {}`),并同时配置 `include`
 - **建议**: 保持 80% 以上,确保代码质量
 
 ### Q3: 如何提高分支覆盖率 (Branches)?
@@ -753,7 +748,5 @@ pnpm test
 # 总体覆盖率: 82.3% ✅ (达标)
 # 覆盖率不足的文件: 5 个
 
-# 步骤 6: 提交代码
-git add tests/
-git commit -m "test: improve test coverage to 82.3%"
+# 步骤 6: 停在工作区，等用户确认后再提交
 ```

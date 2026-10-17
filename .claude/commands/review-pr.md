@@ -86,7 +86,7 @@ description: 快速提醒 PR 审查清单，确保代码质量和项目规范
 - [ ] **所有用户可见文本使用中文明文**（不使用 `$t()` API）
 - [ ] 参考 `@coding-standards#国际化原则`
 
-**注意:** 本项目使用 AI 自动翻译，禁止在代码中直接使用 `$t()` API
+**注意:** 项目没有文案自动抽取或翻译工具；需要多语言的文案手工维护在 `src/locale/*.json`（打包）与 `public/locale/*.json`（运行时增量合并），flat key 用 `__` 分隔
 
 #### 无障碍支持
 - [ ] 图片有 `alt` 属性
@@ -119,10 +119,12 @@ description: 快速提醒 PR 审查清单，确保代码质量和项目规范
 #### 上下文一致性
 - [ ] **轮子检测**: 是否重复实现了项目已有的工具函数？
   - 日期格式化 → `@/utils` (`formatDateShort`, `formatDateTime`, `formatRelativeTime`)
-  - 角色/权限检查 → `@/composables/usePermission`（`hasRole`/`canEdit`/`canDelete`）、`@/composables/useRole`（教师/学生身份）
+  - 角色/权限检查 → `@/composables/usePermission`（`hasRole`/`isTeacher`/`isStudent`/`canEdit`/`canDelete`）、模板内显隐用 `v-role` 指令
   - 骨架屏 loading → `@/composables/useSkeleton`（含防闪烁），不要另写一份 `useLoading`
   - 状态持久化 → Pinia Store `persist` 选项（参见 `src/store/plugins/persist.ts`）；清理时用 `removePersistedStore(storeId)`
-  - Token 读写 → `@/utils/auth` 的 `setAuthTokenCookie()` + kit 的 `getToken()`，**不要**写进 `localStorage`
+  - Token 读写 → `@/utils/auth` 的 `getToken()` / `setToken()` / `removeToken()`（Cookie），**不要**写进 `localStorage`
+  - 登录 / 登出 → `useUserInfoStore` 的 `loginAction` / `logoutAction`，跳转登录页用 `@/utils/auth` 的 `jumpToLogin()`
+  - 请求 → `@/api` 的 Orval 生成函数或 `get/post/put/del`，不要另建 axios 实例
 - [ ] **命名一致**: 命名风格是否与现有代码统一？
 - [ ] **注释同步**: 注释是否与代码逻辑匹配（AI 常忘记更新注释）？
 
@@ -140,7 +142,7 @@ description: 快速提醒 PR 审查清单，确保代码质量和项目规范
 - [ ] 无 XSS 漏洞（避免使用 v-html）
 - [ ] 无 SQL 注入风险
 - [ ] 敏感数据不在前端存储
-- [ ] Token 走 Cookie（`setAuthTokenCookie()`），不落 localStorage；不在日志里打印 token
+- [ ] Token 走 Cookie（`@/utils/auth` 的 `setToken()`），不落 localStorage；不在日志里打印 token
 
 #### 依赖和构建
 - [ ] 无新增不必要的依赖
@@ -154,10 +156,11 @@ description: 快速提醒 PR 审查清单，确保代码质量和项目规范
 #### Commit Message
 - [ ] 符合 Conventional Commits 规范
 - [ ] 格式：`type(scope): subject`
-- [ ] 类型正确（feat/fix/docs/style/refactor/test/chore）
+- [ ] 类型在 `commitlint.config.ts` 的 `type-enum` 内（feat/fix/docs/style/refactor/perf/test/build/ci/chore/revert）
+- [ ] 首行 ≤ 72 字符，结尾无句号，type / scope 小写
 
 #### 分支和合并
-- [ ] 基于最新的 `main/master` 分支
+- [ ] 基于最新的 `master` 分支
 - [ ] 无合并冲突
 - [ ] 删除已合并的分支
 

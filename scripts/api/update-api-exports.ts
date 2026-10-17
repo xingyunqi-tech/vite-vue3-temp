@@ -26,8 +26,6 @@
  *
  * 覆盖优先级：ESM 里显式命名导出压过 `export *` 中的同名绑定且不报错，
  * 所以被 modules 覆盖的 generated 函数不进入显式导出清单，覆盖版本才能对外生效。
- *
- * ⚠️ 本文件是 admin 与 h5 两个模版真源共用的实现，应逐字节相同。
  */
 
 import fs from 'node:fs';

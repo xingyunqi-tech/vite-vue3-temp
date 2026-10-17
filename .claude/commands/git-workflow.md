@@ -12,7 +12,7 @@ description: Git 工作流最佳实践，包括分支管理、提交规范、PR 
 
 | 分支 | 用途 | 命名规范 | 示例 |
 |------|------|---------|------|
-| **main/master** | 主分支（生产环境） | `main` | `main` |
+| **master** | 主分支（生产环境），PR 的目标分支 | `master` | `master` |
 | **develop** | 开发分支（可选） | `develop` | `develop` |
 | **feature** | 新功能开发 | `feature/功能名` | `feature/user-login` |
 | **fix** | Bug 修复 | `fix/问题描述` | `fix/login-error` |
@@ -52,7 +52,8 @@ git checkout -b refactor/optimize-routing
 | **build** | 打包相关 | `build: 调整 vite 分包策略` |
 | **revert** | 回退提交 | `revert: 回退 xxx` |
 
-> 以上 11 种是 `commitlint.config.ts` 的 `type-enum` 全集，**用别的 type 会被 commit-msg hook 拒绝**。
+> 以上 11 种是 `commitlint.config.ts` 的 `type-enum` 全集，**用别的 type（如 `hotfix`、`update`）会被 commit-msg hook 拒绝**。
+> 分支前缀 `feature/` / `hotfix/` 只是分支命名，提交 type 仍从上表选（新功能 `feat`，紧急修复 `fix`）。
 
 ### 提交格式
 
@@ -123,8 +124,8 @@ git commit -m "update"
 
 ```bash
 # 1. 创建功能分支
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git checkout -b feature/user-profile
 
 # 2. 开发功能
@@ -147,8 +148,8 @@ git push origin feature/user-profile
 # - 请求代码审查
 
 # 6. 合并后删除分支
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git branch -d feature/user-profile
 ```
 
@@ -158,8 +159,8 @@ git branch -d feature/user-profile
 
 ```bash
 # 1. 创建修复分支
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git checkout -b fix/api-error
 
 # 2. 修复 Bug
@@ -175,8 +176,8 @@ git commit -m "fix(api): 修复接口超时重试逻辑"
 git push origin fix/api-error
 
 # 5. 合并后删除分支
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git branch -d fix/api-error
 ```
 
@@ -213,11 +214,12 @@ git push origin refactor/user-store
 `pre-commit` 钩子（`scripts/husky/pre-commit.ts`）按顺序跑：
 
 1. `lint-staged` —— 对暂存文件跑 eslint / stylelint / prettier
-2. `pnpm check:template` —— 仅当 `.template/config.ts` 存在（即模板真源仓库）
-3. **改动含 `.ts` / `.tsx` / `.vue` 时**：`pnpm type-check` + `pnpm test`
+2. **改动含 `.ts` / `.tsx` / `.vue`、`tsconfig*.json`、`package.json` 或 `pnpm-lock.yaml` 时**：`pnpm type-check` + `pnpm test`
 
 所以改了源码的提交会明显慢一些，且**类型错误或测试失败会直接阻断提交**。
-只改 `.md` / 配置文件时会跳过第 3 步。
+只改 `.md` 等其他文件时会跳过第 2 步。
+
+`commit-msg` 钩子（`scripts/husky/commit-msg.ts`）执行 `pnpm exec commitlint --edit`，不符合上面规则的提交信息会被拒绝。
 
 ---
 
@@ -240,7 +242,7 @@ pnpm test
 pnpm build
 
 # 5. 查看变更
-git diff main...HEAD
+git diff master...HEAD
 ```
 
 ### PR 描述模板
@@ -279,9 +281,9 @@ Closes #123
 ## 🚨 紧急修复流程 (Hotfix)
 
 ```bash
-# 1. 从主分支创建 hotfix 分支
-git checkout main
-git pull origin main
+# 1. 从 master 创建 hotfix 分支
+git checkout master
+git pull origin master
 git checkout -b hotfix/security-patch
 
 # 2. 快速修复问题
@@ -291,7 +293,7 @@ git checkout -b hotfix/security-patch
 
 # 3. 提交代码
 git add .
-git commit -m "hotfix: 修复安全漏洞 CVE-2024-xxxx"
+git commit -m "fix: 修复安全漏洞 CVE-2024-xxxx"
 
 # 4. 立即创建 PR 并合并
 git push origin hotfix/security-patch
@@ -342,13 +344,13 @@ git reset --hard HEAD~1
 ```bash
 # 同步远程分支
 git fetch origin
-git pull origin main
+git pull origin master
 
 # 合并分支
 git merge feature/user-profile
 
 # 变基（保持线性历史）
-git rebase main
+git rebase master
 
 # 解决冲突后继续
 git add .
