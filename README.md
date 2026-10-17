@@ -166,7 +166,7 @@ pnpm analyzer     # 构建并输出包体分析
 
 ### 登录与鉴权
 
-- **登录页**：`src/views/login/`（账号密码表单 `LoginForm.vue`；`QrCodeLogin.vue` 为占位）
+- **登录页**：`src/views/login/`（`index.vue` 单文件账号密码登录）
 - **接口**：`src/api/modules/auth.ts` 的 `login`（`POST /api/auth/login`，返回 `{ token }`）、`logout`、`getUserInfo`（`GET /api/auth/current-user`，返回含 `role` 的用户资料）。路径与字段为约定形态，接入后端时按接口文档调整
 - **token**：存在 Cookie（键名 `TOKEN_KEY`），读写用 `src/utils/auth.ts` 的 `getToken / setToken / removeToken`；请求层把它放进 `Authorization` 头
 - **路由守卫**（`src/router/guards.ts`）：`/login`、`/403` 免登录；未登录跳 `/login?redirect=<原地址>`；首次导航调用 `useUserInfoStore().getInfoAction()` 拉取用户资料与角色，按角色注册异步路由；角色为空或拉取失败落到 `/403`；其他标签页换了账号时整页刷新

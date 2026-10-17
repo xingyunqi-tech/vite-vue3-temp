@@ -187,8 +187,7 @@ src/views/
 ├── home/                      # 首页（目录名小写短横线，与路由 path 对应）
 │   └── index.vue             # 页面主文件
 ├── login/                     # 本地登录页（白名单路由 /login）
-│   ├── index.vue
-│   └── components/           # 页面私有组件：LoginForm.vue、QrCodeLogin.vue（二维码为占位）
+│   └── index.vue             # 账号密码登录
 ├── setting/
 │   ├── index.vue
 │   └── Frontend.vue          # .vue 文件名用 PascalCase（eslint 强制）

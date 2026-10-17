@@ -151,7 +151,7 @@ export const useUserInfoStore = defineStore(
 
 | Action | 调用方 | 说明 |
 |---|---|---|
-| `loginAction(params)` | `views/login/components/LoginForm.vue` | 登录接口带 `skipAuthRedirect: true`，失败只提示不跳转 |
+| `loginAction(params)` | `views/login/index.vue` | 登录接口带 `skipAuthRedirect: true`，失败只提示不跳转 |
 | `getInfoAction()` | `router/guards.ts` 首次导航 | 失败时守卫跳 `/403?reason=fetch-failed` |
 | `isAccountSwitched()` | `router/guards.ts` | 为真时整页刷新 |
 | `logoutAction(redirect?)` | 头像菜单、异常页 | 登出接口带 `isIgnoreToast: true`，失败不阻断登出 |

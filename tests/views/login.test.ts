@@ -27,39 +27,36 @@ async function mountLogin(path: string) {
   return { wrapper, router };
 }
 
+async function fillAndSubmit(wrapper: Awaited<ReturnType<typeof mountLogin>>['wrapper'], username: string) {
+  await wrapper.find('input[placeholder="请输入账号"]').setValue(username);
+  await wrapper.find('input[type="password"]').setValue('secret');
+  await wrapper.find('.login-card__submit').trigger('click');
+  await flushPromises();
+}
+
 beforeEach(() => {
   setActivePinia(createPinia());
   loginAction.mockClear();
 });
 
 describe('登录页', () => {
-  it('展示站点标题与二维码占位图', async () => {
+  it('展示站点标题', async () => {
     const { wrapper } = await mountLogin('/login');
-    expect(wrapper.find('.logo-title').text()).toBe('Vite Vue3 App');
-    await new Promise(resolve => setTimeout(resolve, 350));
-    await flushPromises();
-    expect(wrapper.find('.qr-image').exists()).toBe(true);
+    expect(wrapper.find('.login-brand__title').text()).toBe('Vite Vue3 App');
   });
 
-  it('未勾选用户协议时不发起登录', async () => {
+  it('账号为空时不发起登录', async () => {
     const { wrapper } = await mountLogin('/login');
-    await wrapper.find('input[placeholder="请输入手机号"]').setValue('13800000000');
-    await wrapper.find('input[type="password"]').setValue('Abcd1234');
-    await wrapper.find('.login-btn').trigger('click');
-    await flushPromises();
+    await fillAndSubmit(wrapper, '');
 
     expect(loginAction).not.toHaveBeenCalled();
   });
 
   it('登录成功后回到 redirect 指向的页面', async () => {
     const { wrapper, router } = await mountLogin('/login?redirect=%2Fsetting');
-    await wrapper.find('input[placeholder="请输入手机号"]').setValue('13800000000');
-    await wrapper.find('input[type="password"]').setValue('Abcd1234');
-    await wrapper.find('.agreement-checkbox input').setValue(true);
-    await wrapper.find('.login-btn').trigger('click');
-    await flushPromises();
+    await fillAndSubmit(wrapper, 'admin');
 
-    expect(loginAction).toHaveBeenCalledWith({ username: '13800000000', password: 'Abcd1234' });
+    expect(loginAction).toHaveBeenCalledWith({ username: 'admin', password: 'secret' });
     expect(router.currentRoute.value.path).toBe('/setting');
   });
 });

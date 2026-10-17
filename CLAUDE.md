@@ -81,7 +81,7 @@
 | `src/components/Skeleton/` | 骨架屏组件 | CardSkeleton / TableSkeleton / SkeletonWrap |
 | `src/composables/useSkeleton.ts` | 骨架屏 Composable | 组件级骨架屏控制（loading/visible + 防闪烁）；**无路由级骨架屏** |
 | `src/views/[page]/components/` | 页面级组件 | 特定页面的专属组件 |
-| `src/views/login/` | 登录页 | `LoginForm.vue` 账号密码登录；`QrCodeLogin.vue` 为占位 |
+| `src/views/login/` | 登录页 | `index.vue` 单文件账号密码登录 |
 | `src/views/exception/` | 异常页 | `Forbidden.vue` 全屏 403（守卫落点、白名单）；`index.vue` 布局内兜底（403/404，保留原 URL）；共用 `components/ErrorPage` |
 | `src/router/routes/` | 路由配置 | 两层路由体系（static + async）；`declared.ts` 的 `resolveDeclaredRoutes()` 给出未按角色过滤的全量表（守卫过滤后注册、兜底页据它区分 403/404）；`fallback.ts` 兜底路由由守卫最后注册 |
 | `src/router/guards.ts` | 路由守卫 | 白名单 `/login`、`/403`；未登录跳 `/login?redirect=`；角色为空或拉取失败跳 `/403` |
