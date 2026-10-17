@@ -4,4 +4,4 @@
  */
 
 // 导出业务相关接口
-export * from './System';
+export * from './system';

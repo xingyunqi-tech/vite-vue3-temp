@@ -1,1043 +1,317 @@
+---
+name: testing
+description: 测试策略制定、测试用例编写、测试工具配置和质量保证
+tools: Read, Grep, Glob, WebFetch, WebSearch
+model: inherit
+---
+
 # 测试指导 Agent
 
 ## 职责
-专门负责测试策略制定、测试用例编写、测试工具配置和质量保证，为AI生成高质量的测试代码提供专业指导。
+测试策略制定、测试用例编写、测试工具配置和质量保证，为 AI 生成高质量测试代码提供指导。
 
-## 🎯 测试策略
+---
 
-### 1. 测试金字塔
-```
-    /\
-   /E2E\     <- 少量端到端测试
-  /______\
- /        \
-/Integration\ <- 适量集成测试
-/____________\
-/            \
-/  Unit Tests  \ <- 大量单元测试
-/________________\
-```
+## 📌 项目测试基建（先读这段）
 
-### 2. 测试分类
-- **单元测试**: 测试独立的函数、组件和模块
-- **集成测试**: 测试组件间的交互和API集成
-- **端到端测试**: 测试完整的用户流程
-- **视觉回归测试**: 测试UI的视觉一致性
+| 项 | 事实 |
+|---|---|
+| 测试框架 | Vitest 5 + jsdom + `@vue/test-utils` 2 |
+| 测试文件位置 | **只在 `tests/` 目录**（`include: ['tests/**/*.{test,spec}.*']`），不放 `src/` 下 |
+| 覆盖率 | `@vitest/coverage-v8`，**模板未设阈值**——`pnpm test:coverage` 不会因覆盖率不足而失败 |
+| 未安装 | ❌ `msw` ❌ `@testing-library/vue` ❌ `@testing-library/jest-dom` ❌ E2E 框架 |
+| 现有用例 | `tests/utils/datetime.test.ts`（1 个文件，26 个用例） |
 
-### 3. 测试原则
-- **快速反馈**: 测试应该快速执行并提供即时反馈
-- **可靠性**: 测试结果应该稳定可重复
-- **可维护性**: 测试代码应该易于理解和维护
-- **覆盖率**: 关键业务逻辑应该有充分的测试覆盖
+> 用未安装的库写测试会直接 `Cannot find module`。需要拦截 HTTP 时用 `vi.mock` 模块级 Mock，
+> 不要写 MSW。断言 DOM 用 `@vue/test-utils` 的 `wrapper.text()` / `wrapper.find()`，
+> 不要用 `toBeInTheDocument()` 这类 jest-dom 匹配器。
 
-## 🛠️ 测试工具配置
+**命令**：`pnpm test`（单次） / `test:watch` / `test:coverage` / `test:ui`
 
-### Vitest 配置
+---
+
+## 🛠️ 测试配置
+
+### vitest.config.ts —— 复用 vite.config，不要另起炉灶
+
+项目的测试配置**继承 `vite.config.ts` 的完整插件链**，这是刻意设计：
+
 ```typescript
-// vitest.config.ts
-import { defineConfig } from 'vitest/config';
-import vue from '@vitejs/plugin-vue';
-import path from 'path';
+// vitest.config.ts（项目真实实现）
+import { defineConfig, mergeConfig } from 'vitest/config';
+import viteConfig from './vite.config.ts';
 
-export default defineConfig({
-  plugins: [vue()],
-  test: {
-    // 测试环境
-    environment: 'jsdom',
-    
-    // 全局配置
-    globals: true,
-    
-    // 设置文件
-    setupFiles: ['./tests/setup.ts'],
-    
-    // 包含的测试文件
-    include: [
-      'src/**/*.{test,spec}.{js,ts,jsx,tsx}',
-      'tests/**/*.{test,spec}.{js,ts,jsx,tsx}',
-    ],
-    
-    // 排除的文件
-    exclude: [
-      'node_modules',
-      'dist',
-      'build',
-      '.nuxt',
-      'coverage',
-    ],
-    
-    // 覆盖率配置
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'coverage/**',
-        'dist/**',
-        'packages/*/test{,s}/**',
-        '**/*.d.ts',
-        'cypress/**',
-        'test{,s}/**',
-        'test{,-*}.{js,cjs,mjs,ts,tsx,jsx}',
-        '**/*{.,-}test.{js,cjs,mjs,ts,tsx,jsx}',
-        '**/*{.,-}spec.{js,cjs,mjs,ts,tsx,jsx}',
-        '**/__tests__/**',
-        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-        '**/.{eslint,mocha,prettier}rc.{js,cjs,yml}',
-      ],
-      thresholds: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
-      },
+const baseConfig = viteConfig({ mode: 'test', command: 'serve' });
+delete baseConfig.server;   // dev server 专属配置（proxy/host/CORS）对测试是死重量
+
+export default mergeConfig(
+  baseConfig,
+  defineConfig({
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+      exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+      setupFiles: ['./tests/setup.ts'],
+      server: { deps: { inline: ['element-plus'] } },  // 避免 element-plus 的 CSS 导入问题
+      coverage: { provider: 'v8', reporter: ['text', 'json', 'html'], reportsDirectory: './coverage' },
     },
-    
-    // 并发配置
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-      },
-    },
-  },
-  
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-});
-```
-
-### 测试设置文件
-```typescript
-// tests/setup.ts
-import { beforeAll, afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/vue';
-import '@testing-library/jest-dom/vitest';
-
-// 全局测试设置
-beforeAll(() => {
-  // Mock全局对象
-  Object.defineProperty(window, 'matchMedia', {
-    writable: true,
-    value: vi.fn().mockImplementation(query => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(), // deprecated
-      removeListener: vi.fn(), // deprecated
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  });
-
-  // Mock IntersectionObserver
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }));
-
-  // Mock ResizeObserver
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
-    observe: vi.fn(),
-    unobserve: vi.fn(),
-    disconnect: vi.fn(),
-  }));
-});
-
-// 每个测试后清理
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
-```
-
-## 🧪 单元测试
-
-### 工具函数测试
-```typescript
-// tests/utils/date.test.ts
-import { describe, it, expect } from 'vitest';
-import { DateUtils } from '@/utils/date';
-
-describe('DateUtils', () => {
-  describe('format', () => {
-    it('应该正确格式化日期', () => {
-      const date = new Date('2023-12-25 15:30:45');
-      const result = DateUtils.format(date, 'YYYY-MM-DD HH:mm:ss');
-      expect(result).toBe('2023-12-25 15:30:45');
-    });
-
-    it('应该使用默认格式', () => {
-      const date = new Date('2023-12-25 15:30:45');
-      const result = DateUtils.format(date);
-      expect(result).toBe('2023-12-25 15:30:45');
-    });
-
-    it('应该处理字符串日期', () => {
-      const result = DateUtils.format('2023-12-25', 'YYYY-MM-DD');
-      expect(result).toBe('2023-12-25');
-    });
-
-    it('应该处理时间戳', () => {
-      const timestamp = new Date('2023-12-25').getTime();
-      const result = DateUtils.format(timestamp, 'YYYY-MM-DD');
-      expect(result).toBe('2023-12-25');
-    });
-  });
-
-  describe('isToday', () => {
-    it('应该正确判断今天', () => {
-      const today = new Date();
-      expect(DateUtils.isToday(today)).toBe(true);
-    });
-
-    it('应该正确判断不是今天', () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      expect(DateUtils.isToday(yesterday)).toBe(false);
-    });
-  });
-
-  describe('getDateRange', () => {
-    it('应该返回正确的日期范围', () => {
-      const start = '2023-12-01';
-      const end = '2023-12-03';
-      const result = DateUtils.getDateRange(start, end);
-      
-      expect(result).toEqual([
-        '2023-12-01',
-        '2023-12-02',
-        '2023-12-03',
-      ]);
-    });
-
-    it('应该处理单天范围', () => {
-      const date = '2023-12-01';
-      const result = DateUtils.getDateRange(date, date);
-      expect(result).toEqual(['2023-12-01']);
-    });
-  });
-});
-```
-
-### Pinia Store 测试
-```typescript
-// tests/store/user.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setActivePinia, createPinia } from 'pinia';
-import { useUserStore } from '@/store/modules/user';
-import { UserApi } from '@/api/modules/user';
-import type { IUserInfo, ILoginRequest } from '@/interface';
-
-// Mock API
-vi.mock('@/api/modules/user');
-const mockedUserApi = vi.mocked(UserApi);
-
-describe('useUserStore', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-    
-    // 清理localStorage
-    localStorage.clear();
-  });
-
-  describe('初始状态', () => {
-    it('应该有正确的初始状态', () => {
-      const store = useUserStore();
-      
-      expect(store.token).toBe('');
-      expect(store.userInfo).toBeNull();
-      expect(store.permissions).toEqual([]);
-      expect(store.isLoggedIn).toBe(false);
-    });
-
-    it('应该从localStorage恢复token', () => {
-      localStorage.setItem('token', 'saved-token');
-      
-      const store = useUserStore();
-      expect(store.token).toBe('saved-token');
-      expect(store.isLoggedIn).toBe(true);
-    });
-  });
-
-  describe('login', () => {
-    it('应该成功登录并更新状态', async () => {
-      const mockUserInfo: IUserInfo = {
-        id: '1',
-        username: 'testuser',
-        email: 'test@example.com',
-        roles: ['user'],
-        status: 'active',
-        createdAt: '2023-01-01',
-        updatedAt: '2023-01-01',
-      };
-
-      const mockLoginResponse = {
-        code: 200,
-        message: '登录成功',
-        data: {
-          token: 'mock-token',
-          userInfo: mockUserInfo,
-          permissions: ['user:read'],
-        },
-      };
-
-      mockedUserApi.login.mockResolvedValueOnce(mockLoginResponse);
-
-      const store = useUserStore();
-      const credentials: ILoginRequest = {
-        username: 'testuser',
-        password: 'password123',
-      };
-
-      await store.login(credentials);
-
-      expect(store.token).toBe('mock-token');
-      expect(store.userInfo).toEqual(mockUserInfo);
-      expect(store.permissions).toEqual(['user:read']);
-      expect(store.isLoggedIn).toBe(true);
-      expect(localStorage.getItem('token')).toBe('mock-token');
-    });
-
-    it('应该在登录失败时抛出错误', async () => {
-      const error = new Error('登录失败');
-      mockedUserApi.login.mockRejectedValueOnce(error);
-
-      const store = useUserStore();
-      const credentials: ILoginRequest = {
-        username: 'testuser',
-        password: 'wrongpassword',
-      };
-
-      await expect(store.login(credentials)).rejects.toThrow('登录失败');
-      expect(store.token).toBe('');
-      expect(store.userInfo).toBeNull();
-    });
-  });
-
-  describe('logout', () => {
-    it('应该成功登出并清理状态', async () => {
-      mockedUserApi.logout.mockResolvedValueOnce({
-        code: 200,
-        message: '登出成功',
-        data: undefined,
-      });
-
-      const store = useUserStore();
-      
-      // 设置初始状态
-      store.token = 'test-token';
-      store.userInfo = {
-        id: '1',
-        username: 'testuser',
-        email: 'test@example.com',
-        roles: ['user'],
-        status: 'active',
-        createdAt: '2023-01-01',
-        updatedAt: '2023-01-01',
-      };
-      store.permissions = ['user:read'];
-      localStorage.setItem('token', 'test-token');
-
-      await store.logout();
-
-      expect(store.token).toBe('');
-      expect(store.userInfo).toBeNull();
-      expect(store.permissions).toEqual([]);
-      expect(store.isLoggedIn).toBe(false);
-      expect(localStorage.getItem('token')).toBeNull();
-    });
-
-    it('应该在API调用失败时仍然清理状态', async () => {
-      mockedUserApi.logout.mockRejectedValueOnce(new Error('网络错误'));
-
-      const store = useUserStore();
-      store.token = 'test-token';
-      localStorage.setItem('token', 'test-token');
-
-      await store.logout();
-
-      expect(store.token).toBe('');
-      expect(localStorage.getItem('token')).toBeNull();
-    });
-  });
-
-  describe('hasPermission', () => {
-    it('应该正确检查权限', () => {
-      const store = useUserStore();
-      store.permissions = ['user:read', 'user:write'];
-
-      expect(store.hasPermission('user:read')).toBe(true);
-      expect(store.hasPermission('user:write')).toBe(true);
-      expect(store.hasPermission('admin:read')).toBe(false);
-    });
-  });
-});
-```
-
-### Vue 组件测试
-```typescript
-// tests/components/BaseInput.test.ts
-import { describe, it, expect, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { ElInput, ElIcon } from 'element-plus';
-import BaseInput from '@/components/BaseInput/index.vue';
-import type { InputProps } from '@/components/BaseInput/index.vue';
-
-// Mock Element Plus 组件
-vi.mock('element-plus', () => ({
-  ElInput: { name: 'ElInput', template: '<div class="el-input"><slot /></div>' },
-  ElIcon: { name: 'ElIcon', template: '<i class="el-icon"><slot /></i>' },
-}));
-
-describe('BaseInput', () => {
-  const mockProps = {
-    modelValue: '',
-    label: '用户名',
-    placeholder: '请输入用户名',
-    type: 'text',
-    disabled: false,
-    clearable: true,
-    required: true,
-    error: '',
-  };
-
-  it('应该正确渲染组件', () => {
-    const wrapper = mount(BaseInput, {
-      props: mockProps,
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    expect(wrapper.find('label').text()).toBe('用户名');
-    expect(wrapper.find('.required').exists()).toBe(true);
-    expect(wrapper.find('input').attributes('placeholder')).toBe('请输入用户名');
-  });
-
-  it('应该正确显示错误信息', () => {
-    const wrapper = mount(BaseInput, {
-      props: {
-        ...mockProps,
-        error: '用户名不能为空',
-      },
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    expect(wrapper.find('.error-message').text()).toBe('用户名不能为空');
-    expect(wrapper.find('.error-input').exists()).toBe(true);
-  });
-
-  it('应该正确处理禁用状态', () => {
-    const wrapper = mount(BaseInput, {
-      props: {
-        ...mockProps,
-        disabled: true,
-      },
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    expect(wrapper.find('input').attributes('disabled')).toBeDefined();
-    expect(wrapper.classes()).toContain('disabled');
-  });
-
-  it('应该正确触发输入事件', async () => {
-    const wrapper = mount(BaseInput, {
-      props: mockProps,
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    await wrapper.find('input').setValue('test-user');
-
-    expect(wrapper.emitted('update:modelValue')).toBeTruthy();
-    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['test-user']);
-  });
-
-  it('应该正确处理清除功能', async () => {
-    const wrapper = mount(BaseInput, {
-      props: {
-        ...mockProps,
-        modelValue: 'test-user',
-      },
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    // 模拟点击清除按钮
-    await wrapper.find('.clear-icon').trigger('click');
-
-    expect(wrapper.emitted('update:modelValue')).toBeTruthy();
-    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['']);
-  });
-
-  it('应该正确处理密码类型', () => {
-    const wrapper = mount(BaseInput, {
-      props: {
-        ...mockProps,
-        type: 'password',
-      },
-      global: {
-        components: {
-          ElInput,
-          ElIcon,
-        },
-      },
-    });
-
-    expect(wrapper.find('input').attributes('type')).toBe('password');
-    expect(wrapper.find('.password-toggle').exists()).toBe(true);
-  });
-});
-```
-
-## 🔗 集成测试
-
-### API 集成测试
-```typescript
-// tests/integration/api.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupServer } from 'msw/node';
-import { rest } from 'msw';
-import { UserApi } from '@/api/modules/user';
-import type { IUserInfo } from '@/interface';
-
-// Mock服务器设置
-const server = setupServer(
-  // 用户登录
-  rest.post('/api/auth/login', (req, res, ctx) => {
-    const { username, password } = req.body as any;
-    
-    if (username === 'testuser' && password === 'password123') {
-      return res(
-        ctx.json({
-          code: 200,
-          message: '登录成功',
-          data: {
-            token: 'mock-token-123',
-            userInfo: {
-              id: '1',
-              username: 'testuser',
-              email: 'test@example.com',
-              roles: ['user'],
-              status: 'active',
-              createdAt: '2023-01-01T00:00:00Z',
-              updatedAt: '2023-01-01T00:00:00Z',
-            },
-            permissions: ['user:read'],
-          },
-        })
-      );
-    }
-    
-    return res(
-      ctx.status(401),
-      ctx.json({
-        code: 401,
-        message: '用户名或密码错误',
-      })
-    );
   }),
-
-  // 获取用户列表
-  rest.get('/api/users', (req, res, ctx) => {
-    const page = req.url.searchParams.get('page') || '1';
-    const pageSize = req.url.searchParams.get('pageSize') || '10';
-    
-    const mockUsers: IUserInfo[] = [
-      {
-        id: '1',
-        username: 'user1',
-        email: 'user1@example.com',
-        roles: ['user'],
-        status: 'active',
-        createdAt: '2023-01-01T00:00:00Z',
-        updatedAt: '2023-01-01T00:00:00Z',
-      },
-      {
-        id: '2',
-        username: 'user2',
-        email: 'user2@example.com',
-        roles: ['admin'],
-        status: 'active',
-        createdAt: '2023-01-02T00:00:00Z',
-        updatedAt: '2023-01-02T00:00:00Z',
-      },
-    ];
-
-    return res(
-      ctx.json({
-        code: 200,
-        message: '获取成功',
-        data: mockUsers,
-        total: 2,
-        current: parseInt(page),
-        pageSize: parseInt(pageSize),
-        pages: 1,
-      })
-    );
-  }),
-
-  // 创建用户
-  rest.post('/api/users', (req, res, ctx) => {
-    const userData = req.body as any;
-    
-    return res(
-      ctx.json({
-        code: 200,
-        message: '创建成功',
-        data: {
-          id: '3',
-          ...userData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      })
-    );
-  })
 );
-
-describe('API Integration Tests', () => {
-  beforeAll(() => {
-    server.listen();
-  });
-
-  afterAll(() => {
-    server.close();
-  });
-
-  describe('UserApi', () => {
-    it('应该成功登录', async () => {
-      const result = await UserApi.login({
-        username: 'testuser',
-        password: 'password123',
-      });
-
-      expect(result.code).toBe(200);
-      expect(result.data.token).toBe('mock-token-123');
-      expect(result.data.userInfo.username).toBe('testuser');
-    });
-
-    it('应该在错误凭据时返回401', async () => {
-      await expect(
-        UserApi.login({
-          username: 'testuser',
-          password: 'wrongpassword',
-        })
-      ).rejects.toThrow();
-    });
-
-    it('应该获取用户列表', async () => {
-      const result = await UserApi.getUserList({
-        page: 1,
-        pageSize: 10,
-      });
-
-      expect(result.code).toBe(200);
-      expect(result.data).toHaveLength(2);
-      expect(result.total).toBe(2);
-    });
-
-    it('应该创建新用户', async () => {
-      const newUser = {
-        username: 'newuser',
-        email: 'newuser@example.com',
-        password: 'password123',
-        roles: ['user'],
-      };
-
-      const result = await UserApi.createUser(newUser);
-
-      expect(result.code).toBe(200);
-      expect(result.data.username).toBe('newuser');
-      expect(result.data.id).toBe('3');
-    });
-  });
-});
 ```
 
-### 组件集成测试
+⚠️ **不要改写成独立的 `defineConfig({ plugins: [vue()] })`**。那样会丢掉：
+
+- UnoCSS（原子类不生效）
+- `unplugin-vue-components` 自动注册（Element Plus 组件解析不到，`el-button` 变成未知标签）
+- `vite-plugin-svg-icons` 的 `virtual:svg-icons-register`（SvgIcon 报虚拟模块找不到）
+- 路径别名 `@`
+
+⚠️ `vite.config.ts` 的默认导出必须保持**同步函数**。改成 `async` 后 `baseConfig` 会变成 Promise，
+`delete` 静默失效、`mergeConfig` 合出错配置，且全程不报错。
+
+### 覆盖率阈值（需要时才加）
+
 ```typescript
-// tests/integration/user-management.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
-import { ElMessage } from 'element-plus';
-import UserManagement from '@/views/UserManagement/index.vue';
-import { UserApi } from '@/api/modules/user';
-
-// Mock API
-vi.mock('@/api/modules/user');
-const mockedUserApi = vi.mocked(UserApi);
-
-// Mock Element Plus Message
-vi.mock('element-plus', async () => {
-  const actual = await vi.importActual('element-plus');
-  return {
-    ...actual,
-    ElMessage: {
-      success: vi.fn(),
-      error: vi.fn(),
-      warning: vi.fn(),
-      info: vi.fn(),
-    },
-  };
-});
-
-describe('UserManagement Integration', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-  });
-
-  it('应该正确加载和显示用户列表', async () => {
-    const mockUsers = [
-      {
-        id: '1',
-        username: 'user1',
-        email: 'user1@example.com',
-        roles: ['user'],
-        status: 'active' as const,
-        createdAt: '2023-01-01T00:00:00Z',
-        updatedAt: '2023-01-01T00:00:00Z',
-      },
-    ];
-
-    mockedUserApi.getUserList.mockResolvedValueOnce({
-      code: 200,
-      message: '获取成功',
-      data: mockUsers,
-      total: 1,
-      current: 1,
-      pageSize: 10,
-      pages: 1,
-    });
-
-    const wrapper = mount(UserManagement, {
-      global: {
-        plugins: [createPinia()],
-      },
-    });
-
-    // 等待组件加载完成
-    await wrapper.vm.$nextTick();
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    expect(mockedUserApi.getUserList).toHaveBeenCalled();
-    expect(wrapper.text()).toContain('user1');
-  });
-
-  it('应该处理用户删除操作', async () => {
-    const mockUsers = [
-      {
-        id: '1',
-        username: 'user1',
-        email: 'user1@example.com',
-        roles: ['user'],
-        status: 'active' as const,
-        createdAt: '2023-01-01T00:00:00Z',
-        updatedAt: '2023-01-01T00:00:00Z',
-      },
-    ];
-
-    // Mock初始加载
-    mockedUserApi.getUserList.mockResolvedValueOnce({
-      code: 200,
-      message: '获取成功',
-      data: mockUsers,
-      total: 1,
-      current: 1,
-      pageSize: 10,
-      pages: 1,
-    });
-
-    // Mock删除操作
-    mockedUserApi.deleteUser.mockResolvedValueOnce({
-      code: 200,
-      message: '删除成功',
-      data: undefined,
-    });
-
-    // Mock删除后重新加载
-    mockedUserApi.getUserList.mockResolvedValueOnce({
-      code: 200,
-      message: '获取成功',
-      data: [],
-      total: 0,
-      current: 1,
-      pageSize: 10,
-      pages: 0,
-    });
-
-    const wrapper = mount(UserManagement, {
-      global: {
-        plugins: [createPinia()],
-      },
-    });
-
-    // 等待初始加载
-    await wrapper.vm.$nextTick();
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // 模拟删除操作
-    const deleteButton = wrapper.find('[data-testid="delete-user-1"]');
-    await deleteButton.trigger('click');
-
-    // 确认删除
-    const confirmButton = wrapper.find('[data-testid="confirm-delete"]');
-    await confirmButton.trigger('click');
-
-    expect(mockedUserApi.deleteUser).toHaveBeenCalledWith('1');
-    expect(ElMessage.success).toHaveBeenCalledWith('删除成功');
-  });
-});
-```
-## 📊 测试覆盖率和质量
-
-### 覆盖率配置
-```typescript
-// vitest.config.ts 中的覆盖率配置
-export default defineConfig({
-  test: {
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      
-      // 覆盖率阈值
-      thresholds: {
-        global: {
-          branches: 80,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
-        // 特定文件的阈值
-        'src/utils/': {
-          branches: 90,
-          functions: 90,
-          lines: 90,
-          statements: 90,
-        },
-        'src/api/': {
-          branches: 85,
-          functions: 85,
-          lines: 85,
-          statements: 85,
-        },
-      },
-      
-      // 排除文件
-      exclude: [
-        'coverage/**',
-        'dist/**',
-        '**/*.d.ts',
-        'src/main.ts',
-        'src/App.vue',
-        '**/*.config.*',
-        '**/mock/**',
-      ],
-    },
-  },
-});
-```
-
-### 测试质量检查
-```typescript
-// tests/utils/test-quality.ts
-
-/**
- * 测试质量检查工具
- */
-export class TestQualityChecker {
-  /**
-   * 检查测试文件命名规范
-   */
-  static checkTestFileNaming(filePath: string): boolean {
-    const validPatterns = [
-      /\.test\.(js|ts|jsx|tsx)$/,
-      /\.spec\.(js|ts|jsx|tsx)$/,
-    ];
-    
-    return validPatterns.some(pattern => pattern.test(filePath));
-  }
-
-  /**
-   * 检查测试用例描述质量
-   */
-  static checkTestDescription(description: string): {
-    valid: boolean;
-    issues: string[];
-  } {
-    const issues: string[] = [];
-    
-    // 检查长度
-    if (description.length < 10) {
-      issues.push('测试描述过短，应该清楚说明测试内容');
-    }
-    
-    if (description.length > 100) {
-      issues.push('测试描述过长，应该简洁明了');
-    }
-    
-    // 检查是否使用"应该"开头
-    if (!description.startsWith('应该')) {
-      issues.push('测试描述应该以"应该"开头，明确期望行为');
-    }
-    
-    // 检查是否包含动词
-    const hasAction = /应该.*?(能够|正确|成功|失败|返回|抛出|显示|隐藏)/.test(description);
-    if (!hasAction) {
-      issues.push('测试描述应该包含明确的动作词');
-    }
-    
-    return {
-      valid: issues.length === 0,
-      issues,
-    };
-  }
-
-  /**
-   * 检查测试用例结构
-   */
-  static checkTestStructure(testCode: string): {
-    valid: boolean;
-    issues: string[];
-  } {
-    const issues: string[] = [];
-    
-    // 检查是否有Arrange-Act-Assert结构
-    const hasArrange = /\/\/ Arrange|\/\/ 准备/.test(testCode);
-    const hasAct = /\/\/ Act|\/\/ 执行/.test(testCode);
-    const hasAssert = /expect\(/.test(testCode);
-    
-    if (!hasAssert) {
-      issues.push('测试用例缺少断言');
-    }
-    
-    // 检查是否有过多的断言
-    const assertCount = (testCode.match(/expect\(/g) || []).length;
-    if (assertCount > 5) {
-      issues.push('单个测试用例断言过多，建议拆分');
-    }
-    
-    return {
-      valid: issues.length === 0,
-      issues,
-    };
-  }
+coverage: {
+  provider: 'v8',
+  // ⚠️ thresholds 必须【扁平】写。套 `global: {...}` 在 Vitest 1+ 会被当成 glob
+  //    文件模式去匹配（匹配不到任何文件），阈值静默失效、永远"通过"。
+  thresholds: { branches: 80, functions: 80, lines: 80, statements: 80 },
+  // ⚠️ 不配 include 时，只统计"被测试导入过的文件"，未测文件不计入，数字虚高。
+  include: ['src/**/*.{ts,vue}'],
 }
 ```
 
-## 📋 测试最佳实践
+### tests/setup.ts 已做的事
 
-### 1. 测试命名规范
+已全局 Mock：`matchMedia`、`ResizeObserver`、`IntersectionObserver`、`localStorage`。**不需要在单测里重复 Mock 这些**。
+未处理的 Promise rejection 会被 Vitest 报错，预期内的失败请在测试里自行 `catch` 或 `await expect(...).rejects`。
+
+Element Plus 组件由 `unplugin-vue-components` 在 SFC 编译期自动注册，
+**不需要** `config.global.stubs` 逐个打桩；个别测试想屏蔽重组件时在该测试内局部 `stubs` 即可。
+
+---
+
+## 🧪 单元测试
+
+### 工具函数（最该优先覆盖）
+
 ```typescript
-// ✅ 好的测试命名
-describe('UserService', () => {
-  describe('createUser', () => {
-    it('应该成功创建用户并返回用户信息', () => {});
-    it('应该在邮箱已存在时抛出错误', () => {});
-    it('应该在密码强度不足时抛出错误', () => {});
+// tests/utils/datetime.test.ts —— 项目现有用例，可作为范式
+import { describe, it, expect } from 'vitest';
+import { formatDate, formatDateShort, formatDateTime } from '@/utils/datetime';
+
+describe('Date Utils', () => {
+  describe('formatDateShort', () => {
+    it('应该正确格式化日期为 YYYY-MM-DD', () => {
+      expect(formatDateShort('2023-12-25T15:30:45')).toBe('2023-12-25');
+    });
+
+    it('应该处理空值返回 -', () => {
+      expect(formatDateShort(undefined)).toBe('-');
+    });
+  });
+
+  describe('formatDate', () => {
+    it('应该支持 Date 对象输入', () => {
+      expect(formatDate(new Date('2024-01-15T13:45:30'), 'YYYY-MM-DD')).toBe('2024-01-15');
+    });
   });
 });
-
-// ❌ 不好的测试命名
-describe('UserService', () => {
-  it('test1', () => {});
-  it('creates user', () => {});
-  it('error case', () => {});
-});
 ```
 
-### 2. 测试数据管理
+### Pinia Store
+
+本项目的用户 Store 由 **SSO + Cookie** 驱动，没有用户名密码登录：
+
+- `token` 是 **computed**（读 Cookie），**只读**——`store.token = 'x'` 会抛错
+- 真实 action：`getInfoAction()` / `fetchUserRole()` / `logoutAction()` / `setUserInfo()`
+- **不存在** `login()` / `loginAction()` / `fetchUserInfo()`
+
 ```typescript
-// tests/fixtures/user.ts
-export const createMockUser = (overrides: Partial<IUserInfo> = {}): IUserInfo => ({
-  id: '1',
-  username: 'testuser',
-  email: 'test@example.com',
-  roles: ['user'],
-  status: 'active',
-  createdAt: '2023-01-01T00:00:00Z',
-  updatedAt: '2023-01-01T00:00:00Z',
-  ...overrides,
-});
+// tests/store/user-info.test.ts
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { setActivePinia, createPinia } from 'pinia';
+import { useUserInfoStore } from '@/store/modules/user-info';
+import { ROLES } from '@/constants';
 
-export const createMockUsers = (count: number): IUserInfo[] => {
-  return Array.from({ length: count }, (_, index) =>
-    createMockUser({
-      id: `${index + 1}`,
-      username: `user${index + 1}`,
-      email: `user${index + 1}@example.com`,
-    })
-  );
-};
+// token 来自 Cookie，Mock 掉 kit 的 getToken
+vi.mock('@zhs/agent-course-kit', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  getToken: vi.fn(() => 'mock-token'),
+}));
+// 角色来自接口
+vi.mock('@/api/modules/platform', () => ({
+  getCurrentUserIdentity: vi.fn(),
+}));
+
+import { getCurrentUserIdentity } from '@/api/modules/platform';
+
+describe('useUserInfoStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  it('token 存在时 isLoggedIn 为 true', () => {
+    const store = useUserInfoStore();
+    expect(store.isLoggedIn).toBe(true);
+  });
+
+  it('fetchUserRole 应把 identityType 映射为大写角色常量', async () => {
+    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([{ identityType: 1 }]);
+
+    const store = useUserInfoStore();
+    const role = await store.fetchUserRole();
+
+    expect(role).toBe(ROLES.TEACHER);      // 'TEACHER'，注意是大写
+    expect(store.info.role).toBe(ROLES.TEACHER);
+  });
+
+  it('身份都不匹配时应返回空角色，不得向高权限兜底', async () => {
+    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([]);
+
+    const store = useUserInfoStore();
+    expect(await store.fetchUserRole()).toBe('');   // 路由守卫依赖这个空值拦截到 403
+  });
+
+  it('getInfoAction 在 Cookie 缺失时应抛错', async () => {
+    const store = useUserInfoStore();
+    await expect(store.getInfoAction()).rejects.toThrow();
+  });
+});
 ```
 
-### 3. 异步测试处理
+### Vue 组件
+
 ```typescript
-// ✅ 正确的异步测试
-it('应该正确处理异步操作', async () => {
-  const promise = UserApi.getUserList();
-  
-  // 等待Promise完成
-  const result = await promise;
-  
-  expect(result.code).toBe(200);
-});
+// tests/components/UserCard.test.ts
+import { describe, it, expect } from 'vitest';
+import { mount } from '@vue/test-utils';
+import UserCard from '@/components/UserCard/index.vue';
 
-// ✅ 测试Promise拒绝
-it('应该正确处理Promise拒绝', async () => {
-  mockedApi.getUserList.mockRejectedValueOnce(new Error('网络错误'));
-  
-  await expect(UserApi.getUserList()).rejects.toThrow('网络错误');
+describe('UserCard', () => {
+  it('应该渲染传入的用户名', () => {
+    const wrapper = mount(UserCard, { props: { name: '张三', role: 'TEACHER' } });
+    expect(wrapper.text()).toContain('张三');
+  });
+
+  it('点击应该 emit delete 事件并带上 id', async () => {
+    const wrapper = mount(UserCard, { props: { id: 'u1', name: '张三' } });
+    await wrapper.find('[data-testid="delete"]').trigger('click');
+
+    expect(wrapper.emitted('delete')?.[0]).toEqual(['u1']);
+  });
 });
 ```
 
-### 4. Mock 使用规范
+需要 Pinia 时：`mount(Comp, { global: { plugins: [createPinia()] } })`，
+且 `setActivePinia` 与 `plugins` 用**同一个** pinia 实例，否则组件内取到的是另一个 store。
+
+---
+
+## 🔗 Mock 策略
+
+### Mock API 模块
+
+项目 API 有两个来源，Mock 的目标路径不同：
+
 ```typescript
-// ✅ 正确的Mock使用
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+// ① 手写模块（src/api/modules/*）—— 直接 mock 该模块
+vi.mock('@/api/modules/platform', () => ({
+  getCurrentUserIdentity: vi.fn(),
+  getUserRoleDetail: vi.fn(),
+}));
 
-it('应该调用API并处理响应', async () => {
-  const mockResponse = { code: 200, data: [] };
-  mockedApi.getUserList.mockResolvedValueOnce(mockResponse);
-  
-  const result = await service.getUsers();
-  
-  expect(mockedApi.getUserList).toHaveBeenCalledWith({ page: 1 });
-  expect(result).toEqual([]);
+// ② Orval 生成的函数 —— mock generated 下的真实模块路径。
+//    因为 @/api 只是 re-export，mock 底层模块后从 @/api 导入拿到的也是 mock 版本。
+vi.mock('@/api/generated/auth/auth', () => ({ postAuthLogin: vi.fn() }));
+```
+
+> `src/api/generated/` 要跑过 `pnpm orval` 才存在。模板状态下针对它写的测试会 `Cannot find module`。
+
+### Mock Element Plus 消息
+
+```typescript
+vi.mock('element-plus', async importOriginal => ({
+  ...(await importOriginal<object>()),
+  ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+}));
+```
+
+### 测试错误处理
+
+API 错误由 `ErrorModule` 统一处理（弹提示、401 调 `jumpToLogin()` 整体跳 SSO）。
+项目**没有本地 `/login` 路由**，不要断言 `router.push('/login')`：
+
+```typescript
+vi.mock('@/utils/auth', () => ({ jumpToLogin: vi.fn() }));
+import { jumpToLogin } from '@/utils/auth';
+
+it('401 应跳转 SSO 登录', async () => {
+  mockedApi.getUserList.mockRejectedValueOnce({ response: { status: 401 } });
+  await service.fetchUsers();
+  expect(jumpToLogin).toHaveBeenCalled();
 });
 ```
 
-通过遵循这些测试规范和最佳实践，可以构建出高质量、可维护的测试套件，确保代码质量和系统稳定性。
+---
+
+## 📋 测试最佳实践
+
+### 命名规范
+
+```typescript
+describe('模块名称', () => {
+  describe('功能分组', () => {
+    it('应该 + 期望行为', () => {});      // ✅
+    it('test1', () => {});                // ❌
+  });
+});
+```
+
+### AAA 模式
+
+```typescript
+it('应该正确计算总价', () => {
+  const items = [{ price: 10 }, { price: 20 }];   // Arrange
+  const total = calculateTotal(items);            // Act
+  expect(total).toBe(30);                         // Assert
+});
+```
+
+### 测试隔离
+
+- `beforeEach` 里 `setActivePinia(createPinia())` + `vi.clearAllMocks()`
+- Setup 语法的 Store **不支持 `$reset()`**，靠重建 pinia 实例来重置
+- 需要重新求值模块级副作用时用 `vi.resetModules()` + `vi.doMock()` + 动态 `import()`
+
+### 异步与拒绝
+
+```typescript
+await expect(fn()).rejects.toThrow('错误');
+await expect(fn()).resolves.toEqual({ ok: true });
+```
+
+---
+
+## 🎯 优先测什么
+
+模板只带一个示例测试，按收益排序补充：
+
+1. **`src/utils/`** —— 纯函数，成本最低收益最高
+2. **`src/store/modules/`** —— 角色映射、权限过滤这类逻辑错了会导致越权
+3. **`src/api/modules/`** —— 请求参数拼装、响应解包
+4. **组件** —— 只测有分支逻辑的，纯展示组件不值得测
+
+不必追求覆盖率数字：`permission.ts` 的 `filterRoutesByRoles` 一个函数的价值，
+远高于给十个纯展示组件补渲染快照。
+
+---
+
+## 📚 相关文档
+
+- [tests/README.md](../../tests/README.md) - 测试目录说明
+- [store-development.md](store-development.md) - Store 真实结构
+- [api-development.md](api-development.md) - API 分层与导入规范

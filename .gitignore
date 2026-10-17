@@ -6,16 +6,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.pnpm-store
 
 # node_modules
 node_modules
 
-# dist
+# dist / 构建分析报告（pnpm analyzer）
 dist
+reports
 coverage
 
 # env
 *.local
+.env
+
+typings/components.d.ts
+
+# Claude Code 个人本地配置
+.claude/settings.local.json
 
 # Editor directories and files
 .idea
@@ -28,9 +36,14 @@ coverage
 
 #lockfile
 package-lock.json
-pnpm-lock.yaml
+# pnpm-lock.yaml
 yarn.lock
 
 # tar
 *.tar
 *.tar.gz
+node_build_info.sh
+version.html
+
+# subagent-driven-development 临时协调文件（任务简报/评审报告/进度台账，非项目产物）
+.superpowers/

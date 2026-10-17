@@ -12,9 +12,6 @@
       "command": "npx",
       "args": ["@eslint/mcp@latest"]
     },
-    "vue-mcp": {
-      "url": "http://localhost:4326/__mcp/sse"
-    },
     "chrome-devtools": {
       "command": "npx",
       "args": ["-y", "chrome-devtools-mcp@latest"]

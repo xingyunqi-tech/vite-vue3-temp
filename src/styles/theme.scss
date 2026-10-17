@@ -1,0 +1,53 @@
+/**
+ * 项目对设计变量的覆盖层
+ *
+ * --polymas-* 的完整定义见 public/assets/polymas.css（由 index.html 引入）。
+ * 本文件只写与之不同的那一个，以及把 Element 的变量桥接到设计变量上。
+ */
+
+// Element 主色阶梯。
+// Element 只让我们改 --el-color-primary，light-3/5/7/8/9 与 dark-2 仍是它内置
+// #409eff 派生的固定值；不一起改就会「主色变了，但按钮 hover / plain / 禁用态、
+// tag 浅底、menu 选中底还是原生蓝」。
+// 复刻 Element 自己的算法 mix(背景色, 主色, N*10%)：背景色取 --el-bg-color
+// （浅色 #fff / 暗色 #141414），明暗自动适配。
+// 用 color-mix 而非 JS 计算，是为了让它直接跟随 --aix-colorPrimary——
+// 设置页在运行时改写该变量时，整条阶梯自动跟上，无需任何桥接代码。
+// 明暗两侧各 @include 一次，理由见暗色区块。
+@mixin el-primary-scale {
+  --el-color-primary: var(--polymas-color-theme);
+
+  @each $level in (3, 5, 7, 8, 9) {
+    --el-color-primary-light-#{$level}: color-mix(in srgb, var(--el-bg-color) #{$level * 10%}, var(--aix-colorPrimary));
+  }
+}
+
+// 双写 :root 把特异度提到 0,2,0：element-plus 的 base.css 也在 :root 上定义
+// --el-color-primary 等变量，且它在产物中的位置不固定。
+:root:root {
+  // 主题色
+  --polymas-color-theme: var(--aix-colorPrimary);
+
+  /** 业务规范变量 **/
+  // 重置element主题色
+  --el-color-success: var(--polymas-color-success);
+  --el-color-warning: var(--polymas-color-warning);
+  --el-color-danger: var(--polymas-color-danger);
+
+  @include el-primary-scale;
+
+  --el-color-primary-dark-2: color-mix(in sRGB, var(--el-color-black) 20%, var(--aix-colorPrimary));
+
+  color: var(--polymas-color-text-title);
+}
+
+// 暗色侧必须把整条主色阶梯再写一遍：element-plus 的 dark/css-vars.css 在 `html.dark`
+// （特异度 0,1,1）用静态 hex 重定义了 --el-color-primary 与 light-3/5/7/8/9，压过 :root 的 0,1,0。
+// 两条选择器都写成 0,2,0 才稳定压住它——`.dark` 单独只有 0,1,0，会被 `html.dark` 反超。
+// dark-2 的混合方向明暗相反（这侧向白混合），故不进 mixin，两侧各写一次。
+:root[data-theme='dark'],
+:root.dark {
+  @include el-primary-scale;
+
+  --el-color-primary-dark-2: color-mix(in sRGB, var(--el-color-white) 20%, var(--aix-colorPrimary));
+}

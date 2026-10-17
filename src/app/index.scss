@@ -1,7 +1,5 @@
+// 全局样式的唯一入口（由 App.vue 载入）：多一条引用链产物里就多一份。
+// 顺序即层叠顺序：reset → 项目基础样式与主题变量 → Element 覆盖。
+@use 'normalize.css';
 @use '../styles/index';
-
-// 重置样式
-@import 'normalize.css';
-
-// tailwind
-@import '../styles/tailwind.css';
+@use '../styles/element';

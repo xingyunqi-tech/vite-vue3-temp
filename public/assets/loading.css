@@ -1,0 +1,86 @@
+/**
+ * 与 Element Plus el-loading 全屏样式对齐，供 index.html 在 JS 未执行前展示。
+ * 变量与 node_modules/element-plus/theme-chalk/el-var.css、el-loading.css 保持一致。
+ *
+ * 主色取自 theme.css 的 --aix-colorPrimary（index.html 里 theme.css 先于本文件引入），
+ * 这样品牌色只有 BRAND_PRIMARY 一个来源，改完跑 genThemeCss 首屏转圈会自动跟上。
+ *
+ * 遮罩底色保持固定浅色：本文件在 JS 执行前生效，那时 data-theme 尚未写入，
+ * 引用随主题翻转的变量也只会解析到浅色一侧。
+ */
+:root {
+  --el-color-primary: var(--aix-colorPrimary);
+  --el-mask-color: rgb(255 255 255 / 0.9);
+  --el-transition-duration: 0.3s;
+  --el-loading-spinner-size: 42px;
+  --el-loading-fullscreen-spinner-size: 50px;
+}
+
+.el-loading-mask {
+  position: absolute;
+  z-index: 2000;
+  inset: 0;
+  margin: 0;
+  transition: opacity var(--el-transition-duration);
+  background-color: var(--el-mask-color);
+}
+
+.el-loading-mask.is-fullscreen {
+  position: fixed;
+}
+
+.el-loading-mask.is-fullscreen .el-loading-spinner {
+  margin-top: calc((0px - var(--el-loading-fullscreen-spinner-size)) / 2);
+}
+
+.el-loading-mask.is-fullscreen .el-loading-spinner .circular {
+  width: var(--el-loading-fullscreen-spinner-size);
+  height: var(--el-loading-fullscreen-spinner-size);
+}
+
+.el-loading-spinner {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  margin-top: calc((0px - var(--el-loading-spinner-size)) / 2);
+  text-align: center;
+}
+
+.el-loading-spinner .circular {
+  display: inline;
+  width: var(--el-loading-spinner-size);
+  height: var(--el-loading-spinner-size);
+  animation: loading-rotate 2s linear infinite;
+}
+
+.el-loading-spinner .path {
+  animation: loading-dash 1.5s ease-in-out infinite;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 90, 150;
+  stroke-dashoffset: 0;
+  stroke: var(--el-color-primary);
+}
+
+@keyframes loading-rotate {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes loading-dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -40px;
+  }
+
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -120px;
+  }
+}

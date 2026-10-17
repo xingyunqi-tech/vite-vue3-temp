@@ -16,11 +16,10 @@
 
     /* Linting */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "types": ["vitest", "vitest/globals"]
+    // 本 project 覆盖 config/ 与 scripts/（Node 环境脚本），不含测试文件。
+    "types": ["node", "vite/client"]
   },
-  "include": ["config", "scripts", "vite.config.ts", "package.json"]
+  "include": ["config", "scripts", "*.config.ts", "package.json"]
 }

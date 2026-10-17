@@ -2,45 +2,42 @@ import fs from 'fs';
 import chalk from 'chalk';
 import { glob } from 'glob';
 
-// 忽略的文件或目录
-const ignorePatterns: (string | RegExp)[] = [
-  'node_modules/**',
-  'dist/**',
-  'build/**',
+// 忽略的文件或目录（检测目标聚焦业务组件/视图样式，排除变量定义源、配置层与三方产物）
+const ignorePatterns: string[] = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/build/**',
   'public/**',
-  'deploy/**',
-  '*.css',
+  'scripts/**', // 构建脚本（如主题导出）允许定义 seed 品牌色等源头颜色
+  'src/constants/**', // 常量/配置层允许定义颜色默认值（如 site-config schema 默认值）
+  'src/styles/theme.scss', // CSS 变量定义源头：品牌色以 hex 字面量定义为变量是其职责
+  'src/styles/element.scss', // Element 设计系统覆盖层
+  'src/assets/**', // 第三方/生成产物（iconfont 等）
+  'tests/**', // 测试需要颜色字面量作为输入与断言
+  '**/*.css', // .css 视为三方/生成产物，业务样式统一用 .scss/.vue
 ];
 
 // 颜色模式检测
-const colorPattern = /#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\([^)]+\)/g;
+// hex 只认 3/4/6/8 位，且后面不能再跟标识符字符——否则 `#default` 这类插槽简写会被截成 `#defa`
+const colorPattern =
+  /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![0-9a-zA-Z_-])|\b(?:rgb|rgba|hsl|hsla)\([^)]+\)/g;
 
 // 主函数
 async function checkCssVars() {
   try {
     // 查找所有样式文件和 JavaScript/TypeScript 文件
-    const files = glob.sync('**/*.{css,scss,less,js,ts,jsx,tsx}', {
-      ignore: ignorePatterns.map(pattern =>
-        pattern instanceof RegExp
-          ? pattern.source.replace(/^\/|\/$/g, '')
-          : !pattern.includes('*')
-            ? `${pattern}/**`
-            : pattern,
-      ),
+    const files = glob.sync('**/*.{css,scss,less,js,ts,jsx,tsx,vue}', {
+      ignore: ignorePatterns,
       nodir: true,
     });
 
     const fileIssues = files.reduce(
       (acc, file) => {
         const content = fs.readFileSync(file, 'utf-8');
-        const matches = content.matchAll(colorPattern);
-        const issues = Array.from(matches)
-          .filter(match => !isColorInComment(content, match[0]))
-          .map(match => ({
-            value: match[0],
-            line: getLineAndColumn(content, match[0]).line,
-            column: getLineAndColumn(content, match[0]).column,
-          }));
+        const issues = Array.from(content.matchAll(colorPattern))
+          .map(match => ({ value: match[0], ...locate(content, match.index ?? 0) }))
+          .filter(({ lineText, column }) => !isColorInComment(lineText, column))
+          .map(({ value, line, column }) => ({ value, line, column }));
 
         if (issues.length) acc.push({ file, issues });
         return acc;
@@ -71,39 +68,38 @@ async function checkCssVars() {
   }
 }
 
-// 注释检查逻辑
-function isColorInComment(content: string, match: string): boolean {
-  const lines = content.split('\n');
-  const line = lines.find(line => line.includes(match)) || '';
-  const trimmedLine = line.trim();
+/** 注释检查逻辑：整行注释，或注释起始符排在颜色之前 */
+function isColorInComment(lineText: string, column: number): boolean {
+  const trimmedLine = lineText.trim();
 
-  if (trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine.startsWith('*')) {
+  if (
+    trimmedLine.startsWith('//') ||
+    trimmedLine.startsWith('/*') ||
+    trimmedLine.startsWith('*') ||
+    trimmedLine.startsWith('<!--')
+  ) {
     return true;
   }
 
-  const matchIndex = line.indexOf(match);
-  const commentIndex = Math.min(
-    line.indexOf('//') === -1 ? Infinity : line.indexOf('//'),
-    line.indexOf('/*') === -1 ? Infinity : line.indexOf('/*'),
-  );
+  const starts = ['//', '/*', '<!--']
+    .map(mark => lineText.indexOf(mark))
+    .filter(index => index !== -1)
+    .map(index => index + 1); // 转换为 1-based，与 column 同一坐标系
 
-  return commentIndex !== Infinity && matchIndex > commentIndex;
+  return starts.length > 0 && column > Math.min(...starts);
 }
 
-// 获取颜色值所在的行号和列号
-function getLineAndColumn(content: string, match: string): { line: number; column: number } {
-  const lines = content.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    const lineContent = lines[i];
-    const column = lineContent.indexOf(match);
-    if (column !== -1) {
-      return {
-        line: i + 1,
-        column: column + 1, // 转换为1-based索引
-      };
-    }
-  }
-  return { line: 0, column: 0 };
+/** 按字符下标定位行号、列号（均为 1-based）并取出所在行原文 */
+function locate(content: string, index: number): { line: number; column: number; lineText: string } {
+  const before = content.slice(0, index);
+  const lineStart = before.lastIndexOf('\n') + 1;
+  const lineEnd = content.indexOf('\n', index);
+
+  return {
+    line: before.split('\n').length,
+    column: index - lineStart + 1,
+    lineText: content.slice(lineStart, lineEnd === -1 ? content.length : lineEnd),
+  };
 }
 
 checkCssVars();

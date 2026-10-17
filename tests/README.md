@@ -2,276 +2,278 @@
 
 ## 📋 概述
 
-本项目使用 Vitest + Vue Test Utils 进行单元测试和集成测试，提供完整的测试环境配置和工具函数。
+本项目使用 Vitest 进行单元测试和集成测试，专注于核心逻辑层（Utils、Store、API）的测试覆盖。
 
 ## 🛠️ 测试技术栈
 
-- **测试框架**: [Vitest](https://vitest.dev/) - 快速的 Vite 原生测试框架
-- **Vue测试工具**: [@vue/test-utils](https://test-utils.vuejs.org/) - Vue 3 官方测试工具
-- **测试环境**: [jsdom](https://github.com/jsdom/jsdom) - 浏览器环境模拟
-- **覆盖率工具**: [@vitest/coverage-v8](https://vitest.dev/guide/coverage.html) - V8 覆盖率报告
-- **UI界面**: [@vitest/ui](https://vitest.dev/guide/ui.html) - 可视化测试界面
+- **测试框架**: [Vitest](https://vitest.dev/) 5.x
+- **Vue 测试工具**: [@vue/test-utils](https://test-utils.vuejs.org/) 2.x
+- **测试环境**: [jsdom](https://github.com/jsdom/jsdom)
+- **覆盖率工具**: [@vitest/coverage-v8](https://vitest.dev/guide/coverage.html)
+- **UI 界面**: [@vitest/ui](https://vitest.dev/guide/ui.html)
+
+> ⚠️ **未安装**：`msw`、`@testing-library/vue`、`@testing-library/jest-dom`，以及任何 E2E 框架。
+> 需要拦截 HTTP 时用 `vi.mock` 做模块级 Mock；断言 DOM 用 `@vue/test-utils` 的
+> `wrapper.text()` / `wrapper.find()`，不要用 `toBeInTheDocument()` 这类 jest-dom 匹配器。
 
 ## 🚀 快速开始
 
-### 安装依赖
 ```bash
-npm install
-```
-
-### 运行测试
-```bash
-# 运行所有测试
-npm run test
-
-# 监听模式运行测试
-npm run test:watch
-
-# 生成覆盖率报告
-npm run test:coverage
-
-# 打开可视化测试界面
-npm run test:ui
+pnpm test            # 运行所有测试（单次）
+pnpm test:watch      # 监听模式
+pnpm test:coverage   # 生成覆盖率报告
+pnpm test:ui         # 可视化界面
 ```
 
 ## 📁 目录结构
 
+测试文件**只放 `tests/` 目录**（`include: ['tests/**/*.{test,spec}.*']`），不放在 `src/` 下。
+目录结构镜像 `src/`：
+
+模板只带四份示例测试，每份对应一种写法：
+
 ```
 tests/
-├── README.md                 # 测试指南文档
-├── setup.ts                  # 测试环境设置
-├── utils/
-│   └── test-helpers.ts       # 测试工具函数
-├── components/               # 组件测试
-│   └── LoginInput.test.ts
-├── utils/                    # 工具函数测试
-└── api/                      # API测试
+├── README.md                      # 本文档
+├── setup.ts                       # 测试环境设置（全局 Mock）
+├── directives/
+│   └── role.test.ts               # 自定义指令 + DOM 断言
+├── router/
+│   └── redirect.test.ts           # 纯函数（含开放重定向防护）
+├── store/
+│   └── permission.test.ts         # Pinia Store（权限路由过滤）
+└── utils/
+    └── datetime.test.ts           # 工具函数
 ```
+
+新增时按被测文件的位置放：`src/store/modules/permission.ts` → `tests/store/permission.test.ts`。
+
+## ⚙️ 配置说明
+
+### vitest.config.ts 复用 vite.config.ts
+
+```typescript
+const baseConfig = viteConfig({ mode: 'test', command: 'serve' });
+delete baseConfig.server;              // dev server 专属配置对测试是死重量
+export default mergeConfig(baseConfig, defineConfig({ test: { /* ... */ } }));
+```
+
+这是刻意设计——测试要复用 vite 的完整插件链，**不要改成独立的 `defineConfig({ plugins: [vue()] })`**，
+那样会丢掉：
+
+- UnoCSS（原子类不生效）
+- `unplugin-vue-components` 自动注册（Element Plus 组件解析不到）
+- `vite-plugin-svg-icons` 的 `virtual:svg-icons-register`（SvgIcon 报虚拟模块找不到）
+- 路径别名 `@`
+
+⚠️ `vite.config.ts` 的默认导出必须保持**同步函数**。改成 `async` 后 `baseConfig` 会变成
+Promise，`delete` 静默失效、`mergeConfig` 合出错配置，且全程不报错。
+
+### setup.ts 已做的全局 Mock
+
+不需要在单个测试里重复 Mock 这些：
+
+| 对象 | 说明 |
+|---|---|
+| `matchMedia` | 返回 `matches: false` |
+| `ResizeObserver` / `IntersectionObserver` | 空实现 |
+| `localStorage` / `sessionStorage` | 内存版实现，每个测试后自动 `clear()` |
+| `fetch` | `vi.fn()`，另暴露为 `globalThis.mockFetch` |
+| `URL.createObjectURL` / `revokeObjectURL` | 返回 `'blob:mock-url'` |
+| `@zhs/agent-course-kit`（及 `/utils/auth`、`/constants`、`/services/base-request` 子路径） | 整包打桩：SDK 是浏览器产物，jsdom 下加载即报错；`getToken` 等导出都是 `vi.fn()`，测试里直接 `vi.mocked(getToken).mockReturnValue(...)` 即可 |
+
+Element Plus 组件由 `unplugin-vue-components` 在 SFC 编译期自动注册，
+**不需要** `config.global.stubs` 逐个打桩；个别测试想屏蔽重组件时在该测试内局部 `stubs` 即可。
 
 ## 🧪 测试类型
 
-### 1. 组件测试
-测试 Vue 组件的渲染、交互和状态变化。
+### 1. 工具函数测试
+
+纯函数，成本最低收益最高，优先覆盖。
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { createWrapper } from '../utils/test-helpers';
-import MyComponent from '@/components/MyComponent.vue';
+import { formatDate, formatDateShort } from '@/utils/datetime';
 
-describe('MyComponent', () => {
-  it('应该正确渲染', () => {
-    const wrapper = createWrapper(MyComponent, {
-      props: { title: '测试标题' }
-    });
-    
-    expect(wrapper.find('h1').text()).toBe('测试标题');
+describe('Date Utils', () => {
+  it('应该正确格式化完整日期时间', () => {
+    // ⚠️ 底层是 dayjs，格式串用大写 YYYY-MM-DD HH:mm:ss
+    //    小写 yyyy 在 dayjs 中无效会原样输出，hh 是 12 小时制
+    expect(formatDate('2024-01-15 13:45:30', 'YYYY-MM-DD HH:mm:ss')).toBe('2024-01-15 13:45:30');
+  });
+
+  it('应该在输入为空时返回 -', () => {
+    expect(formatDateShort(undefined)).toBe('-');
   });
 });
 ```
 
-### 2. 工具函数测试
-测试纯函数的输入输出。
+### 2. Store 测试
+
+本项目用户 Store 由 **SSO + Cookie** 驱动：
+
+- `token` 是 Cookie 的 **ref 镜像**（初值来自 `getToken()`）。测试里不要直接写 `store.token`，
+  而是 mock `@zhs/agent-course-kit` 的 `getToken` 再调 `store.refreshToken()` 驱动——
+  这与生产链路一致（路由守卫每次导航调一次 `refreshToken()`）
+- 真实 action：`getInfoAction()` / `fetchUserRole()` / `refreshToken()` / `logoutAction()` / `setUserInfo()`
+- **不存在** `login()` / `loginAction()` / `fetchUserInfo()`
+- Setup 语法的 Store **不支持 `$reset()`**，靠重建 pinia 实例重置
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { formatDate } from '@/utils/date';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { setActivePinia, createPinia } from 'pinia';
+import { getToken } from '@zhs/agent-course-kit';
+import { useUserInfoStore } from '@/store/modules/user-info';
+import { ROLES } from '@/constants';
 
-describe('formatDate', () => {
-  it('应该正确格式化日期', () => {
-    const date = new Date('2025-01-01');
-    expect(formatDate(date, 'yyyy-MM-dd')).toBe('2025-01-01');
+vi.mock('@/api/modules/platform', () => ({ getCurrentUserIdentity: vi.fn() }));
+import { getCurrentUserIdentity } from '@/api/modules/platform';
+
+describe('useUserInfoStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  it('Cookie 过期后 refreshToken 应把登录态刷成未登录', () => {
+    vi.mocked(getToken).mockReturnValue('tok-1');
+    const store = useUserInfoStore();          // 构造时取一次 Cookie
+    expect(store.isLoggedIn).toBe(true);
+
+    vi.mocked(getToken).mockReturnValue('');   // 改 Cookie 不会自动同步
+    expect(store.refreshToken()).toBe('');     // 要显式刷一次，和守卫的做法一致
+    expect(store.isLoggedIn).toBe(false);
+  });
+
+  it('fetchUserRole 应把 identityType 映射为大写角色常量', async () => {
+    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([{ identityType: 1 }]);
+
+    const store = useUserInfoStore();
+    expect(await store.fetchUserRole()).toBe(ROLES.TEACHER);   // 'TEACHER'，大写
+  });
+
+  it('身份都不匹配时应返回空角色，不得向高权限兜底', async () => {
+    vi.mocked(getCurrentUserIdentity).mockResolvedValueOnce([]);
+
+    const store = useUserInfoStore();
+    expect(await store.fetchUserRole()).toBe('');   // 路由守卫依赖这个空值拦截到 403
   });
 });
 ```
 
-### 3. API测试
-测试 API 调用和数据处理。
+### 3. API 层测试
+
+HTTP 客户端是 `src/api/core/request.ts` 导出的 `polymasApi` / `downloadApi`
+（基于 `@zhs/agent-course-kit` 的 `PolymasApi`），Mock 目标按来源区分：
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { mockFetchResponse } from '../utils/test-helpers';
-import { getUserInfo } from '@/api/user';
+// 手写模块
+vi.mock('@/api/modules/platform', () => ({ getUserRoleDetail: vi.fn() }));
 
-describe('用户API', () => {
-  it('应该正确获取用户信息', async () => {
-    const mockUser = { id: 1, name: '张三' };
-    mockFetchResponse({ code: 200, data: mockUser });
-    
-    const result = await getUserInfo('1');
-    expect(result.data).toEqual(mockUser);
-  });
+// Orval 生成的函数——mock generated 下的真实模块路径。
+// @/api 只是 re-export，mock 底层后从 @/api 导入拿到的也是 mock 版本。
+vi.mock('@/api/generated/auth/auth', () => ({ postAuthLogin: vi.fn() }));
+```
+
+> `src/api/generated/` 要跑过 `pnpm orval` 才存在，模板状态下针对它的测试会 `Cannot find module`。
+
+测试 401 时注意：项目**没有本地 `/login` 路由**，401 由 `ErrorModule` 调
+`jumpToLogin()` 整体跳 SSO，不要断言 `router.push('/login')`。
+
+### 4. 组件测试
+
+```typescript
+const wrapper = mount(UserCard, {
+  props: { name: '张三' },
+  global: { plugins: [createPinia()] },   // 与 setActivePinia 用同一个实例
 });
-```
-
-## 🔧 测试工具
-
-### createWrapper
-创建 Vue 组件测试包装器，自动配置常用的全局组件和 Mock。
-
-```typescript
-const wrapper = createWrapper(MyComponent, {
-  props: { title: '测试' },
-  global: {
-    stubs: { 'custom-component': true },
-    mocks: { $customMethod: vi.fn() }
-  }
-});
-```
-
-### 用户交互模拟
-```typescript
-// 点击元素
-await clickElement(wrapper, '.button');
-
-// 输入文本
-await inputValue(wrapper, 'input[type="text"]', '测试文本');
-
-// 等待更新
-await waitForUpdate(wrapper);
-```
-
-### API Mock
-```typescript
-// Mock 成功响应
-mockFetchResponse({ code: 200, data: { success: true } });
-
-// Mock 错误响应
-mockFetchResponse({ code: 500, message: '服务器错误' }, 500);
-```
-
-### 断言工具
-```typescript
-// 验证元素存在
-expectElementsToExist(wrapper, ['.header', '.content', '.footer']);
-
-// 验证 Props
-expectPropsToMatch(wrapper, { title: '测试', visible: true });
-
-// 验证事件
-expectEventToBeEmitted(wrapper, 'click', { id: 1 });
+expect(wrapper.text()).toContain('张三');
+expect(wrapper.emitted('delete')?.[0]).toEqual(['u1']);
 ```
 
 ## 📊 覆盖率配置
 
-项目配置了严格的覆盖率要求：
+模板**不设覆盖率阈值**，`pnpm test:coverage` 只出报告，不会因覆盖率不足而失败。
+需要门禁的项目自行在 `vitest.config.ts` 的 `coverage` 里加：
 
-- **分支覆盖率**: 80%
-- **函数覆盖率**: 80%
-- **行覆盖率**: 80%
-- **语句覆盖率**: 80%
+```typescript
+coverage: {
+  // ⚠️ thresholds 必须【扁平】写。套 `global: {...}` 在 Vitest 1+ 会被当成 glob
+  //    文件模式去匹配（匹配不到任何文件），阈值静默失效、永远"通过"。
+  thresholds: { branches: 80, functions: 80, lines: 80, statements: 80 },
+  // ⚠️ 不配 include 时只统计"被测试导入过的文件"，未测文件不计入，数字虚高。
+  include: ['src/**/*.{ts,vue}'],
+}
+```
 
-覆盖率报告生成在 `./coverage` 目录下，包含：
-- 文本报告（控制台输出）
-- JSON报告（`coverage.json`）
-- HTML报告（`coverage/index.html`）
+报告输出到 `./coverage`：文本（控制台）、JSON、HTML（`coverage/index.html`）。
 
 ## 🎯 测试最佳实践
 
-### 1. 测试命名规范
+### 命名规范
+
 ```typescript
-describe('组件名称或功能模块', () => {
-  describe('具体功能分组', () => {
-    it('应该 + 期望行为', () => {
-      // 测试实现
-    });
+describe('模块名称', () => {
+  describe('功能分组', () => {
+    it('应该 + 期望行为', () => {});   // ✅
+    it('test1', () => {});             // ❌
   });
 });
 ```
 
-### 2. AAA模式
+### AAA 模式
+
 ```typescript
 it('应该正确计算总价', () => {
-  // Arrange - 准备数据
-  const items = [{ price: 10 }, { price: 20 }];
-  
-  // Act - 执行操作
-  const total = calculateTotal(items);
-  
-  // Assert - 验证结果
-  expect(total).toBe(30);
+  const items = [{ price: 10 }, { price: 20 }];   // Arrange
+  const total = calculateTotal(items);            // Act
+  expect(total).toBe(30);                         // Assert
 });
 ```
 
-### 3. Mock策略
-- **外部依赖**: 始终 Mock 外部 API、第三方库
-- **内部模块**: 根据测试目标选择性 Mock
-- **全局对象**: 在 setup.ts 中统一 Mock
+### 测试隔离
 
-### 4. 测试隔离
-- 每个测试用例独立运行
-- 使用 `beforeEach` 重置状态
-- 避免测试间的相互依赖
+- `beforeEach` 里 `setActivePinia(createPinia())` + `vi.clearAllMocks()`
+- 需要重新求值模块级副作用时：`vi.resetModules()` + `vi.doMock()` + 动态 `import()`
+  （`vi.mock` 会被提升到文件顶部，`vi.doMock` 不会——需要在运行时改 Mock 时用后者）
+- 避免测试间相互依赖
 
-### 5. 边界测试
-- 测试正常情况
-- 测试边界值（空值、零值、最大值）
-- 测试异常情况
+### 异步与拒绝
 
-## 🚨 常见问题
-
-### 1. Element Plus 组件测试
 ```typescript
-// 使用全局存根
-config.global.stubs = {
-  'el-button': true,
-  'el-input': true,
-};
-
-// 或在单个测试中存根
-const wrapper = createWrapper(MyComponent, {
-  global: {
-    stubs: { 'el-form': true }
-  }
-});
+await expect(fn()).rejects.toThrow('错误');
+await expect(fn()).resolves.toEqual({ ok: true });
 ```
 
-### 2. 路由测试
-```typescript
-// Mock 路由对象
-const wrapper = createWrapper(MyComponent, {
-  global: {
-    mocks: {
-      $route: { path: '/test', params: { id: '1' } },
-      $router: { push: vi.fn() }
-    }
-  }
-});
-```
+### 边界测试
 
-### 3. 异步测试
-```typescript
-it('应该处理异步操作', async () => {
-  const wrapper = createWrapper(MyComponent);
-  
-  // 触发异步操作
-  await wrapper.find('button').trigger('click');
-  
-  // 等待 DOM 更新
-  await wrapper.vm.$nextTick();
-  
-  // 验证结果
-  expect(wrapper.find('.result').text()).toBe('完成');
-});
-```
+覆盖正常值、边界值（空、0、最大值）、异常情况三类。
 
-### 4. CSS 变量测试
-```typescript
-it('应该应用正确的样式', () => {
-  const wrapper = createWrapper(MyComponent);
-  
-  // 验证计算样式
-  expect(wrapper.vm.computedStyle).toEqual({
-    color: 'var(--colorPrimary)',
-    background: 'var(--colorBg)'
-  });
-});
-```
+## 🎯 优先测什么
+
+1. **`src/utils/`** —— 纯函数，最划算
+2. **`src/store/modules/`** —— 角色映射、权限过滤，错了会导致越权
+3. **`src/api/modules/`** —— 请求参数拼装、响应解包
+4. **组件** —— 只测有分支逻辑的，纯展示组件不值得测
+
+不必追求覆盖率数字：`permission.ts` 的 `filterRoutesByRoles` 一个函数的价值，
+远高于给十个纯展示组件补渲染快照。
+
+## 📈 当前测试情况
+
+| 测试类别 | 文件数 | 测试用例 |
+|---------|-------|----------|
+| 指令 (`tests/directives/`) | 1 | 9 |
+| 路由 (`tests/router/`) | 1 | 16 |
+| Store (`tests/store/`) | 1 | 15 |
+| Utils (`tests/utils/`) | 1 | 29 |
+| **总计** | **4** | **69** |
 
 ## 📚 参考资源
 
 - [Vitest 官方文档](https://vitest.dev/)
 - [Vue Test Utils 文档](https://test-utils.vuejs.org/)
 - [Vue 3 测试指南](https://vuejs.org/guide/scaling-up/testing.html)
-- [测试最佳实践](https://github.com/goldbergyoni/javascript-testing-best-practices)
-
-通过遵循这些指南和最佳实践，可以编写出高质量、可维护的测试代码，确保项目的稳定性和可靠性。
+<!-- #if aiDocs -->
+- [.claude/agents/testing.md](../.claude/agents/testing.md) - AI 测试指导（含更多示例）
+<!-- #endif -->

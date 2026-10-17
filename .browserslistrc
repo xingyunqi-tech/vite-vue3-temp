@@ -1,7 +1,10 @@
+# 管理后台目标浏览器
 [production staging]
->0.2%
+last 2 chrome versions
+last 2 edge versions
+last 2 firefox versions
+last 2 safari versions
 not dead
-not op_mini all
 
 [development]
 last 1 chrome version

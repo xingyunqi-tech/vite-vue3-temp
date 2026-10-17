@@ -1,10 +1,24 @@
+import elEnUS from 'element-plus/es/locale/lang/en';
+import elZhCN from 'element-plus/es/locale/lang/zh-cn';
 import { createI18n } from 'vue-i18n';
-import { DEFAULT_LOCALE } from '@/constants/System';
-import type { LocaleKey } from '@/interface/System';
-
+import { DEFAULT_LOCALE } from '@/constants';
+import type { LocaleKey } from '@/interface/system';
 // 导入语言包
-import zhCN from '@/locale/zh-CN.json';
 import enUS from '@/locale/en-US.json';
+import zhCN from '@/locale/zh-CN.json';
+
+// Element Plus 语言包
+const libraryLocales = {
+  'zh-CN': elZhCN,
+  'en-US': elEnUS,
+};
+
+/**
+ * 根据语言代码获取对应的 Element Plus 语言包
+ */
+export const getLibraryLocales = (locale: LocaleKey) => {
+  return libraryLocales[locale] || libraryLocales['zh-CN'];
+};
 
 /**
  * vue-i18n 语言包配置
@@ -26,29 +40,42 @@ export const i18n = createI18n({
 });
 
 /**
- * 动态加载语言包
- * @param locale 语言代码
- * @returns Promise<boolean> 加载是否成功
+ * 导出一个便捷函数
  */
-export const loadLocaleMessages = async (locale: LocaleKey) => {
+export const t = i18n.global.t;
+
+/**
+ * 把远端语言包（public/locale/*.json，改文案无需重新构建）增量合并进指定语言
+ *
+ * - 只负责合并：切换当前语言是调用方的事（App.vue 与 `html[lang]`、dayjs 同步完成），
+ *   远端包拉不到时内置语言包仍完整可用，语言切换不受影响
+ * - 必须用 mergeLocaleMessage：setLocaleMessage 是整份替换，会冲掉内置语言包与 override 的 locale 维度
+ *
+ * @param locale 语言代码
+ * @param options.signal 取消信号，语言快速切换时作废过期请求
+ * @returns Promise<boolean> 远端增量包是否成功合入
+ */
+export const loadLocaleMessages = async (locale: LocaleKey, options: { signal?: AbortSignal } = {}) => {
+  const { signal } = options;
+
   try {
-    const response = await fetch(`/locale/${locale}.json`);
+    const response = await fetch(`${import.meta.env.BASE_URL}locale/${locale}.json`, { signal });
     if (!response.ok) {
-      console.error(`加载语言包失败: ${locale}，使用默认语言包`);
+      console.warn(`加载远端语言包失败: ${locale}，沿用内置语言包`);
       return false;
     }
 
-    const messages = await response.json();
+    const remoteMessages = await response.json();
+    // 解析期间语言又变了：这份响应已经过期，丢弃而不是合入
+    if (signal?.aborted) return false;
 
-    // 设置语言包到 vue-i18n
-    i18n.global.setLocaleMessage(locale, messages);
-
-    // 确保当前语言也更新
-    i18n.global.locale.value = locale;
+    i18n.global.mergeLocaleMessage(locale, remoteMessages);
 
     return true;
   } catch (error) {
-    console.error(`加载语言包出错: ${locale}，使用默认语言包`, error);
+    // 主动取消不是异常，静默返回；其余失败只告警，不影响已经生效的语言切换
+    if (signal?.aborted) return false;
+    console.warn(`加载远端语言包出错: ${locale}，沿用内置语言包`, error);
     return false;
   }
 };

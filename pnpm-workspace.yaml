@@ -1,0 +1,12 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@sentry/cli': true
+  core-js: true
+  esbuild: true
+  # code-inspector-plugin 的可选原生依赖，不构建；删掉此行 pnpm 会报 ERR_PNPM_IGNORED_BUILDS
+  node-pty: false
+  unrs-resolver: true
+  vue-demi: true
+overrides:
+  # config-conventional 的 parserPreset 依赖它，10.x 在 pnpm 下报 ERR_PACKAGE_PATH_NOT_EXPORTED（commitlint#4864）
+  conventional-changelog-conventionalcommits: 9.3.1

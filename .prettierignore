@@ -1,8 +1,11 @@
 node_modules
+pnpm-lock.yaml
 dist
+reports
 deploy
 coverage
-auto-imports.d.ts
-components.d.ts
+typings/components.d.ts
 *.md
 .cursor
+# iconfont 第三方生成文件，不参与格式化/lint
+src/assets/iconfont

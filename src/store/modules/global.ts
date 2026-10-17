@@ -1,11 +1,18 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { DEFAULT_LOCALE, DEFAULT_THEME_STYLE } from '@/constants/System';
-import type { LocaleKey, ThemeStyleKey } from '@/interface/System';
+import { computed, reactive, ref } from 'vue';
+// #if i18n
+import { DEFAULT_LOCALE } from '@/constants';
+// #endif
+import { DEFAULT_THEME_STYLE } from '@/constants';
+// #if i18n
+import type { LocaleKey } from '@/interface/system';
+// #endif
+import type { ThemeStyleKey } from '@/interface/system';
 
 export const useGlobalStore = defineStore(
   'global',
   () => {
+    // #if i18n
     // ==================== 语言相关 ====================
     const currentLocale = ref<LocaleKey>(DEFAULT_LOCALE as LocaleKey);
 
@@ -27,85 +34,91 @@ export const useGlobalStore = defineStore(
       }
     };
 
+    // #endif
     // ==================== 主题相关 ====================
-    const currentTheme = ref<ThemeStyleKey>(DEFAULT_THEME_STYLE as ThemeStyleKey);
+
+    /** 用户显式选择的主题；`null` 表示从未选择过，此时跟随站点声明的默认主题 */
+    const userTheme = ref<ThemeStyleKey | null>(null);
+
+    /** 站点声明的默认主题，由 App.vue 从 siteConfig 同步进来 */
+    const siteDefaultTheme = ref<ThemeStyleKey>(DEFAULT_THEME_STYLE as ThemeStyleKey);
+
+    /**
+     * 实际生效的主题：用户选过就用用户的，否则跟随站点默认
+     *
+     * 全项目统一消费这一个值，不要直接读 userTheme（它可能是 null）。
+     */
+    const currentTheme = computed<ThemeStyleKey>(() => userTheme.value ?? siteDefaultTheme.value);
+
+    /**
+     * 设置主题（明暗模式由 App.vue 写入 html[data-theme]，对应 theme.css 的暗色块）
+     */
+    const setTheme = (theme: ThemeStyleKey) => {
+      userTheme.value = theme;
+    };
 
     /**
      * 切换主题
      */
     const toggleTheme = () => {
-      const newTheme: ThemeStyleKey = currentTheme.value === 'dark' ? 'light' : 'dark';
-      setTheme(newTheme);
+      setTheme(currentTheme.value === 'dark' ? 'light' : 'dark');
     };
 
     /**
-     * 设置主题
+     * 同步站点声明的默认主题（进站时调用）
+     *
+     * 只改默认值，不动用户的选择——这是「用户没选过时用哪个」的那一层。
      */
-    const setTheme = (theme: ThemeStyleKey) => {
-      currentTheme.value = theme;
+    const syncSiteDefaultTheme = (theme: ThemeStyleKey) => {
+      siteDefaultTheme.value = theme;
     };
 
     /**
-     * 初始化主题
+     * 应用新的站点默认主题（仅由设置页保存成功后调用）
+     *
+     * 管理员改写站点默认值属于一条新声明，优先级高于用户此前的选择，故把 userTheme
+     * 清空让其重新跟随。刻意不在「配置发生变化」时自动触发：接了服务端存储源后，
+     * 每次启动的 load() 都会替换配置，那样会把用户自己的明暗选择反复抹掉。
      */
-    const initTheme = () => {
-      // 持久化插件会自动恢复，无需手动获取
-      if (!currentTheme.value) {
-        currentTheme.value = DEFAULT_THEME_STYLE as ThemeStyleKey;
-      }
+    const applySiteDefaultTheme = (theme: ThemeStyleKey) => {
+      siteDefaultTheme.value = theme;
+      userTheme.value = null;
     };
 
-    // ==================== 高级模式相关 ====================
-    const advanceMode = ref<boolean>(false);
-    const clickCount = ref<number>(0);
-    const clickTimer = ref<NodeJS.Timeout | null>(null);
+    // ==================== 侧边栏相关 ====================
+    const sidebar = reactive({ opened: true, withoutAnimation: false });
 
-    /**
-     * 切换高级模式
-     */
-    const toggleAdvanceMode = () => {
-      advanceMode.value = !advanceMode.value;
+    const toggleSidebar = () => {
+      sidebar.opened = !sidebar.opened;
+      sidebar.withoutAnimation = false;
     };
 
-    /**
-     * 处理Logo连续点击逻辑
-     * @param onNormalClick 正常点击时的回调
-     * @param onAdvanceModeToggle 高级模式切换时的回调
-     */
-    const handleLogoClick = (onAdvanceModeToggle?: (isEnabled: boolean) => void) => {
-      clickCount.value++;
-
-      if (clickTimer.value) {
-        clearTimeout(clickTimer.value);
-      }
-
-      if (clickCount.value === 5) {
-        toggleAdvanceMode();
-        onAdvanceModeToggle?.(advanceMode.value);
-        clickCount.value = 0;
-        return;
-      }
-
-      clickTimer.value = setTimeout(() => {
-        clickCount.value = 0;
-      }, 500);
+    const closeSidebar = (withoutAnimation: boolean) => {
+      sidebar.opened = false;
+      sidebar.withoutAnimation = withoutAnimation;
     };
 
     return {
+      // #if i18n
       // 语言相关
       currentLocale,
       switchLocale,
       initLocale,
 
+      // #endif
       // 主题相关
+      userTheme,
+      siteDefaultTheme,
       currentTheme,
       toggleTheme,
       setTheme,
-      initTheme,
+      syncSiteDefaultTheme,
+      applySiteDefaultTheme,
 
-      // 高级模式相关
-      advanceMode,
-      handleLogoClick,
+      // 侧边栏相关
+      sidebar,
+      toggleSidebar,
+      closeSidebar,
     };
   },
   {

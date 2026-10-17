@@ -1,6 +1,153 @@
 // 自定义mixin
 @use './mixin' as mixin;
+@use './theme.scss' as *;
 
-.hide-scrollbar {
-  @include mixin.hide-scrollbar;
+// 列表页数据表格统一皮肤
+@use './data-table';
+
+// ==================== 全局滚动条样式（对齐 Element Plus el-scrollbar） ====================
+// 在根元素显式声明整条滚动条，强制 Chrome 关闭 Fluent UI 系统滚动条，
+// 切换到 webkit 自定义渲染模式，后续伪元素规则才能生效
+html,
+body {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 3px;
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    transition: background-color 0.2s;
+    border-radius: 3px;
+    background-color: var(--aix-colorTextQuaternary);
+
+    &:hover {
+      background-color: var(--aix-colorTextTertiary);
+    }
+
+    &:active {
+      background-color: var(--aix-colorTextSecondary);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  // 根元素滚动条的小箭头强制隐藏
+  &::-webkit-scrollbar-button,
+  &::-webkit-scrollbar-button:start,
+  &::-webkit-scrollbar-button:end,
+  &::-webkit-scrollbar-button:vertical,
+  &::-webkit-scrollbar-button:horizontal,
+  &::-webkit-scrollbar-button:single-button,
+  &::-webkit-scrollbar-button:double-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    appearance: none !important;
+  }
+}
+
+// 使用 :where() 选择器将特异性压为 0，避免覆盖 el-scrollbar 等组件自有样式
+:where(*::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+
+:where(*::-webkit-scrollbar-track) {
+  border-radius: 3px;
+  background: transparent;
+}
+
+:where(*::-webkit-scrollbar-thumb) {
+  transition: background-color 0.2s;
+  border-radius: 3px;
+  background-color: var(--aix-colorTextQuaternary);
+}
+
+:where(*::-webkit-scrollbar-thumb:hover) {
+  background-color: var(--aix-colorTextTertiary);
+}
+
+:where(*::-webkit-scrollbar-thumb:active) {
+  background-color: var(--aix-colorTextSecondary);
+}
+
+:where(*::-webkit-scrollbar-corner) {
+  background: transparent;
+}
+
+// 隐藏滚动条两端的小箭头（上下 / 左右）
+// 注：浏览器 UA 默认样式与部分组件库的滚动条按钮特异性较高，
+// 此处使用 !important + 全状态选择器以确保完全覆盖
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:start,
+*::-webkit-scrollbar-button:end,
+*::-webkit-scrollbar-button:vertical,
+*::-webkit-scrollbar-button:horizontal,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:double-button,
+*::-webkit-scrollbar-button:start:single-button,
+*::-webkit-scrollbar-button:end:single-button,
+*::-webkit-scrollbar-button:start:double-button,
+*::-webkit-scrollbar-button:end:double-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  appearance: none !important;
+}
+
+// Firefox 滚动条近似样式
+:where(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--aix-colorTextQuaternary) transparent;
+}
+
+// ==================== 主题切换：View Transition 圆形扩散 ====================
+// 圆心 / 半径 / 方向由 @/composables/useThemeTransition 在过渡开始前写到 <html> 上。
+// 做法对齐 Element Plus 官网的主题开关（docs/.vitepress/vitepress/styles/base.scss）：
+// 动的永远是「亮色那一层」——切到暗色时亮色旧快照收缩进圆心，切到亮色时亮色新快照反向展开。
+// 规则一律限定在 [data-theme-transition] 下，否则会命中文档里任何一次根级 View Transition，
+// 把无关动画静音掉；四种组合各声明一次、互不覆盖，不依赖源码顺序。
+
+// 混合模式必须显式归位 normal：默认值 plus-lighter 会让新旧两层叠加处发白
+:root[data-theme-transition]::view-transition-old(root),
+:root[data-theme-transition]::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+
+// 不参与动画的那一层：关掉 UA 默认的交叉淡入淡出，静止铺在底下
+:root[data-theme-transition='to-dark']::view-transition-new(root),
+:root[data-theme-transition='to-light']::view-transition-old(root) {
+  z-index: 1;
+  animation: none;
+}
+
+// 切到暗色：亮色旧快照浮到顶层，收缩进圆心
+:root[data-theme-transition='to-dark']::view-transition-old(root) {
+  z-index: 2147483646;
+  animation: theme-change 400ms ease-in both;
+}
+
+// 切到亮色：亮色新快照浮到顶层，同一组关键帧倒放展开
+:root[data-theme-transition='to-light']::view-transition-new(root) {
+  z-index: 2147483646;
+  animation: theme-change 400ms ease-in both reverse;
+}
+
+@keyframes theme-change {
+  from {
+    clip-path: circle(var(--theme-transition-radius) at var(--theme-transition-x) var(--theme-transition-y));
+  }
+
+  to {
+    clip-path: circle(0% at var(--theme-transition-x) var(--theme-transition-y));
+  }
 }

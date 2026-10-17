@@ -1,0 +1,44 @@
+{
+  "id": "5144540",
+  "name": "本地化前端组",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "47183704",
+      "name": "对话",
+      "font_class": "duihua",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "47183697",
+      "name": "历史课堂",
+      "font_class": "lishiketang",
+      "unicode": "e602",
+      "unicode_decimal": 58882
+    },
+    {
+      "icon_id": "47183676",
+      "name": "black-union",
+      "font_class": "Union1",
+      "unicode": "e601",
+      "unicode_decimal": 58881
+    },
+    {
+      "icon_id": "47151256",
+      "name": "science",
+      "font_class": "science",
+      "unicode": "e7c4",
+      "unicode_decimal": 59332
+    },
+    {
+      "icon_id": "47151068",
+      "name": "Union",
+      "font_class": "Union",
+      "unicode": "e7c3",
+      "unicode_decimal": 59331
+    }
+  ]
+}

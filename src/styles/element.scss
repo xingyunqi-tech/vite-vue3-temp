@@ -1,0 +1,396 @@
+// 自定义主题覆盖element
+:root {
+  // --el-color-primary: #3dd7e3;
+}
+
+/**
+ * Element Plus 组件样式覆盖
+ *
+ * 骨架屏占位块的灰度：Element Plus 自带的取值在本项目底色下对比不足。
+ *
+ * 改的是 Element 的两个变量而不是 `background`：占位块静止态读 --el-skeleton-color，
+ * 动画态读的是由这两个变量拼出的 linear-gradient。直接写 background 会把渐变一起顶掉，
+ * 所有 animated 骨架屏就不闪了。
+ *
+ * 取值必须是设计系统 token，不能是固定色值：固定值只有一套明度，换到另一侧主题就会与底色
+ * 重合、骨架屏整体消失。
+ *
+ * 两个选择器都要写：el-skeleton-item 可以脱离 el-skeleton 单独使用（见 TableSkeleton），
+ * 只挂在容器上时这些独立的占位块取不到变量。
+ */
+.el-skeleton,
+.el-skeleton__item {
+  --el-skeleton-color: var(--aix-colorFillSecondary);
+  --el-skeleton-to-color: var(--aix-colorFill);
+}
+
+/**
+ * 骨架屏过渡动画
+ *
+ * 使用淡入淡出效果，提供更流畅的用户体验
+ * 适用于 Suspense fallback 和手动控制的骨架屏
+ */
+.skeleton-fade-enter-active,
+.skeleton-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.skeleton-fade-enter-from,
+.skeleton-fade-leave-to {
+  opacity: 0;
+}
+
+/**
+ * form input
+ */
+.el-input.standard-input {
+  --el-input-border-radius: 8px;
+  --el-input-text-color: var(--polymas-color-text-title);
+  --el-input-border-color: var(--polymas-color-border-default);
+  --el-input-hover-border-color: var(--polymas-color-border-emphasize);
+  --el-input-focus-border-color: var(--polymas-color-border-emphasize);
+  --el-input-placeholder-color: var(--polymas-color-text-tip);
+  --el-disabled-bg-color: var(--polymas-color-border-shallow);
+  --el-disabled-border-color: var(--polymas-color-bg-profound);
+  --el-disabled-text-color: var(--polymas-color-text-tip);
+
+  .el-input__wrapper {
+    padding: 8px 12px;
+
+    .el-input__inner {
+      --el-input-inner-height: 22px;
+
+      caret-color: var(--polymas-color-theme);
+    }
+
+    .el-input__count {
+      .el-input__count-inner {
+        background-color: transparent;
+        color: var(--polymas-color-text-tip) !important;
+      }
+    }
+  }
+
+  &.grey {
+    --el-input-bg-color: var(--polymas-color-bg-shallow);
+
+    .el-input__count {
+      .el-input__count-inner {
+        color: var(--polymas-color-text-sub) !important;
+      }
+    }
+  }
+}
+
+// 选择器 - 选项
+.el-popper.standard-select-popper {
+  margin-top: -8px !important;
+  border-radius: 6px;
+
+  --select-item-text-align: center;
+  --select-item-margin: 0 4px 4px !important;
+  --select-item-padding: 0 4px 4px !important;
+  --select-item-border-radius: 4px !important;
+  --el-border-color-light: transparent;
+
+  .el-select-dropdown__header {
+    padding: 4px 8px 0;
+    border-bottom: none;
+
+    .el-select-item {
+      width: calc(100% - 8px - 8px);
+      padding: 0 8px;
+      border-radius: var(--select-item-border-radius);
+
+      &:hover,
+      &.is-checked {
+        background: var(--el-fill-color-light);
+      }
+    }
+  }
+
+  .el-select-dropdown__list {
+    padding: 4px 0 !important;
+  }
+
+  .el-select-dropdown__item {
+    width: calc(100% - 4px - 4px) !important;
+    margin: var(--select-item-margin);
+    padding: 0;
+    border-radius: var(--select-item-border-radius);
+    font-size: 12px;
+    font-weight: 400;
+    text-align: var(--select-item-text-align);
+
+    --el-text-color-regular: var(--polymas-color-text-content);
+    --el-color-primary: var(--polymas-color-text-title);
+    --el-fill-color-light: var(--polymas-color-bg-shallow);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.is-selected {
+      background: var(--el-fill-color-light);
+      font-weight: 500;
+    }
+
+    &::after {
+      pointer-events: none;
+    }
+  }
+
+  .el-popper__arrow {
+    display: none;
+  }
+}
+
+/**
+ * form select
+ */
+// 选择器 - 选择框
+.el-select.standard-select {
+  --el-fill-color-blank: var(--polymas-color-bg-container);
+  --el-select-input-color: var(--polymas-color-text-sub);
+  --el-text-color-placeholder: var(--polymas-color-text-tip);
+  --el-border-color: var(--polymas-color-border-default);
+  --el-border-color-hover: var(--polymas-color-border-emphasize);
+  --el-color-primary: var(--polymas-color-border-emphasize);
+  --el-input-text-color: var(--polymas-color-text-title);
+  --select-input-padding: 0 8px;
+
+  height: 38px;
+  border-radius: 6px;
+  font-family: 'PingFang SC';
+
+  &.border-transparent {
+    --el-color-primary: rgb(0 0 0 / 0);
+    --el-border-color: rgb(0 0 0 / 0);
+    --el-border-color-hover: rgb(0 0 0 / 0);
+  }
+
+  .el-select__wrapper {
+    height: inherit;
+    padding: var(--select-input-padding);
+    border-radius: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    gap: 4px;
+
+    &.is-focused {
+      --el-fill-color-blank: var(--polymas-color-bg-profound);
+      --el-text-color-placeholder: var(--polymas-color-text-title);
+      --el-select-input-color: var(--polymas-color-text-title);
+    }
+  }
+
+  &.is-empty .el-select__wrapper {
+    --el-text-color-placeholder: var(--polymas-color-text-tip);
+  }
+
+  .el-select__selection {
+    .el-select__placeholder.is-transparent {
+      color: var(--polymas-color-text-tip) !important;
+    }
+
+    .el-select__selected-item:has(.el-tag) {
+      border-radius: 4px;
+      background-color: var(--polymas-color-bg-sub);
+
+      .el-tag {
+        padding: 1px 4px 1px 8px;
+        color: var(--polymas-color-text-content);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 22px; /* 157.143% */
+        .el-tag__close {
+          color: var(--polymas-color-text-sub);
+
+          &:hover {
+            background: var(--polymas-color-bg-weighty);
+            color: #fff;
+          }
+        }
+      }
+    }
+  }
+
+  &.grey {
+    .el-select__wrapper {
+      --el-fill-color-blank: var(--polymas-color-bg-shallow);
+
+      &.is-focused {
+        --el-fill-color-blank: var(--polymas-color-bg-shallow);
+      }
+    }
+
+    .el-tag {
+      background: var(--polymas-color-bg-container);
+    }
+
+    .el-select__suffix {
+      .el-select__caret {
+        color: var(--polymas-color-text-tip);
+      }
+    }
+  }
+}
+
+// 日期范围选择器 高度 默认=40 small=34
+.el-date-editor.el-range-editor.standard-date-range-picker {
+  width: 100%;
+  height: fit-content;
+
+  --el-input-border-radius: 8px;
+  --el-input-text-color: var(--polymas-color-text-title);
+  --el-input-border-color: var(--polymas-color-border-default);
+  --el-input-hover-border-color: var(--polymas-color-border-emphasize);
+  --el-input-focus-border-color: var(--polymas-color-border-emphasize);
+
+  padding: 8px 12px;
+
+  .el-icon.el-range__icon {
+    position: relative;
+    margin-right: 10px;
+    padding-right: 10px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 0;
+      width: 1px;
+      height: 10px;
+      transform: translate(0, -50%);
+      background: var(--polymas-color-border-profound);
+    }
+
+    .iconfont {
+      color: var(--polymas-color-text-content);
+      line-height: 1;
+    }
+  }
+
+  .el-icon.el-range__close-icon.el-range__close-icon--hidden {
+    display: none;
+  }
+
+  .el-range-separator {
+    line-height: 22px;
+  }
+
+  .el-range-input {
+    height: 22px;
+
+    &::placeholder {
+      color: var(--polymas-color-text-tip);
+    }
+  }
+
+  &.small {
+    --el-input-border-radius: 6px;
+
+    padding: 7px 12px;
+
+    .el-range-separator {
+      line-height: 20px;
+    }
+
+    .el-range-input {
+      height: 20px;
+
+      &::placeholder {
+        color: var(--polymas-color-text-tip);
+      }
+    }
+  }
+}
+
+/**
+ * dropdown popper
+ */
+.el-popper.el-dropdown__popper.standard-dropdown-popper {
+  margin-top: -4px !important;
+  padding: 0 4px !important;
+  border: 1px solid #ebeef5;
+  border-radius: 6px !important;
+  background: var(--polymas-color-bg-container);
+  box-shadow: 0 6px 36px rgb(0 0 0 / 0.12);
+  font-family: 'PingFang SC';
+
+  --el-dropdown-menuItem-hover-fill: var(--polymas-color-bg-shallow);
+
+  .el-scrollbar {
+    padding: 0;
+  }
+
+  .el-dropdown-menu {
+    padding: 4px 0 !important;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: none;
+    font-family: 'PingFang SC';
+
+    .el-dropdown-menu__item {
+      display: flex;
+      align-items: center;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: var(--polymas-color-text-content);
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:not(.is-disabled):focus {
+        background: #fff;
+        font-size: 14px;
+        font-weight: normal;
+      }
+
+      &:not(.is-disabled):hover,
+      &:not(.is-disabled):has(.active) {
+        background: var(--polymas-color-bg-shallow);
+        color: var(--polymas-color-text-title);
+        font-weight: 500;
+      }
+    }
+  }
+
+  .el-popper__arrow {
+    display: none;
+  }
+
+  &.transparent {
+    border: none;
+
+    /* 简化样式，移除可能导致性能问题的 backdrop-filter */
+    background: rgb(255 255 255 / 0.8);
+
+    /* 用多层次的 box-shadow 模拟玻璃的厚度和光晕 */
+    box-shadow:
+      inset 1px 1px rgb(255 255 255 / 0.4),
+      inset -1px -1px rgb(255 255 255 / 0.4);
+
+    /* 先模糊背景，再套用 SVG 滤镜扭曲 */
+    backdrop-filter: blur(4px) url('#liquid_glass_filter');
+
+    .el-dropdown-menu {
+      background: none;
+
+      .el-dropdown-menu__item {
+        &:not(.is-disabled):focus,
+        &:not(.is-disabled):has(.active),
+        &:hover:not(.is-disabled) {
+          background: rgb(29 33 41 / 0.12);
+          color: var(--polymas-color-text-title);
+        }
+      }
+    }
+  }
+}

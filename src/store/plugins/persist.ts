@@ -1,14 +1,13 @@
+import localforage from 'localforage';
 import { createPinia } from 'pinia';
 import { createPersistedState } from 'pinia-plugin-persistedstate';
-import localforage from 'localforage';
-import { isSentryEnabled } from '@/plugins/sentry/const';
 
 /**
  * localforage配置
  */
-const piniaStorage = localforage.createInstance({
-  name: 'vite-vue3-temp',
-  storeName: 'vite-vue3-temp-persist',
+export const piniaStorage = localforage.createInstance({
+  name: 'vue-admin-template',
+  storeName: 'vue-admin-template-persist',
   description: 'Pinia 持久化存储',
   driver: localforage.INDEXEDDB,
 });
@@ -37,6 +36,17 @@ export const preloadPersistedData = async (): Promise<void> => {
 };
 
 /**
+ * 清除指定 store 的持久化数据（IndexedDB + 同步缓存）
+ *
+ * 两处都要清：只删 IndexedDB 的话，syncCache 里那份仍会被适配器的 getItem 读到，
+ * 下次 hydrate 时把已登出的数据又还原回来。
+ */
+export const removePersistedStore = async (key: string): Promise<void> => {
+  syncCache.delete(key);
+  await piniaStorage.removeItem(key);
+};
+
+/**
  * 创建支持IndexedDB的同步适配器
  */
 const createIndexedDBSyncStorage = () => {
@@ -50,7 +60,13 @@ const createIndexedDBSyncStorage = () => {
       // 立即更新内存缓存
       syncCache.set(key, value);
 
-      // 异步写入IndexedDB
+      // 异步写入IndexedDB（fire-and-forget）
+      //
+      // 已知权衡：pinia-plugin-persistedstate 的 setItem 为同步签名，无法 await 写入完成。
+      // 写入在状态变更时立即发起（非批量），丢失窗口仅限于「状态刚变更 → IndexedDB 事务尚未
+      // 提交 → 用户在毫秒内关闭标签页」这一极小区间。对模板而言此风险可接受，故未引入
+      // localStorage 同步兜底或 pagehide flush（收益有限且增加复杂度）。
+      // 若业务对关键状态（如未提交的表单草稿）有强一致性要求，再按需补 flush 方案。
       try {
         const parsedValue = JSON.parse(value);
         piniaStorage.setItem(key, parsedValue).catch(error => {
@@ -61,46 +77,6 @@ const createIndexedDBSyncStorage = () => {
       }
     },
   };
-};
-
-/**
- * 动态加载 Sentry Pinia 插件
- */
-const loadSentryPiniaPlugin = async () => {
-  if (!isSentryEnabled()) {
-    return null;
-  }
-
-  try {
-    const { createSentryPiniaPlugin } = await import('@sentry/vue');
-
-    return createSentryPiniaPlugin({
-      // 是否将Pinia状态附加到Sentry事件
-      attachPiniaState: false,
-      // 是否向Sentry事件添加面包屑导航
-      addBreadcrumbs: false,
-      // 配置需要跟踪的操作类型
-      actionTransformer: (action: string) => {
-        // 过滤敏感信息
-        if (action.includes('password') || action.includes('token')) {
-          return '[Filtered]';
-        }
-        return action;
-      },
-      // 配置需要跟踪的状态
-      stateTransformer: (state: any) => {
-        // 创建状态的副本，移除敏感信息
-        const cleanState = { ...state };
-        if (cleanState.password) delete cleanState.password;
-        if (cleanState.token) delete cleanState.token;
-        if (cleanState.apiKey) delete cleanState.apiKey;
-        return cleanState;
-      },
-    });
-  } catch (error) {
-    console.warn('Failed to load Sentry Pinia plugin:', error);
-    return null;
-  }
 };
 
 /**
@@ -119,12 +95,6 @@ export const createPersistedPinia = async () => {
 
   // 添加持久化插件
   pinia.use(piniaPersistedState);
-
-  // 动态加载并添加 Sentry 插件
-  const sentryPiniaPlugin = await loadSentryPiniaPlugin();
-  if (sentryPiniaPlugin) {
-    pinia.use(sentryPiniaPlugin);
-  }
 
   return pinia;
 };

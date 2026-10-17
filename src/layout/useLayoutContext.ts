@@ -1,16 +1,20 @@
-import { reactive, readonly, provide, inject, InjectionKey } from 'vue';
+import { reactive, readonly, provide, inject, type DeepReadonly, type InjectionKey } from 'vue';
+import logoUrl from '@/assets/images/common/logo.png';
+// #if overrides
+import { layoutManager } from '@/plugins/override';
+// #endif
 
 // 布局可见性类型
 export interface LayoutVisible {
-  header: boolean;
   nav: boolean;
+  /** 顶部 header：无侧边栏的页面靠它承载 Logo 与设置入口 */
+  header: boolean;
 }
 
 // 头部组件可见性类型
 export interface HeaderVisible {
   logoIcon: boolean;
   logoTitle: boolean;
-  nav: boolean;
   themeSwitch: boolean;
   localeSwitch: boolean;
   setting: boolean;
@@ -23,26 +27,16 @@ export interface LogoConfig {
   title?: string | null;
 }
 
-// 菜单项类型
-export interface IMenuItem {
-  key: string;
-  label: string;
-  icon?: string;
-  path?: string;
-  children?: IMenuItem[];
-}
-
 // 默认布局可见性
 const defaultLayoutConfig: LayoutVisible = {
-  header: true,
   nav: true,
+  header: false,
 };
 
 // 默认头部组件可见性
 const defaultHeaderConfig: HeaderVisible = {
   logoIcon: true,
   logoTitle: true,
-  nav: true,
   themeSwitch: true,
   localeSwitch: true,
   setting: true,
@@ -50,43 +44,24 @@ const defaultHeaderConfig: HeaderVisible = {
 };
 
 // 默认Logo配置
+// icon 默认用仓库内置 logo；siteConfig.basic.logoUrl 或路由 meta.layout.logoConfig 有值时会覆盖它
 const defaultLogoConfig: LogoConfig = {
-  icon: undefined,
+  icon: logoUrl,
   title: undefined,
-};
-
-// 隐藏布局可见性
-const hiddenLayoutConfig: LayoutVisible = {
-  header: false,
-  nav: false,
-};
-
-// 隐藏头部组件可见性
-const hiddenHeaderConfig: HeaderVisible = {
-  logoIcon: false,
-  logoTitle: false,
-  nav: false,
-  themeSwitch: false,
-  localeSwitch: false,
-  setting: false,
-  avatar: false,
 };
 
 // 布局上下文类型
 export interface LayoutContextType {
-  layoutVisible: LayoutVisible;
-  headerVisible: HeaderVisible;
-  logoConfig: LogoConfig;
-  customMenuList: IMenuItem[];
+  layoutVisible: DeepReadonly<LayoutVisible>;
+  headerVisible: DeepReadonly<HeaderVisible>;
+  logoConfig: DeepReadonly<LogoConfig>;
   setLayoutVisible: (visible: Partial<LayoutVisible>) => void;
   setHeaderVisible: (visible: Partial<HeaderVisible>) => void;
   setLogoConfig: (config: Partial<LogoConfig>) => void;
-  setCustomMenuList: (menuList: IMenuItem[]) => void;
-  hideLayout: () => void;
-  showLayout: () => void;
-  hideHeader: () => void;
-  showHeader: () => void;
-  resetCustomMenuList: () => void;
+  resetLayout: () => void;
+  resetHeader: () => void;
+  resetLogo: () => void;
+  resetAll: () => void;
 }
 
 // 创建注入键
@@ -96,96 +71,66 @@ export const LayoutContextKey: InjectionKey<LayoutContextType> = Symbol('LayoutC
  * 创建布局上下文
  */
 export function createLayoutContext(): LayoutContextType {
+  const mergedLayoutConfig: LayoutVisible = { ...defaultLayoutConfig };
+  const mergedHeaderConfig: HeaderVisible = { ...defaultHeaderConfig };
+  const mergedLogoConfig: LogoConfig = { ...defaultLogoConfig };
+
+  // #if overrides
+  // 合并 Override 系统注册的默认配置（租户可整体调整可见性 / Logo 默认值）
+  const overrideDefaults = layoutManager.getDefaultConfig();
+  Object.assign(mergedLayoutConfig, overrideDefaults?.layoutVisible);
+  Object.assign(mergedHeaderConfig, overrideDefaults?.headerVisible);
+  Object.assign(mergedLogoConfig, overrideDefaults?.logoConfig);
+  // #endif
+
   // 使用reactive创建响应式状态
   const state = reactive({
-    layoutVisible: { ...defaultLayoutConfig },
-    headerVisible: { ...defaultHeaderConfig },
-    logoConfig: { ...defaultLogoConfig },
-    // 使用空数组作为初始值，避免null值
-    customMenuList: [] as IMenuItem[],
+    layoutVisible: { ...mergedLayoutConfig },
+    headerVisible: { ...mergedHeaderConfig },
+    logoConfig: { ...mergedLogoConfig },
   });
 
-  /**
-   * 设置布局可见性
-   */
   const setLayoutVisible = (visible: Partial<LayoutVisible>) => {
     Object.assign(state.layoutVisible, visible);
   };
 
-  /**
-   * 设置头部组件可见性
-   */
   const setHeaderVisible = (visible: Partial<HeaderVisible>) => {
     Object.assign(state.headerVisible, visible);
   };
 
-  /**
-   * 设置Logo配置
-   */
   const setLogoConfig = (config: Partial<LogoConfig>) => {
     Object.assign(state.logoConfig, config);
   };
 
-  /**
-   * 设置自定义菜单列表
-   */
-  const setCustomMenuList = (menuList: IMenuItem[]) => {
-    state.customMenuList = menuList;
+  const resetLayout = () => {
+    Object.assign(state.layoutVisible, mergedLayoutConfig);
   };
 
-  /**
-   * 隐藏布局
-   */
-  const hideLayout = () => {
-    Object.assign(state.layoutVisible, hiddenLayoutConfig);
+  const resetHeader = () => {
+    Object.assign(state.headerVisible, mergedHeaderConfig);
   };
 
-  /**
-   * 显示布局
-   */
-  const showLayout = () => {
-    Object.assign(state.layoutVisible, defaultLayoutConfig);
+  const resetLogo = () => {
+    Object.assign(state.logoConfig, mergedLogoConfig);
   };
 
-  /**
-   * 隐藏头部所有组件
-   */
-  const hideHeader = () => {
-    Object.assign(state.headerVisible, hiddenHeaderConfig);
+  const resetAll = () => {
+    resetLayout();
+    resetHeader();
+    resetLogo();
   };
 
-  /**
-   * 显示头部所有组件
-   */
-  const showHeader = () => {
-    Object.assign(state.headerVisible, defaultHeaderConfig);
-  };
-
-  /**
-   * 重置自定义菜单列表
-   */
-  const resetCustomMenuList = () => {
-    state.customMenuList = [];
-  };
-
-  // 返回上下文对象
   return {
-    // 只读状态，防止直接修改
-    layoutVisible: readonly(state.layoutVisible) as LayoutVisible,
-    headerVisible: readonly(state.headerVisible) as HeaderVisible,
-    logoConfig: readonly(state.logoConfig) as LogoConfig,
-    // 使用readonly包装数组
-    customMenuList: readonly(state.customMenuList) as IMenuItem[],
-    // 方法
+    layoutVisible: readonly(state.layoutVisible),
+    headerVisible: readonly(state.headerVisible),
+    logoConfig: readonly(state.logoConfig),
     setLayoutVisible,
     setHeaderVisible,
     setLogoConfig,
-    setCustomMenuList,
-    hideLayout,
-    showLayout,
-    hideHeader,
-    showHeader,
-    resetCustomMenuList,
+    resetLayout,
+    resetHeader,
+    resetLogo,
+    resetAll,
   };
 }
 
@@ -207,36 +152,4 @@ export function useLayout(): LayoutContextType {
     throw new Error('useLayout must be used within a LayoutProvider');
   }
   return context;
-}
-
-/**
- * 控制头部组件显隐的组合式函数
- */
-export function useHeaderControl() {
-  const { headerVisible, setHeaderVisible, hideHeader, showHeader } = useLayout();
-  return { headerVisible, setHeaderVisible, hideHeader, showHeader };
-}
-
-/**
- * 控制布局显隐的组合式函数
- */
-export function useLayoutControl() {
-  const { layoutVisible, setLayoutVisible, hideLayout, showLayout } = useLayout();
-  return { layoutVisible, setLayoutVisible, hideLayout, showLayout };
-}
-
-/**
- * 控制Logo配置的组合式函数
- */
-export function useLogoConfig() {
-  const { logoConfig, setLogoConfig } = useLayout();
-  return { logoConfig, setLogoConfig };
-}
-
-/**
- * 控制自定义菜单列表的组合式函数
- */
-export function useCustomMenuList() {
-  const { customMenuList, setCustomMenuList, resetCustomMenuList } = useLayout();
-  return { customMenuList, setCustomMenuList, resetCustomMenuList };
 }

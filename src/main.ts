@@ -1,45 +1,40 @@
-import { createApp, markRaw } from 'vue';
+import 'virtual:uno.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
-import 'element-plus/dist/index.css';
-import * as ElementPlusIconsVue from '@element-plus/icons-vue';
+import 'virtual:svg-icons-register';
+import { renderApp } from './app/render';
+// #if qiankun
+// destroyApp 只有 qiankun 的 unmount 生命周期用得到，单独一条 import 才能随特性裁掉
+import { destroyApp } from './app/render';
+// #endif
+import type { AppSetupHooks } from './app/render';
+// #if qiankun
+import { bootstrapApp } from './micro';
+// #endif
+// #if overrides
+import { setupOverrides, setupStoreOverrides } from './overrides';
+// #endif
 
-import App from './app/App.vue';
-import router from './router';
-import { i18n } from './plugins/locale';
-import storePromise, { preloadPersistedData } from './store';
+// iconfont 图标：用本地副本，换图标即替换 src/assets/iconfont/ 目录
+import './assets/iconfont/iconfont.js';
 
 /**
- * 初始化应用
+ * 应用级扩展钩子：beforeRouter 在 router 安装前执行，beforeMount 在所有插件 use() 之后、mount 之前执行
+ *
+ * 需要在 mount 前注册的全局插件/指令都挂在这里；不启用任何扩展时是个空对象。
  */
-const initApp = async () => {
-  // 预加载持久化数据
-  await preloadPersistedData();
+const appHooks: AppSetupHooks = {};
 
-  // 等待 store 创建完成
-  const store = await storePromise;
+// #if overrides
+// 在 main.ts 注入 override 系统（核心代码不直接依赖 overrides 目录，见 eslint 架构规则）
+appHooks.beforeRouter = (_app, store) => setupStoreOverrides(store);
+appHooks.beforeMount = (app, store, router) => setupOverrides({ app, pinia: store, router });
+// #endif
 
-  const app = createApp(App);
-
-  // 注册Element Plus图标
-  for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-    app.component(key, markRaw(component));
-  }
-
-  // 使用插件
-  app.use(i18n);
-  app.use(store);
-  app.use(router);
-
-  // 初始化使用动态导入
-  try {
-    const { initSentry } = await import('@/plugins/sentry');
-    await initSentry(app, router);
-  } catch (error) {
-    console.warn('Sentry initialization failed:', error);
-  }
-
-  app.mount('#main-app');
-};
-
-// 启动应用
-initApp();
+// #if qiankun
+bootstrapApp({
+  render: props => renderApp(props, appHooks),
+  destroy: destroyApp,
+});
+// #else
+void renderApp({}, appHooks);
+// #endif
