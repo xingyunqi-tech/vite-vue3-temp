@@ -17,7 +17,7 @@ export const siteConfigSchema = {
         title: '系统标题',
         inputType: 'text',
         required: true,
-        defaultValue: 'Vite Vue3 App',
+        defaultValue: '备考刷题运营后台',
         span: 12,
       },
       defaultPage: {

@@ -10,6 +10,8 @@ declare module 'axios' {
     isIgnoreToast?: boolean;
     /** 401 时不清 token、不跳登录页，用于登录接口本身 */
     skipAuthRedirect?: boolean;
+    /** 已用刷新后的 token 重放过，再次 401 不再刷新 */
+    authRetried?: boolean;
   }
 }
 

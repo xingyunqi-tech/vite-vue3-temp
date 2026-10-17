@@ -4,9 +4,11 @@ import { getUserInfo, login, logout, type LoginParams } from '@/api/modules/auth
 import { ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 import { removePersistedStore } from '@/store/plugins/persist';
-import { getToken, jumpToLogout, setToken } from '@/utils/auth';
+import { getToken, getTokenSession, jumpToLogout, setRefreshToken, setToken } from '@/utils/auth';
 
 export type UserType = 'teacher' | 'student';
+
+export const NOT_ADMIN_MESSAGE = '当前账号无运营后台访问权限';
 
 export interface UserInfo {
   id: number | undefined;
@@ -69,19 +71,24 @@ export const useUserInfoStore = defineStore(
       Object.assign(info.value, partial);
     };
 
-    /** 本页加载用户信息时的 token，换账号检测的基准；不持久化 */
-    let loadedToken = '';
+    /** 本页加载用户信息时的登录会话，换账号检测的基准；不持久化 */
+    let loadedSession = '';
 
     const resetUserInfo = () => {
       info.value = createInitialState();
-      loadedToken = '';
+      loadedSession = '';
     };
 
-    /** 账号密码登录：写入 token 并同步镜像 */
+    /** 账号密码登录，仅允许管理员 */
     const loginAction = async (params: LoginParams) => {
-      const newToken = (await login(params))?.token;
-      if (!newToken) throw new Error('登录失败：未获取到登录凭证');
-      setToken(newToken);
+      const result = await login(params);
+      if (!result?.token) throw new Error('登录失败：未获取到登录凭证');
+      if (result.user.role !== ROLES.ADMIN) {
+        await logout(result.token).catch(error => console.warn('注销非管理员会话失败:', error));
+        throw new Error(NOT_ADMIN_MESSAGE);
+      }
+      setToken(result.token);
+      setRefreshToken(result.refreshToken);
       refreshToken();
     };
 
@@ -93,17 +100,13 @@ export const useUserInfoStore = defineStore(
     const getInfoAction = async () => {
       const user = await getUserInfo();
       info.value = { ...createInitialState(), ...user, role: isRole(user?.role) ? user.role : '' };
-      loadedToken = getToken();
+      loadedSession = getTokenSession(getToken());
     };
 
-    /**
-     * Cookie 里的 token 是否已不是本页加载用户信息时的 token（其他标签页换了账号）
-     *
-     * 两边任一为空时不判定：本页尚未加载用户信息，或 token 已被清掉（由守卫按未登录处理）。
-     */
+    /** 其他标签页是否换了账号；同一会话刷新 token 不算换账号 */
     const isAccountSwitched = (): boolean => {
       const current = getToken();
-      return !!current && !!loadedToken && current !== loadedToken;
+      return !!current && !!loadedSession && getTokenSession(current) !== loadedSession;
     };
 
     /**

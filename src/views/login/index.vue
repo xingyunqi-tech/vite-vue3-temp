@@ -6,10 +6,10 @@
     </div>
 
     <div class="login-card">
-      <h2 class="login-card__title">账号登录</h2>
+      <h2 class="login-card__title">管理员登录</h2>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" @keyup.enter="handleLogin">
-        <el-form-item label="账号" prop="username">
-          <el-input v-model="form.username" placeholder="请输入账号" autocomplete="username" clearable />
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="form.email" placeholder="请输入邮箱" autocomplete="username" clearable />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input
@@ -43,10 +43,13 @@ const userStore = useUserInfoStore();
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
-const form = reactive({ username: '', password: '' });
+const form = reactive({ email: '', password: '' });
 
 const rules: FormRules = {
-  username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+  ],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 };
 

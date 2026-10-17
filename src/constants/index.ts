@@ -22,6 +22,7 @@ export const APP_TITLE = DEFAULT_APP_TITLE;
 export const DEFAULT_LOCALE = DEFAULT_LOCALE_VALUE;
 export const DEFAULT_THEME_STYLE = DEFAULT_THEME_STYLE_VALUE;
 
-export { LOCALE_TYPE, LOGIN_PATH, TOKEN_KEY } from './system';
+export { LOCALE_TYPE, LOGIN_PATH, REFRESH_TOKEN_KEY, TOKEN_KEY } from './system';
+export { BACKEND_ROLE_ID } from './roles';
 export type { RoleType } from './roles';
 export type { MenuItem } from './menu';

@@ -1,5 +1,16 @@
+import Cookies from 'js-cookie';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getToken, jumpToLogin, jumpToLogout, removeToken, setToken } from '@/utils/auth';
+import { REFRESH_TOKEN_KEY, TOKEN_KEY } from '@/constants';
+import {
+  getRefreshToken,
+  getToken,
+  getTokenSession,
+  jumpToLogin,
+  jumpToLogout,
+  removeToken,
+  setRefreshToken,
+  setToken,
+} from '@/utils/auth';
 
 const assign = vi.fn();
 
@@ -29,6 +40,58 @@ describe('token 读写', () => {
     expect(getToken()).toBe('token-a');
     removeToken();
     expect(getToken()).toBe('');
+  });
+});
+
+describe('刷新 token', () => {
+  it('存于 localStorage 而非 Cookie，removeToken 一并清除', () => {
+    setToken('token-a');
+    setRefreshToken('refresh-a');
+    expect(getRefreshToken()).toBe('refresh-a');
+    expect(localStorage.getItem(REFRESH_TOKEN_KEY)).toBe('refresh-a');
+    expect(document.cookie).not.toContain('refresh-a');
+    removeToken();
+    expect(getToken()).toBe('');
+    expect(getRefreshToken()).toBe('');
+  });
+
+  it('localStorage 不可用时读取为空串且写入不抛错', () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('denied');
+    });
+
+    expect(() => setRefreshToken('refresh-a')).not.toThrow();
+    expect(getRefreshToken()).toBe('');
+
+    getItem.mockRestore();
+    setItem.mockRestore();
+  });
+});
+
+describe('登录 token Cookie', () => {
+  it('以 SameSite=Strict 写入', () => {
+    const set = vi.spyOn(Cookies, 'set');
+    setToken('token-a');
+    expect(set).toHaveBeenCalledWith(TOKEN_KEY, 'token-a', { path: '/', sameSite: 'strict', secure: false });
+    set.mockRestore();
+  });
+});
+
+describe('getTokenSession', () => {
+  const jwt = (payload: Record<string, unknown>) =>
+    `h.${btoa(JSON.stringify(payload)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')}.s`;
+
+  it('返回 JWT 载荷中的 sessionId', () => {
+    expect(getTokenSession(jwt({ id: 1, sessionId: 42, hash: '?>?' }))).toBe('42');
+  });
+
+  it('解析不出 sessionId 时返回 token 本身', () => {
+    expect(getTokenSession('plain-token')).toBe('plain-token');
+    expect(getTokenSession('h.not-base64!.s')).toBe('h.not-base64!.s');
+    expect(getTokenSession(jwt({ id: 1 }))).toBe(jwt({ id: 1 }));
   });
 });
 

@@ -3,7 +3,7 @@
  */
 
 import Cookies from 'js-cookie';
-import { LOGIN_PATH, TOKEN_KEY } from '@/constants';
+import { LOGIN_PATH, REFRESH_TOKEN_KEY, TOKEN_KEY } from '@/constants';
 import { resolveLoginReturnPath, routerBase } from '@/router/redirect';
 
 /** 读取登录 token，未登录时为空串 */
@@ -13,11 +13,48 @@ export function getToken(): string {
 
 /** 写入登录 token（当前域名下的 host-only Cookie） */
 export function setToken(token: string): void {
-  Cookies.set(TOKEN_KEY, token, { path: '/' });
+  Cookies.set(TOKEN_KEY, token, { path: '/', sameSite: 'strict', secure: import.meta.env.PROD });
 }
 
 export function removeToken(): void {
   Cookies.remove(TOKEN_KEY, { path: '/' });
+  try {
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  } catch {
+    // 存储不可用
+  }
+}
+
+export function getRefreshToken(): string {
+  try {
+    return localStorage.getItem(REFRESH_TOKEN_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function setRefreshToken(refreshToken: string): void {
+  try {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  } catch {
+    // 存储不可用
+  }
+}
+
+/**
+ * token 所属的登录会话标识：JWT 载荷里的 sessionId，刷新 token 后保持不变
+ *
+ * 解析不出时返回 token 本身。
+ */
+export function getTokenSession(token: string): string {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return token;
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return json?.sessionId != null ? String(json.sessionId) : token;
+  } catch {
+    return token;
+  }
 }
 
 /** 登录页完整地址（含 router base） */

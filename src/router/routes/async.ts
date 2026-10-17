@@ -8,6 +8,26 @@ export const SETTING_SHELL_ROUTE_NAME = 'SettingShell';
 /** 异步路由：登录后按 meta.roles 过滤再注册 */
 export const asyncRoutes: RouteRecordRaw[] = [
   {
+    path: '/system',
+    component: AppLayout,
+    redirect: '/system/config',
+    meta: { title: '系统', roles: [ROLES.ADMIN] },
+    children: [
+      {
+        path: 'config',
+        name: 'RemoteConfig',
+        component: () => import('@/views/system/config/index.vue'),
+        meta: { title: '远程配置', roles: [ROLES.ADMIN] },
+      },
+      {
+        path: 'monitor',
+        name: 'Monitor',
+        component: () => import('@/views/system/monitor/index.vue'),
+        meta: { title: '监控告警', roles: [ROLES.ADMIN] },
+      },
+    ],
+  },
+  {
     path: '/setting',
     component: AppLayout,
     redirect: '/setting/frontend',

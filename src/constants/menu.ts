@@ -1,4 +1,6 @@
+import { ChatDotRound, Collection, Monitor, TrendCharts } from '@element-plus/icons-vue';
 import type { Component } from 'vue';
+import { DEFAULT_ROLES } from './roles';
 
 /**
  * 菜单项类型
@@ -31,4 +33,42 @@ export interface MenuItem {
 /**
  * 默认菜单配置列表
  */
-export const DEFAULT_MENU_LIST: MenuItem[] = [{ title: '首页', path: '/home', icon: 'common-menu-home' }];
+export const DEFAULT_MENU_LIST: MenuItem[] = [
+  { title: '首页', path: '/home', icon: 'common-menu-home' },
+  {
+    title: '内容管理',
+    path: '/content',
+    icon: Collection,
+    children: [
+      { title: '考试与科目', path: '/content/exams', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '题目', path: '/content/questions', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '试卷', path: '/content/papers', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '批量导入', path: '/content/imports', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '审核发布', path: '/content/review', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+    ],
+  },
+  {
+    title: '纠错与勘误',
+    path: '/feedback',
+    icon: ChatDotRound,
+    children: [
+      { title: '纠错与举报', path: '/feedback/reports', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '勘误', path: '/feedback/errata', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+    ],
+  },
+  {
+    title: 'AI 用量',
+    path: '/ai',
+    icon: TrendCharts,
+    children: [{ title: '用量与成本', path: '/ai/usage', disabled: true, roles: [DEFAULT_ROLES.ADMIN] }],
+  },
+  {
+    title: '系统',
+    path: '/system',
+    icon: Monitor,
+    children: [
+      { title: '远程配置', path: '/system/config' },
+      { title: '监控告警', path: '/system/monitor' },
+    ],
+  },
+];

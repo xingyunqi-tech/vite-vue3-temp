@@ -14,3 +14,8 @@ export const DEFAULT_ROLES = {
 
 /** 角色类型 */
 export type RoleType = (typeof DEFAULT_ROLES)[keyof typeof DEFAULT_ROLES];
+
+/** 后端 RoleEnum 的角色 ID，只有管理员可进入后台 */
+export const BACKEND_ROLE_ID = {
+  ADMIN: 1,
+} as const;

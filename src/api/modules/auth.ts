@@ -1,19 +1,18 @@
 /**
- * 登录与当前用户接口
- *
- * 路径与字段为约定形态，接入真实后端时按接口文档调整。
+ * 管理员登录与当前用户接口
  */
 
-import { get, post } from '../core/request';
+import { isAxiosError } from 'axios';
+import { Md5 } from 'ts-md5';
+import { refreshAccessToken } from '../core/request';
+import { getCurrentUser, loginWithEmail, logout as generatedLogout } from '../generated/auth/auth';
+import type { User } from '../generated/model';
+import { BACKEND_ROLE_ID, ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 
 export interface LoginParams {
-  username: string;
+  email: string;
   password: string;
-}
-
-export interface LoginResult {
-  token: string;
 }
 
 /** 当前登录用户资料 */
@@ -24,15 +23,60 @@ export interface CurrentUser {
   avatar: string;
   email: string;
   phone: string;
-  /** 系统角色，取值见 @/constants 的 ROLES */
-  role: RoleType;
+  /** 后端角色为管理员时为 ROLES.ADMIN，其余角色为空 */
+  role: RoleType | '';
 }
 
-/** 账号密码登录 */
-export const login = (params: LoginParams) => post<LoginResult>('/api/auth/login', params, { skipAuthRedirect: true });
+export interface LoginResult {
+  token: string;
+  refreshToken: string;
+  user: CurrentUser;
+}
 
-/** 退出登录 */
-export const logout = () => post<void>('/api/auth/logout', undefined, { isIgnoreToast: true, skipAuthRedirect: true });
+export function toCurrentUser(user: User | null | undefined): CurrentUser {
+  const email = user?.email ?? '';
+  const phone = user?.phone ?? '';
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  return {
+    id: user?.id ?? 0,
+    username: email || phone,
+    realName: user?.nickname || fullName || email || phone,
+    avatar: user?.photo?.path ?? '',
+    email,
+    phone,
+    role: user?.role?.id === BACKEND_ROLE_ID.ADMIN ? ROLES.ADMIN : '',
+  };
+}
+
+/** 邮箱密码登录，密码按后端约定以 MD5 传输 */
+export const login = async ({ email, password }: LoginParams): Promise<LoginResult> => {
+  const res = await loginWithEmail(
+    { email: email.trim(), password: Md5.hashStr(password) },
+    { skipAuthRedirect: true },
+  );
+  return { token: res?.token ?? '', refreshToken: res?.refreshToken ?? '', user: toCurrentUser(res?.user) };
+};
+
+const silent = { isIgnoreToast: true, skipAuthRedirect: true };
+
+const isUnauthorizedError = (error: unknown) =>
+  isAxiosError(error) && String(error.response?.data?.code ?? error.response?.status) === '401';
+
+/**
+ * 退出登录：当前 token 已过期时先刷新一次再注销，刷新失败时抛出 RefreshTokenError
+ *
+ * @param token 要注销的会话 token，缺省为当前登录 token
+ */
+export const logout = async (token?: string): Promise<void> => {
+  if (token) return generatedLogout({ ...silent, headers: { Authorization: `Bearer ${token}` } });
+  try {
+    await generatedLogout(silent);
+  } catch (error) {
+    if (!isUnauthorizedError(error)) throw error;
+    const freshToken = await refreshAccessToken();
+    await generatedLogout({ ...silent, headers: { Authorization: `Bearer ${freshToken}` } });
+  }
+};
 
 /** 获取当前登录用户 */
-export const getUserInfo = () => get<CurrentUser>('/api/auth/current-user');
+export const getUserInfo = async (): Promise<CurrentUser> => toCurrentUser(await getCurrentUser());

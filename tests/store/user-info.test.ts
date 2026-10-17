@@ -1,12 +1,12 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getUserInfo, login, logout } from '@/api/modules/auth';
-import { useUserInfoStore } from '@/store/modules/user-info';
+import { NOT_ADMIN_MESSAGE, useUserInfoStore } from '@/store/modules/user-info';
 import { removePersistedStore } from '@/store/plugins/persist';
-import { getToken, jumpToLogout, removeToken, setToken } from '@/utils/auth';
+import { getRefreshToken, getToken, jumpToLogout, removeToken, setToken } from '@/utils/auth';
 
 vi.mock('@/api/modules/auth', () => ({
-  login: vi.fn(async () => ({ token: 'token-a' })),
+  login: vi.fn(async () => ({ token: 'token-a', refreshToken: 'refresh-a', user: { role: 'ADMIN' } })),
   logout: vi.fn(async () => undefined),
   getUserInfo: vi.fn(async () => ({
     id: 1,
@@ -24,6 +24,8 @@ vi.mock('@/utils/auth', async importOriginal => ({
   jumpToLogout: vi.fn(),
 }));
 
+const jwt = (payload: Record<string, unknown>) => `header.${btoa(JSON.stringify(payload))}.signature`;
+
 beforeEach(() => {
   setActivePinia(createPinia());
   vi.clearAllMocks();
@@ -34,16 +36,33 @@ afterEach(() => {
 });
 
 describe('登录', () => {
-  it('loginAction 写入 token 并同步登录态', async () => {
+  it('管理员登录写入 token 与刷新 token 并同步登录态', async () => {
     const store = useUserInfoStore();
     expect(store.isLoggedIn).toBe(false);
 
-    await store.loginAction({ username: '13800000000', password: 'Abcd1234' });
+    await store.loginAction({ email: 'admin@example.com', password: 'Abcd1234' });
 
-    expect(login).toHaveBeenCalledWith({ username: '13800000000', password: 'Abcd1234' });
+    expect(login).toHaveBeenCalledWith({ email: 'admin@example.com', password: 'Abcd1234' });
     expect(getToken()).toBe('token-a');
+    expect(getRefreshToken()).toBe('refresh-a');
     expect(store.token).toBe('token-a');
     expect(store.isLoggedIn).toBe(true);
+  });
+
+  it('非管理员登录时注销本次会话、不写入 token 并提示无权限', async () => {
+    vi.mocked(login).mockResolvedValueOnce({
+      token: 'token-u',
+      refreshToken: 'refresh-u',
+      user: { role: '' },
+    } as never);
+    const store = useUserInfoStore();
+
+    await expect(store.loginAction({ email: 'user@example.com', password: 'p' })).rejects.toThrow(NOT_ADMIN_MESSAGE);
+
+    expect(logout).toHaveBeenCalledWith('token-u');
+    expect(getToken()).toBe('');
+    expect(getRefreshToken()).toBe('');
+    expect(store.isLoggedIn).toBe(false);
   });
 });
 
@@ -52,7 +71,7 @@ describe('登录凭证校验', () => {
     vi.mocked(login).mockResolvedValueOnce({} as never);
     const store = useUserInfoStore();
 
-    await expect(store.loginAction({ username: 'u', password: 'p' })).rejects.toThrow('未获取到登录凭证');
+    await expect(store.loginAction({ email: 'u@example.com', password: 'p' })).rejects.toThrow('未获取到登录凭证');
     expect(getToken()).toBe('');
   });
 });
@@ -113,6 +132,18 @@ describe('换账号检测', () => {
     expect(store.isAccountSwitched()).toBe(false);
 
     setToken('token-b');
+    expect(store.isAccountSwitched()).toBe(true);
+  });
+
+  it('同一会话刷新 token 后不判定为换了账号', async () => {
+    setToken(jwt({ sessionId: 7, hash: 'a' }));
+    const store = useUserInfoStore();
+    await store.getInfoAction();
+
+    setToken(jwt({ sessionId: 7, hash: 'b' }));
+    expect(store.isAccountSwitched()).toBe(false);
+
+    setToken(jwt({ sessionId: 8, hash: 'c' }));
     expect(store.isAccountSwitched()).toBe(true);
   });
 

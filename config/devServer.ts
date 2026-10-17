@@ -10,8 +10,8 @@ export const protocol = 'http:';
 export const hostDict = {
   /** 本地服务 */
   LOCAL_SERVICE: 'localhost:3001',
-  /** 后端 API 服务（⚠️ 按实际后端地址修改） */
-  API_SERVICE: 'localhost:3002',
+  /** 后端 API 服务（nestjs-boilerplate 默认端口） */
+  API_SERVICE: 'localhost:3000',
 };
 
 /** 开发环境代理 */

@@ -1,7 +1,7 @@
 # API 模块使用指南
 
-> 下文的 `getUserList` 等 Orval 生成函数名仅作示意：`src/api/generated/` 要在 `orval.config.ts` 填好 `input.target` 并运行 `pnpm orval` 后才存在。
-> 当前仓库的手写接口在 `src/api/modules/auth.ts`（登录、退出、当前用户）。
+> 下文的 `getUserList` 等 Orval 生成函数名仅作示意。`src/api/generated/` 纳入版本管理、运行时被依赖；后端接口变更后启动后端（开启 SWAGGER_ENABLED）运行 `pnpm orval` 重新生成并一起提交。
+> 当前仓库的手写接口在 `src/api/modules/`：`auth.ts`（管理员登录、退出、当前用户）、`remote-config.ts`（远程配置读写）。
 
 ## 概述
 
@@ -24,7 +24,7 @@ src/api/
 │   ├── mutator.ts        # Orval 适配器（实例切换、请求去重、提取 data）
 │   ├── types.ts          # ApiResponse、CustomAxiosRequestConfig、RequestOptions 等类型
 │   └── index.ts          # 核心模块导出
-├── generated/            # 🚫 Orval 生成（运行 pnpm orval 后出现，禁止手改）
+├── generated/            # 🚫 Orval 生成（纳入版本管理，禁止手改）
 ├── modules/
 │   ├── auth.ts           # 登录 / 退出 / 当前用户
 │   └── override.ts       # 覆盖生成接口的示例
@@ -49,7 +49,7 @@ interface ApiResponse<T> {
 |------|-----------|
 | `code === 200` | resolve 完整 axios response |
 | `code !== 200` | 弹出 `message`（`ElMessage.error`），reject `AxiosError`（`code: 'ERR_ERROR_MODULE'`） |
-| 业务码 401 或 HTTP 401 | 清除 token，整页跳转 `/login?redirect=<当前页>`（并发只跳一次），同时按上一行提示并 reject |
+| 业务码 401 或 HTTP 401 | 先用刷新 token 调 `/api/v1/auth/refresh` 换新 token 并重放原请求（并发只刷新一次，每个请求只重放一次）；刷新失败则清除 token，整页跳转 `/login?redirect=<当前页>`（并发只跳一次），同时按上一行提示并 reject |
 | HTTP / 网络错误 | 文案经 `toFriendlyMessage` 转换后提示，reject 原错误 |
 | 请求被取消 | 不提示，直接 reject |
 | 下载接口返回 JSON 业务错误 | 解析 Blob 后按业务码处理并 reject；正常文件 Blob 原样返回 |
@@ -77,7 +77,7 @@ export const instances: Record<HttpInstanceType, AxiosInstance> = {
 };
 ```
 
-- `attachHeaders`：`Authorization` 头直接放 `getToken()` 的值（无 `Bearer` 前缀）；`Accept-Language` 取当前界面语言
+- `attachHeaders`：`Authorization` 头为 `Bearer <getToken()>`，请求已显式指定 `Authorization` 时保持不变；`Accept-Language` 取当前界面语言
 - 两个实例共用同一套拦截器，超时均为 120s
 
 | 实例 | 注册名 | 用途 |

@@ -11,6 +11,9 @@ export const DEFAULT_API_CODE = {
 /** 登录 token 的 Cookie 键名 */
 export const TOKEN_KEY = 'vite-vue3-temp-token';
 
+/** 刷新 token 的 localStorage 键名 */
+export const REFRESH_TOKEN_KEY = 'vite-vue3-temp-refresh-token';
+
 /** 登录页路径 */
 export const LOGIN_PATH = '/login';
 
@@ -23,7 +26,7 @@ export const DEFAULT_PROXY_URI = {
 export const DEFAULT_LOCALE_VALUE = 'zh-CN';
 
 /** 浏览器默认标题，由 `@/constants` 导出为 APP_TITLE */
-export const DEFAULT_APP_TITLE = 'Vite Vue3 App';
+export const DEFAULT_APP_TITLE = '备考刷题运营后台';
 
 /** 默认主题 */
 export const DEFAULT_THEME_STYLE_VALUE = 'light';

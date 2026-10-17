@@ -52,7 +52,7 @@
 - **路由**: Vue Router 5（静态 + 异步权限路由两层体系）
 - **UI**: Element Plus + UnoCSS + SCSS
 - **HTTP**: axios（`src/api/core/request.ts`）+ Orval（OpenAPI → 类型安全 API 自动生成）
-- **登录**: 本地登录页 `/login`，token 存 Cookie，角色以 `getUserInfo` 接口为准
+- **登录**: 本地登录页 `/login`（邮箱 + 密码，仅后端 admin 角色可进入），token 存 Cookie、刷新 token 存 localStorage，角色以 `getUserInfo` 接口为准
 - **监控**: Sentry（`VITE_SENTRY_DSN` 非空才加载）
 - **测试**: Vitest + Vue Test Utils；`vitest.config.ts` **未设覆盖率阈值**，`test:coverage` 只出报告不会失败（需要门禁时自行加 `coverage.thresholds`，注意必须扁平写）
 
@@ -74,7 +74,7 @@
 
 | 目录 | 职责 | 注意事项 |
 |------|------|---------|
-| `src/api/generated/` | Orval 生成产物 | 🚫 **禁止修改**（运行 `pnpm orval` 后才存在，写入已被 hook 拦截） |
+| `src/api/generated/` | Orval 生成产物 | 🚫 **禁止修改**（纳入版本管理，运行时依赖；后端接口变更后用 `pnpm orval` 重新生成，写入已被 hook 拦截） |
 | `src/api/modules/` | 自定义/扩展 API | ✅ 手写 API 的位置（`auth.ts`、`override.ts`） |
 | `src/api/core/` | axios 实例 / mutator | 手动维护，Orval 通过 mutator 接入 |
 | `src/components/` | 全局公用组件 | 多页面复用的纯 UI 组件和业务组件 |

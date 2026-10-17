@@ -29,7 +29,7 @@ import type { OpenAPIObject, OperationObject, PathItemObject } from 'openapi3-ts
 /**
  * API 路径前缀（可根据项目配置修改）
  */
-const API_PREFIX = '/api';
+const API_PREFIX = '/api/v1';
 
 // ==================== 通用工具函数 ====================
 

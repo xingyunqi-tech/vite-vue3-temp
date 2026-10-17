@@ -7,11 +7,9 @@ import { defineConfig } from 'orval';
  */
 export default defineConfig({
   api: {
-    // 输入：OpenAPI 文档
-    // ⚠️ 模版未预置，接入时填成本地路径（如 './openapi.json'）或线上 swagger JSON 地址，
-    // 留空时 `pnpm orval` 会直接失败
+    // 输入：本地后端的 OpenAPI 文档（后端需开启 SWAGGER_ENABLED）
     input: {
-      target: '',
+      target: 'http://localhost:3000/docs-json',
       // 使用 transformer 根据 API 路径自动生成英文 tag
       override: {
         transformer: './scripts/api/transform-openapi.ts',
