@@ -37,7 +37,7 @@
         type="selection"
         width="48"
         reserve-selection
-        :selectable="row => !excludeIds.includes(row.id)"
+        :selectable="(row: AdminQuestionDto) => !excludeIds.includes(row.id)"
       />
       <el-table-column label="题干" min-width="320">
         <template #default="{ row }">
