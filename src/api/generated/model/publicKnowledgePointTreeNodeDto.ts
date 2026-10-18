@@ -7,7 +7,7 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
-import type { PublicKnowledgePointTreeNodeDtoProgress } from './publicKnowledgePointTreeNodeDtoProgress';
+import type { KnowledgePointProgressDto } from './knowledgePointProgressDto';
 
 export interface PublicKnowledgePointTreeNodeDto {
   id: string;
@@ -30,8 +30,8 @@ export interface PublicKnowledgePointTreeNodeDto {
   updatedAt: string;
   children: PublicKnowledgePointTreeNodeDto[];
   /**
-   * 登录用户的个人进度，暂未提供时为 null
+   * 登录用户的个人进度，未登录时为 null
    * @nullable
    */
-  progress: PublicKnowledgePointTreeNodeDtoProgress;
+  progress: KnowledgePointProgressDto | null;
 }

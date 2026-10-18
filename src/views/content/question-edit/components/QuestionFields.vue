@@ -103,12 +103,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import AnswerEditor from '../../shared/components/AnswerEditor.vue';
 import KnowledgePointSelect from '../../shared/components/KnowledgePointSelect.vue';
 import MarkdownEditor from '../../shared/components/MarkdownEditor.vue';
 import { QUESTION_SOURCE_LABEL, QUESTION_TYPE_LABEL, toOptions } from '../../shared/constants';
 import type { KnowledgeNode } from '../../shared/knowledge-tree';
 import { CONTENT_LIMITS, isChoiceType, selectableQuestionTypes, type QuestionForm } from '../../shared/question-form';
-import AnswerEditor from './AnswerEditor.vue';
 import AudioUploader from './AudioUploader.vue';
 import OptionsEditor from './OptionsEditor.vue';
 import type { FileType, QuestionType } from '@/api';

@@ -38,6 +38,11 @@ export interface AdminQuestionVersionDto {
   changeType: QuestionChangeType;
   createdAt: string;
   updatedAt: string;
+  /**
+   * 音频访问地址
+   * @nullable
+   */
+  audioUrl: string | null;
   /** 内容中 file:{id} 引用与音频的访问地址，键为小写文件 id；文件不存在或无权访问时不含该键 */
   fileUrls: AdminQuestionVersionDtoFileUrls;
 }

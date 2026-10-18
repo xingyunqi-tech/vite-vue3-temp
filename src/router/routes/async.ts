@@ -76,6 +76,44 @@ export const asyncRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/feedback',
+    component: AppLayout,
+    redirect: '/feedback/reports',
+    meta: { title: '纠错与勘误', roles: [ROLES.ADMIN] },
+    children: [
+      {
+        path: 'reports',
+        name: 'FeedbackReports',
+        component: () => import('@/views/content/report-list/index.vue'),
+        meta: { title: '纠错与举报', roles: [ROLES.ADMIN] },
+      },
+      {
+        path: 'reports/:id',
+        name: 'FeedbackReportDetail',
+        component: () => import('@/views/content/report-detail/index.vue'),
+        meta: { title: '纠错单详情', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/reports' },
+      },
+      {
+        path: 'errata',
+        name: 'FeedbackErrata',
+        component: () => import('@/views/content/errata/index.vue'),
+        meta: { title: '勘误', roles: [ROLES.ADMIN] },
+      },
+      {
+        path: 'errata/create',
+        name: 'FeedbackErrataCreate',
+        component: () => import('@/views/content/errata-create/index.vue'),
+        meta: { title: '题目勘误', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/errata' },
+      },
+      {
+        path: 'errata/:id',
+        name: 'FeedbackErrataDetail',
+        component: () => import('@/views/content/errata-detail/index.vue'),
+        meta: { title: '勘误进度', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/errata' },
+      },
+    ],
+  },
+  {
     path: '/system',
     component: AppLayout,
     redirect: '/system/config',

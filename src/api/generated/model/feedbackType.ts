@@ -15,4 +15,6 @@ export const FeedbackType = {
   suggestion: 'suggestion',
   complaint: 'complaint',
   other: 'other',
+  question_error: 'question_error',
+  ai_content: 'ai_content',
 } as const;

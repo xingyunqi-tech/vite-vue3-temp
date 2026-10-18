@@ -7,7 +7,23 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
-import type { UpsertExamProfileDto, UserExamProfile } from '../model';
+import type {
+  CheckinCalendarDto,
+  DailyStatDto,
+  GetCheckinsParams,
+  GetMyQuestionNotesParams,
+  GetMyQuestionReportsParams,
+  GetStudyDailyParams,
+  GetStudyKnowledgeParams,
+  GetStudyWeakPointsParams,
+  PaginationQuestionNoteItemDtoResponseDto,
+  PaginationQuestionReportItemDtoResponseDto,
+  PublicKnowledgePointTreeNodeDto,
+  StudyOverviewDto,
+  UpsertExamProfileDto,
+  UserExamProfile,
+  WeakPointDto,
+} from '../model';
 
 import { customMutator } from '../../core/mutator';
 
@@ -49,7 +65,83 @@ export const deleteMyExamProfile = (examId: string, options?: SecondParameter<ty
 export const setMyCurrentExam = (examId: string, options?: SecondParameter<typeof customMutator<UserExamProfile>>) => {
   return customMutator<UserExamProfile>({ url: `/api/v1/me/exam-profiles/${examId}/current`, method: 'POST' }, options);
 };
+/**
+ * @summary 首页学习概览：今日进度、每日目标、连续打卡、考试倒计时、累计做题数
+ */
+export const getStudyOverview = (options?: SecondParameter<typeof customMutator<StudyOverviewDto>>) => {
+  return customMutator<StudyOverviewDto>({ url: `/api/v1/me/study/overview`, method: 'GET' }, options);
+};
+/**
+ * @summary 每日统计（按 Asia/Shanghai 统计日，区间最长 366 天）
+ */
+export const getStudyDaily = (
+  params?: GetStudyDailyParams,
+  options?: SecondParameter<typeof customMutator<DailyStatDto[]>>,
+) => {
+  return customMutator<DailyStatDto[]>({ url: `/api/v1/me/study/daily`, method: 'GET', params }, options);
+};
+/**
+ * @summary 科目知识点树，附带做题进度与掌握度
+ */
+export const getStudyKnowledge = (
+  params: GetStudyKnowledgeParams,
+  options?: SecondParameter<typeof customMutator<PublicKnowledgePointTreeNodeDto[]>>,
+) => {
+  return customMutator<PublicKnowledgePointTreeNodeDto[]>(
+    { url: `/api/v1/me/study/knowledge`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 薄弱知识点：叶子作答 ≥ 5 次且掌握度 < 60%，按掌握度升序
+ */
+export const getStudyWeakPoints = (
+  params: GetStudyWeakPointsParams,
+  options?: SecondParameter<typeof customMutator<WeakPointDto[]>>,
+) => {
+  return customMutator<WeakPointDto[]>({ url: `/api/v1/me/study/weak-points`, method: 'GET', params }, options);
+};
+/**
+ * @summary 打卡日历：指定月份的打卡日与连续打卡天数
+ */
+export const getCheckins = (
+  params?: GetCheckinsParams,
+  options?: SecondParameter<typeof customMutator<CheckinCalendarDto>>,
+) => {
+  return customMutator<CheckinCalendarDto>({ url: `/api/v1/me/checkins`, method: 'GET', params }, options);
+};
+/**
+ * @summary 我的笔记列表，按更新时间倒序，附题目摘要（不含答案）
+ */
+export const getMyQuestionNotes = (
+  params?: GetMyQuestionNotesParams,
+  options?: SecondParameter<typeof customMutator<PaginationQuestionNoteItemDtoResponseDto>>,
+) => {
+  return customMutator<PaginationQuestionNoteItemDtoResponseDto>(
+    { url: `/api/v1/me/question-notes`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 我的纠错记录与处理结果，按提交时间倒序，附题目摘要
+ */
+export const getMyQuestionReports = (
+  params?: GetMyQuestionReportsParams,
+  options?: SecondParameter<typeof customMutator<PaginationQuestionReportItemDtoResponseDto>>,
+) => {
+  return customMutator<PaginationQuestionReportItemDtoResponseDto>(
+    { url: `/api/v1/me/question-reports`, method: 'GET', params },
+    options,
+  );
+};
 export type GetMyExamProfilesResult = NonNullable<Awaited<ReturnType<typeof getMyExamProfiles>>>;
 export type UpsertMyExamProfileResult = NonNullable<Awaited<ReturnType<typeof upsertMyExamProfile>>>;
 export type DeleteMyExamProfileResult = NonNullable<Awaited<ReturnType<typeof deleteMyExamProfile>>>;
 export type SetMyCurrentExamResult = NonNullable<Awaited<ReturnType<typeof setMyCurrentExam>>>;
+export type GetStudyOverviewResult = NonNullable<Awaited<ReturnType<typeof getStudyOverview>>>;
+export type GetStudyDailyResult = NonNullable<Awaited<ReturnType<typeof getStudyDaily>>>;
+export type GetStudyKnowledgeResult = NonNullable<Awaited<ReturnType<typeof getStudyKnowledge>>>;
+export type GetStudyWeakPointsResult = NonNullable<Awaited<ReturnType<typeof getStudyWeakPoints>>>;
+export type GetCheckinsResult = NonNullable<Awaited<ReturnType<typeof getCheckins>>>;
+export type GetMyQuestionNotesResult = NonNullable<Awaited<ReturnType<typeof getMyQuestionNotes>>>;
+export type GetMyQuestionReportsResult = NonNullable<Awaited<ReturnType<typeof getMyQuestionReports>>>;

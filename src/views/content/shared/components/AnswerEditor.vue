@@ -58,6 +58,7 @@
           </el-button>
         </div>
         <el-button
+          v-if="!fixedBlanks"
           link
           type="danger"
           :disabled="locked || form.blanks.length <= 1"
@@ -66,7 +67,11 @@
           删除此空
         </el-button>
       </div>
-      <el-button :disabled="locked || form.blanks.length >= ANSWER_LIMITS.blanks" @click="form.blanks.push([''])">
+      <el-button
+        v-if="!fixedBlanks"
+        :disabled="locked || form.blanks.length >= ANSWER_LIMITS.blanks"
+        @click="form.blanks.push([''])"
+      >
         添加空
       </el-button>
       <span class="answer-editor__hint">判分时去首尾空白、全角转半角、英文忽略大小写、数字去千分位</span>
@@ -106,13 +111,14 @@
 </template>
 
 <script setup lang="ts">
-import { ANSWER_LIMITS, type QuestionForm } from '../../shared/question-form';
+import { ANSWER_LIMITS, type QuestionForm } from '../question-form';
 
 interface Props {
   locked?: boolean;
+  fixedBlanks?: boolean;
 }
 
-withDefaults(defineProps<Props>(), { locked: false });
+withDefaults(defineProps<Props>(), { locked: false, fixedBlanks: false });
 
 const form = defineModel<QuestionForm>('form', { required: true });
 </script>

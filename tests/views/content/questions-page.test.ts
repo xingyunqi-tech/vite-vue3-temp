@@ -64,6 +64,7 @@ async function mountPage() {
     routes: [
       { path: '/content/questions', component: QuestionsPage },
       { path: '/content/questions/:id', component: { template: '<div />' } },
+      { path: '/feedback/errata/create', component: { template: '<div />' } },
     ],
   });
   await router.push('/content/questions');
@@ -103,6 +104,26 @@ describe('题目列表页', () => {
 
     expect(rowButtons(wrapper, 0)).toEqual(['预览', '编辑', '提交审核', '删除']);
     expect(rowButtons(wrapper, 1)).toEqual(['预览', '编辑', '版本', '下架']);
+  });
+
+  it('发布过的非材料题可发起勘误', async () => {
+    vi.mocked(adminGetQuestions).mockResolvedValue({
+      list: [question({ id: 'single', status: 'PUBLISHED', currentVersion: 1 })],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    const { wrapper, router } = await mountPage();
+
+    expect(rowButtons(wrapper, 0)).toEqual(['预览', '编辑', '版本', '勘误', '下架']);
+    await wrapper
+      .findAll('button')
+      .find(button => button.text() === '勘误')!
+      .trigger('click');
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe('/feedback/errata/create?questionId=single');
   });
 
   it('提交审核后刷新列表', async () => {

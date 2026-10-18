@@ -14,4 +14,6 @@ export const CheckFavoriteDtoTargetType = {
   product: 'product',
   article: 'article',
   store: 'store',
+  question: 'question',
+  paper: 'paper',
 } as const;

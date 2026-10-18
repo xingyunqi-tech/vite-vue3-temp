@@ -23,5 +23,10 @@ export interface Favorite {
   image?: string;
   /** Additional data in JSON format */
   extra?: string;
+  /**
+   * 题目、试卷所属科目
+   * @nullable
+   */
+  subjectId: string | null;
   createdAt: string;
 }

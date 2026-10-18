@@ -11,6 +11,10 @@ import type { GetFavoritesTargetType } from './getFavoritesTargetType';
 
 export type GetFavoritesParams = {
   targetType?: GetFavoritesTargetType;
+  /**
+   * 题目、试卷所属科目
+   */
+  subjectId?: string;
   page?: number;
   limit?: number;
 };

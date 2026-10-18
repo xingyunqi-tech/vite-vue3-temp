@@ -11,17 +11,21 @@ import type {
   AdminAlert,
   AdminDailyQuestionSetDto,
   AdminGetDailyQuestionSetsParams,
+  AdminGetErrataListParams,
   AdminGetExamsParams,
   AdminGetImportsParams,
   AdminGetPaperRulesParams,
   AdminGetPapersParams,
+  AdminGetQuestionReportsParams,
   AdminGetQuestionsParams,
   AdminGetSubjectsParams,
   AdminPaperDto,
   AdminQuestionDto,
+  AdminQuestionReportDetailDto,
   AdminQuestionVersionDto,
   BatchPublishQuestionsDto,
   BatchPublishQuestionsResultDto,
+  CreateErrataDto,
   CreateExamDto,
   CreateImportFileIdBodyDto,
   CreateImportUploadBodyDto,
@@ -31,6 +35,7 @@ import type {
   CreateQuestionDto,
   CreateSubjectDto,
   DailyQuestionSet,
+  Errata,
   Exam,
   GetMonitorAlertsParams,
   ImportJob,
@@ -41,6 +46,8 @@ import type {
   MoveKnowledgePointDto,
   PaginationAdminAlertResponseDto,
   PaginationAdminQuestionDtoResponseDto,
+  PaginationAdminQuestionReportDtoResponseDto,
+  PaginationErrataResponseDto,
   PaginationExamResponseDto,
   PaginationImportJobResponseDto,
   PaginationPaperResponseDto,
@@ -56,6 +63,7 @@ import type {
   UpdatePaperDto,
   UpdatePaperRuleDto,
   UpdateQuestionDto,
+  UpdateQuestionReportDto,
   UpdateSubjectDto,
 } from '../model';
 
@@ -63,30 +71,6 @@ import { customMutator } from '../../core/mutator';
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-/**
- * @summary 队列状态（管理员）
- */
-export const getMonitorQueues = (options?: SecondParameter<typeof customMutator<QueuesOverviewDto>>) => {
-  return customMutator<QueuesOverviewDto>({ url: `/api/v1/admin/monitor/queues`, method: 'GET' }, options);
-};
-/**
- * @summary 告警列表（管理员）
- */
-export const getMonitorAlerts = (
-  params?: GetMonitorAlertsParams,
-  options?: SecondParameter<typeof customMutator<PaginationAdminAlertResponseDto>>,
-) => {
-  return customMutator<PaginationAdminAlertResponseDto>(
-    { url: `/api/v1/admin/monitor/alerts`, method: 'GET', params },
-    options,
-  );
-};
-/**
- * @summary 确认告警（管理员）
- */
-export const acknowledgeMonitorAlert = (id: number, options?: SecondParameter<typeof customMutator<AdminAlert>>) => {
-  return customMutator<AdminAlert>({ url: `/api/v1/admin/monitor/alerts/${id}/ack`, method: 'POST' }, options);
-};
 /**
  * @summary 考试列表（管理员）
  */
@@ -608,6 +592,30 @@ export const adminRegenerateDailyQuestionSet = (
   );
 };
 /**
+ * @summary 队列状态（管理员）
+ */
+export const getMonitorQueues = (options?: SecondParameter<typeof customMutator<QueuesOverviewDto>>) => {
+  return customMutator<QueuesOverviewDto>({ url: `/api/v1/admin/monitor/queues`, method: 'GET' }, options);
+};
+/**
+ * @summary 告警列表（管理员）
+ */
+export const getMonitorAlerts = (
+  params?: GetMonitorAlertsParams,
+  options?: SecondParameter<typeof customMutator<PaginationAdminAlertResponseDto>>,
+) => {
+  return customMutator<PaginationAdminAlertResponseDto>(
+    { url: `/api/v1/admin/monitor/alerts`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 确认告警（管理员）
+ */
+export const acknowledgeMonitorAlert = (id: number, options?: SecondParameter<typeof customMutator<AdminAlert>>) => {
+  return customMutator<AdminAlert>({ url: `/api/v1/admin/monitor/alerts/${id}/ack`, method: 'POST' }, options);
+};
+/**
  * @summary 创建导入任务：传已上传导入包的 fileId，或直接上传 file（zip / xlsx / json）
  */
 export const adminCreateImport = (
@@ -646,9 +654,87 @@ export const adminDownloadImportErrors = (id: string, options?: SecondParameter<
     options,
   );
 };
-export type GetMonitorQueuesResult = NonNullable<Awaited<ReturnType<typeof getMonitorQueues>>>;
-export type GetMonitorAlertsResult = NonNullable<Awaited<ReturnType<typeof getMonitorAlerts>>>;
-export type AcknowledgeMonitorAlertResult = NonNullable<Awaited<ReturnType<typeof acknowledgeMonitorAlert>>>;
+/**
+ * @summary 勘误：基于当前版本只改答案与解析，生成 ERRATA 版本并异步重判历史作答；同一题同时只能有一个未完成的勘误
+ */
+export const adminCreateErrata = (
+  id: string,
+  createErrataDto: CreateErrataDto,
+  options?: SecondParameter<typeof customMutator<Errata>>,
+) => {
+  return customMutator<Errata>(
+    {
+      url: `/api/v1/admin/questions/${id}/errata`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createErrataDto,
+    },
+    options,
+  );
+};
+/**
+ * @summary 勘误任务列表
+ */
+export const adminGetErrataList = (
+  params?: AdminGetErrataListParams,
+  options?: SecondParameter<typeof customMutator<PaginationErrataResponseDto>>,
+) => {
+  return customMutator<PaginationErrataResponseDto>({ url: `/api/v1/admin/errata`, method: 'GET', params }, options);
+};
+/**
+ * @summary 勘误任务进度：受影响用户数与已处理用户数
+ */
+export const adminGetErrata = (id: string, options?: SecondParameter<typeof customMutator<Errata>>) => {
+  return customMutator<Errata>({ url: `/api/v1/admin/errata/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 失败或超过 10 分钟未进展的勘误任务从中断处继续
+ */
+export const adminRetryErrata = (id: string, options?: SecondParameter<typeof customMutator<Errata>>) => {
+  return customMutator<Errata>({ url: `/api/v1/admin/errata/${id}/retry`, method: 'POST' }, options);
+};
+/**
+ * @summary 纠错与举报列表：题目纠错与 AI 内容举报，可按类型、状态筛选
+ */
+export const adminGetQuestionReports = (
+  params?: AdminGetQuestionReportsParams,
+  options?: SecondParameter<typeof customMutator<PaginationAdminQuestionReportDtoResponseDto>>,
+) => {
+  return customMutator<PaginationAdminQuestionReportDtoResponseDto>(
+    { url: `/api/v1/admin/question-reports`, method: 'GET', params },
+    options,
+  );
+};
+/**
+ * @summary 纠错单详情，含题目与关联的勘误
+ */
+export const adminGetQuestionReport = (
+  id: number,
+  options?: SecondParameter<typeof customMutator<AdminQuestionReportDetailDto>>,
+) => {
+  return customMutator<AdminQuestionReportDetailDto>(
+    { url: `/api/v1/admin/question-reports/${id}`, method: 'GET' },
+    options,
+  );
+};
+/**
+ * @summary 处理纠错单：修改状态、回复、关联勘误
+ */
+export const adminUpdateQuestionReport = (
+  id: number,
+  updateQuestionReportDto: UpdateQuestionReportDto,
+  options?: SecondParameter<typeof customMutator<AdminQuestionReportDetailDto>>,
+) => {
+  return customMutator<AdminQuestionReportDetailDto>(
+    {
+      url: `/api/v1/admin/question-reports/${id}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateQuestionReportDto,
+    },
+    options,
+  );
+};
 export type AdminGetExamsResult = NonNullable<Awaited<ReturnType<typeof adminGetExams>>>;
 export type AdminCreateExamResult = NonNullable<Awaited<ReturnType<typeof adminCreateExam>>>;
 export type AdminGetExamResult = NonNullable<Awaited<ReturnType<typeof adminGetExam>>>;
@@ -703,7 +789,17 @@ export type AdminGetDailyQuestionSetsResult = NonNullable<Awaited<ReturnType<typ
 export type AdminRegenerateDailyQuestionSetResult = NonNullable<
   Awaited<ReturnType<typeof adminRegenerateDailyQuestionSet>>
 >;
+export type GetMonitorQueuesResult = NonNullable<Awaited<ReturnType<typeof getMonitorQueues>>>;
+export type GetMonitorAlertsResult = NonNullable<Awaited<ReturnType<typeof getMonitorAlerts>>>;
+export type AcknowledgeMonitorAlertResult = NonNullable<Awaited<ReturnType<typeof acknowledgeMonitorAlert>>>;
 export type AdminCreateImportResult = NonNullable<Awaited<ReturnType<typeof adminCreateImport>>>;
 export type AdminGetImportsResult = NonNullable<Awaited<ReturnType<typeof adminGetImports>>>;
 export type AdminGetImportResult = NonNullable<Awaited<ReturnType<typeof adminGetImport>>>;
 export type AdminDownloadImportErrorsResult = NonNullable<Awaited<ReturnType<typeof adminDownloadImportErrors>>>;
+export type AdminCreateErrataResult = NonNullable<Awaited<ReturnType<typeof adminCreateErrata>>>;
+export type AdminGetErrataListResult = NonNullable<Awaited<ReturnType<typeof adminGetErrataList>>>;
+export type AdminGetErrataResult = NonNullable<Awaited<ReturnType<typeof adminGetErrata>>>;
+export type AdminRetryErrataResult = NonNullable<Awaited<ReturnType<typeof adminRetryErrata>>>;
+export type AdminGetQuestionReportsResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionReports>>>;
+export type AdminGetQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionReport>>>;
+export type AdminUpdateQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestionReport>>>;

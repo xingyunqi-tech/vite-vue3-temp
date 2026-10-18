@@ -46,9 +46,6 @@ export {
 } from './generated/addresses/addresses';
 
 export {
-  getMonitorQueues,
-  getMonitorAlerts,
-  acknowledgeMonitorAlert,
   adminGetExams,
   adminCreateExam,
   adminGetExam,
@@ -97,10 +94,20 @@ export {
   adminPreviewPaperRule,
   adminGetDailyQuestionSets,
   adminRegenerateDailyQuestionSet,
+  getMonitorQueues,
+  getMonitorAlerts,
+  acknowledgeMonitorAlert,
   adminCreateImport,
   adminGetImports,
   adminGetImport,
   adminDownloadImportErrors,
+  adminCreateErrata,
+  adminGetErrataList,
+  adminGetErrata,
+  adminRetryErrata,
+  adminGetQuestionReports,
+  adminGetQuestionReport,
+  adminUpdateQuestionReport,
 } from './generated/admin/admin';
 
 export {
@@ -158,7 +165,19 @@ export { uploadFile } from './generated/files/files';
 
 export { healthCheck, livenessProbe, readinessProbe } from './generated/health/health';
 
-export { getMyExamProfiles, upsertMyExamProfile, deleteMyExamProfile, setMyCurrentExam } from './generated/me/me';
+export {
+  getMyExamProfiles,
+  upsertMyExamProfile,
+  deleteMyExamProfile,
+  setMyCurrentExam,
+  getStudyOverview,
+  getStudyDaily,
+  getStudyKnowledge,
+  getStudyWeakPoints,
+  getCheckins,
+  getMyQuestionNotes,
+  getMyQuestionReports,
+} from './generated/me/me';
 
 export {
   getNotifications,
@@ -173,7 +192,30 @@ export {
 
 export { createOrder, getOrders, getOrder, cancelOrder } from './generated/orders/orders';
 
+export { generatePaper } from './generated/paper-rules/paper-rules';
+
 export { getPaper } from './generated/papers/papers';
+
+export {
+  createPracticeSession,
+  getPracticeSessions,
+  getOngoingPracticeSessions,
+  getPracticeSession,
+  getPracticeSessionQuestions,
+  savePracticeAnswers,
+  selfAssessPracticeAnswer,
+  updatePracticeProgress,
+  getPracticeSessionReport,
+  submitPracticeSession,
+  abandonPracticeSession,
+} from './generated/practice/practice';
+
+export {
+  getQuestion,
+  saveQuestionNote,
+  deleteQuestionNote,
+  createQuestionReport,
+} from './generated/questions/questions';
 
 export {
   getProvinces,
@@ -197,11 +239,12 @@ export {
 } from './generated/shares/shares';
 
 export {
-  getSubjectKnowledgePoints,
   getSubjectPapers,
+  getSubjectPaperRules,
   getSubjectDaily,
   getSubjectDailyTrial,
   checkSubjectDailyTrial,
+  getSubjectKnowledgePoints,
 } from './generated/subjects/subjects';
 
 export { createUser, getUsers, getUser, updateUser, deleteUser } from './generated/users/users';
@@ -213,6 +256,13 @@ export {
   wechatPayControllerRefundV1,
   wechatPayControllerNotifyV1,
 } from './generated/wechat/wechat';
+
+export {
+  getWrongBook,
+  getWrongBookSummary,
+  masterWrongQuestion,
+  restoreWrongQuestion,
+} from './generated/wrong-book/wrong-book';
 
 // 3. 自定义工具函数 (自动扫描 modules 目录)
 export * from './modules/auth';

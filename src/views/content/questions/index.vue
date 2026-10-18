@@ -70,7 +70,7 @@
       <el-table-column label="更新时间" width="170">
         <template #default="{ row }">{{ formatDateTimeFull(row.updatedAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openPreview(row as AdminQuestionDto)">预览</el-button>
           <el-button
@@ -83,6 +83,14 @@
           </el-button>
           <el-button v-if="row.currentVersion > 0" link type="primary" @click="openVersions(row as AdminQuestionDto)">
             版本
+          </el-button>
+          <el-button
+            v-if="canStartErrata(row as AdminQuestionDto)"
+            link
+            type="warning"
+            @click="router.push(errataCreateLocation(row.id))"
+          >
+            勘误
           </el-button>
           <el-button
             v-if="canSubmitQuestion(row as AdminQuestionDto)"
@@ -153,6 +161,7 @@ import {
   toOptions,
   toStatusOptions,
 } from '../shared/constants';
+import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import {
   canDeleteQuestion,

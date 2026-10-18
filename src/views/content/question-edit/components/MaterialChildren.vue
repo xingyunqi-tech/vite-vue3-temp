@@ -16,7 +16,7 @@
       <el-table-column label="版本" width="70">
         <template #default="{ row }">{{ row.currentVersion ? `v${row.currentVersion}` : '—' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column label="操作" width="240" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" :disabled="!editable" @click="openEditor(row as AdminQuestionDto)">
             编辑
@@ -28,6 +28,14 @@
             @click="emit('versions', row as AdminQuestionDto)"
           >
             版本
+          </el-button>
+          <el-button
+            v-if="canStartErrata(row as AdminQuestionDto)"
+            link
+            type="warning"
+            @click="emit('errata', row as AdminQuestionDto)"
+          >
+            勘误
           </el-button>
           <el-button
             v-if="row.currentVersion === 0"
@@ -57,6 +65,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { QUESTION_TYPE_LABEL } from '../../shared/constants';
+import { canStartErrata } from '../../shared/errata';
 import SubQuestionDialog from './SubQuestionDialog.vue';
 import type { AdminQuestionDto, FileType, QuestionType } from '@/api';
 import { markdownSummary } from '@/utils/markdown';
@@ -77,6 +86,7 @@ const emit = defineEmits<{
   changed: [];
   remove: [child: AdminQuestionDto];
   versions: [child: AdminQuestionDto];
+  errata: [child: AdminQuestionDto];
 }>();
 
 const editorVisible = ref(false);

@@ -13,7 +13,7 @@ import type {
   CreateFavoriteDto,
   Favorite,
   GetFavoritesParams,
-  PaginationFavoriteResponseDto,
+  PaginationFavoriteItemDtoResponseDto,
   ToggleFavorite200,
 } from '../model';
 
@@ -22,7 +22,7 @@ import { customMutator } from '../../core/mutator';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * @summary 添加收藏
+ * @summary 添加收藏；题目、试卷由服务端校验并写入标题快照与科目，忽略传入的 title、image
  */
 export const createFavorite = (
   createFavoriteDto: CreateFavoriteDto,
@@ -39,13 +39,16 @@ export const createFavorite = (
   );
 };
 /**
- * @summary 获取收藏列表
+ * @summary 获取收藏列表，可按类型与科目筛选；题目、试卷附带下架状态
  */
 export const getFavorites = (
   params?: GetFavoritesParams,
-  options?: SecondParameter<typeof customMutator<PaginationFavoriteResponseDto>>,
+  options?: SecondParameter<typeof customMutator<PaginationFavoriteItemDtoResponseDto>>,
 ) => {
-  return customMutator<PaginationFavoriteResponseDto>({ url: `/api/v1/favorites`, method: 'GET', params }, options);
+  return customMutator<PaginationFavoriteItemDtoResponseDto>(
+    { url: `/api/v1/favorites`, method: 'GET', params },
+    options,
+  );
 };
 /**
  * @summary 检查是否已收藏

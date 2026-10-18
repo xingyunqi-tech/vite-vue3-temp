@@ -62,6 +62,7 @@ async function mountAt(path: string) {
       { path: '/content/questions', component: { template: '<div />' } },
       { path: '/content/questions/create', component: QuestionEditPage },
       { path: '/content/questions/:id', component: QuestionEditPage },
+      { path: '/feedback/errata/create', component: { template: '<div />' } },
     ],
   });
   await router.push(path);
@@ -131,6 +132,37 @@ describe('题目编辑页', () => {
     await clickButton(wrapper, '保存');
 
     expect(adminUpdateQuestion).toHaveBeenCalledWith('q1', { stem: '新题干' });
+  });
+
+  it('发布过的题目与材料小题可发起勘误，材料本身不能', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(question());
+    const { wrapper, router } = await mountAt('/content/questions/q1');
+
+    await clickButton(wrapper, '勘误');
+    expect(router.currentRoute.value.fullPath).toBe('/feedback/errata/create?questionId=q1');
+
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({
+        id: 'm1',
+        type: 'MATERIAL',
+        currentVersion: 1,
+        stem: '根据以下材料回答问题。',
+        answer: null,
+        material: '材料正文',
+        children: [question({ id: 'c1', parentId: 'm1', stem: '小题一', currentVersion: 1 })],
+      }),
+    );
+    const material = await mountAt('/content/questions/m1');
+    const headerButtons = material.wrapper.find('.content-page__header').findAll('button');
+    expect(headerButtons.map(button => button.text())).not.toContain('勘误');
+
+    await material.wrapper
+      .find('.material-children')
+      .findAll('button')
+      .find(button => button.text() === '勘误')!
+      .trigger('click');
+    await flushPromises();
+    expect(material.router.currentRoute.value.fullPath).toBe('/feedback/errata/create?questionId=c1');
   });
 
   it('审核中的题目不可保存', async () => {

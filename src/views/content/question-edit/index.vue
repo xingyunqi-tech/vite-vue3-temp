@@ -11,6 +11,9 @@
         <el-button v-if="question && question.currentVersion > 0" @click="versionsTarget = question.id">
           版本历史
         </el-button>
+        <el-button v-if="question && canStartErrata(question)" @click="router.push(errataCreateLocation(question.id))">
+          勘误
+        </el-button>
         <el-button type="primary" :loading="saving" :disabled="!editable" @click="handleSave">保存</el-button>
         <el-button v-if="question?.status === 'DRAFT'" type="success" :loading="submitting" @click="handleSubmitReview">
           提交审核
@@ -69,6 +72,7 @@
           @changed="reloadCurrent"
           @remove="handleRemoveChild"
           @versions="versionsTarget = $event.id"
+          @errata="router.push(errataCreateLocation($event.id))"
         />
         <p v-else-if="form.type === 'MATERIAL'" class="content-page__muted">保存材料后可添加小题</p>
       </div>
@@ -93,6 +97,7 @@ import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vu
 import StatusTag from '../shared/components/StatusTag.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_STATUS_META } from '../shared/constants';
+import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import { isQuestionType, toAnswer } from '../shared/question-form';
 import MaterialChildren from './components/MaterialChildren.vue';
 import QuestionFields from './components/QuestionFields.vue';

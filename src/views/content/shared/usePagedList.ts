@@ -25,9 +25,10 @@ export function usePagedList<F extends object, T>(options: PagedListOptions<F, T
   let requestSeq = 0;
   let loadScheduled = false;
 
-  const load = async () => {
+  /** silent 为真时不改动 loading */
+  const load = async ({ silent = false }: { silent?: boolean } = {}) => {
     const seq = ++requestSeq;
-    loading.value = true;
+    if (!silent) loading.value = true;
     try {
       const res = await options.fetchPage(applied, page.value, limit.value);
       if (seq !== requestSeq) return;

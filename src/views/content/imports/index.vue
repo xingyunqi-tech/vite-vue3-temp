@@ -20,7 +20,7 @@
           >
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
-          <el-button :loading="loading" @click="load">刷新</el-button>
+          <el-button :loading="loading" @click="load()">刷新</el-button>
         </div>
       </div>
 

@@ -25,6 +25,16 @@ export interface PublicQuestionDto {
   /** @nullable */
   audioFileId: string | null;
   /**
+   * 材料音频的访问地址，文件不可访问时为 null
+   * @nullable
+   */
+  audioUrl: string | null;
+  /**
+   * 填空题的空数，其他题型为 null
+   * @nullable
+   */
+  blankCount: number | null;
+  /**
    * @minimum 1
    * @maximum 5
    */

@@ -8,6 +8,9 @@
  *  *\/
  */
 
+/**
+ * 题型专项必填；背题模式可选
+ */
 export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 
 export const QuestionType = {

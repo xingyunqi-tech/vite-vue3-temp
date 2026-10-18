@@ -16,4 +16,5 @@ export const NotificationCategory = {
   SYSTEM: 'SYSTEM',
   PROMOTION: 'PROMOTION',
   ACTIVITY: 'ACTIVITY',
+  STUDY: 'STUDY',
 } as const;

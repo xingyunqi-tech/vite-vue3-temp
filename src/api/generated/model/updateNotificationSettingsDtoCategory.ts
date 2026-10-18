@@ -17,4 +17,5 @@ export const UpdateNotificationSettingsDtoCategory = {
   SYSTEM: 'SYSTEM',
   PROMOTION: 'PROMOTION',
   ACTIVITY: 'ACTIVITY',
+  STUDY: 'STUDY',
 } as const;

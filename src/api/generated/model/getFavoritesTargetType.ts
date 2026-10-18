@@ -14,4 +14,6 @@ export const GetFavoritesTargetType = {
   product: 'product',
   article: 'article',
   store: 'store',
+  question: 'question',
+  paper: 'paper',
 } as const;

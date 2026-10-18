@@ -9,16 +9,42 @@
  */
 import type { FeedbackStatus } from './feedbackStatus';
 import type { FeedbackType } from './feedbackType';
+import type { QuestionReportReason } from './questionReportReason';
 
 export interface Feedback {
   id: number;
-  userId: number;
+  /**
+   * 提交人注销后为空
+   * @nullable
+   */
+  userId: number | null;
   type: FeedbackType;
   content: string;
-  images?: string[];
-  contact?: string;
+  /** @nullable */
+  images?: string[] | null;
+  /** @nullable */
+  contact?: string | null;
   status: FeedbackStatus;
-  reply?: string;
+  /** @nullable */
+  reply?: string | null;
+  /** @nullable */
+  questionId?: string | null;
+  /**
+   * 提交时题目的当前版本
+   * @nullable
+   */
+  questionVersion?: number | null;
+  reason?: QuestionReportReason | null;
+  /**
+   * 关联的勘误任务
+   * @nullable
+   */
+  errataId?: string | null;
+  /**
+   * 被举报的 AI 消息
+   * @nullable
+   */
+  messageId?: string | null;
   createdAt: string;
   updatedAt?: string;
 }

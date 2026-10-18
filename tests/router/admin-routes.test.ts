@@ -44,6 +44,27 @@ describe('后台路由与菜单', () => {
     ].forEach(path => expect(store.hasAccessibleRoute(path)).toBe(true));
   });
 
+  it('管理员可访问纠错与勘误各页面', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN]);
+
+    [
+      '/feedback/reports',
+      '/feedback/reports/1',
+      '/feedback/errata',
+      '/feedback/errata/create',
+      '/feedback/errata/e1',
+    ].forEach(path => expect(store.hasAccessibleRoute(path)).toBe(true));
+  });
+
+  it('非管理员角色无法访问纠错与勘误', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+
+    expect(store.hasAccessibleRoute('/feedback/reports')).toBe(false);
+    expect(store.hasAccessibleRoute('/feedback/errata')).toBe(false);
+  });
+
   it('非管理员角色无法访问内容管理', () => {
     const store = usePermissionStore();
     store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
@@ -78,8 +99,11 @@ describe('后台路由与菜单', () => {
       '/content/imports',
     ]);
     expect(content.some(child => child.disabled)).toBe(false);
-    const reserved = menus.filter(menu => ['/feedback', '/ai'].includes(menu.path));
-    expect(reserved.flatMap(menu => menu.children ?? []).every(child => child.disabled)).toBe(true);
+    const feedback = menus.find(menu => menu.path === '/feedback')?.children ?? [];
+    expect(feedback.map(child => child.path)).toEqual(['/feedback/reports', '/feedback/errata']);
+    expect(feedback.some(child => child.disabled)).toBe(false);
+    const reserved = menus.find(menu => menu.path === '/ai')?.children ?? [];
+    expect(reserved.every(child => child.disabled)).toBe(true);
   });
 
   it('非管理员看不到预留分组与系统菜单', () => {

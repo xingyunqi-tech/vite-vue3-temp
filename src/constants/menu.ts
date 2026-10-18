@@ -54,8 +54,8 @@ export const DEFAULT_MENU_LIST: MenuItem[] = [
     path: '/feedback',
     icon: ChatDotRound,
     children: [
-      { title: '纠错与举报', path: '/feedback/reports', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
-      { title: '勘误', path: '/feedback/errata', disabled: true, roles: [DEFAULT_ROLES.ADMIN] },
+      { title: '纠错与举报', path: '/feedback/reports' },
+      { title: '勘误', path: '/feedback/errata' },
     ],
   },
   {

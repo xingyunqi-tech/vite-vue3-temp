@@ -7,7 +7,7 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
-import type { DailySummaryDtoCompletion } from './dailySummaryDtoCompletion';
+import type { DailyCompletionDto } from './dailyCompletionDto';
 
 export interface DailySummaryDto {
   subjectId: string;
@@ -15,8 +15,8 @@ export interface DailySummaryDto {
   /** 当日题量，题库为空时为 0 */
   questionCount: number;
   /**
-   * 登录用户的完成情况
+   * 登录用户的完成情况，未登录时为空
    * @nullable
    */
-  completion: DailySummaryDtoCompletion;
+  completion: DailyCompletionDto | null;
 }
