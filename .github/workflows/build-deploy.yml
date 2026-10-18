@@ -37,7 +37,6 @@ env:
   REPO_PREFIX: 'vite-vue3/web'
   APP_NAME: 'vite-vue3-web'
   PACKAGE_DIR: 'vite_vue3_web'
-  APP_PORT: '8080'
 
 jobs:
   build:
@@ -208,21 +207,20 @@ jobs:
           scp -i ~/.ssh/deploy_key "${PACKAGE_FILE}" "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
           ssh -i ~/.ssh/deploy_key "${DEPLOY_USER}@${DEPLOY_HOST}" bash -s -- \
-            "${DEPLOY_PATH}" "${PACKAGE_BASENAME}" "${PACKAGE_DIR}" "${APP_NAME}" "${APP_PORT}" << 'REMOTE'
+            "${DEPLOY_PATH}" "${PACKAGE_BASENAME}" "${PACKAGE_DIR}" "${APP_NAME}" << 'REMOTE'
           set -euo pipefail
-          deploy_path="$1"; package_file="$2"; package_dir="$3"; app_name="$4"; app_port="$5"
+          deploy_path="$1"; package_file="$2"; package_dir="$3"; app_name="$4"
           cd "${deploy_path}"
           rm -rf "${package_dir}"
           tar -xzf "${package_file}"
           cd "${package_dir}"
           ./manage.sh remove
-          PORT="${app_port}" ./manage.sh start
+          ./manage.sh start
 
           cd "${deploy_path}"
           # 保留最近 3 个部署包与镜像
           ls -t "${app_name}"_*.tar.gz | tail -n +4 | xargs -r rm -f
           docker images "${app_name}" --format '{{.Repository}}:{{.Tag}}' | grep -v ':local$' | tail -n +4 | xargs -r docker rmi 2>/dev/null || true
-          echo "访问地址: http://$(hostname -I | awk '{print $1}'):${app_port}"
           REMOTE
 
       - name: Cleanup SSH key

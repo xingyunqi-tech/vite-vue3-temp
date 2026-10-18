@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="vite-vue3-web"
 CONTAINER_NAME="${CONTAINER_NAME:-${APP_NAME}}"
 IMAGE_NAME="${APP_NAME}:local"
-PORT="${PORT:-31190}"
+PORT="${PORT:-8080}"
 NGINX_PORT=80
 
 log_info() { echo -e "${GREEN}[INFO]${NC} $*"; }
@@ -198,7 +198,7 @@ ${GREEN}Commands:${NC}
   help        Show this help message
 
 ${GREEN}Environment Variables:${NC}
-  PORT            Host port to bind (default: 31190)
+  PORT            Host port to bind (default: 8080)
   CONTAINER_NAME  Container name (default: ${APP_NAME})
 
 ${GREEN}Configuration:${NC}

@@ -18,10 +18,10 @@ cd vite_vue3_web
 ./manage.sh start    # 自动加载目录中的镜像 tar 并启动
 ```
 
-默认端口 `31190`，自定义端口：`PORT=8080 ./manage.sh start`。
+默认端口 `8080`，自定义端口：`PORT=8081 ./manage.sh start`。
 
-- 应用：`http://<host>:31190`
-- 版本信息：`http://<host>:31190/web/version`
+- 应用：`http://<host>:8080`
+- 版本信息：`http://<host>:8080/web/version`
 
 ## 管理命令
 
@@ -35,7 +35,7 @@ cd vite_vue3_web
 | `logs` | 跟随查看容器日志 |
 | `build` | 在源码仓库中用已构建的 `dist/` 构建镜像 |
 
-环境变量：`PORT`（宿主机端口，默认 `31190`）、`CONTAINER_NAME`（默认 `vite-vue3-web`）。
+环境变量：`PORT`（宿主机端口，默认 `8080`）、`CONTAINER_NAME`（默认 `vite-vue3-web`）。
 
 ## Nginx 配置
 
@@ -75,6 +75,6 @@ cd vite_vue3_web
 
 | 现象 | 处理 |
 |---|---|
-| 端口被占用 | `lsof -i :31190`，或 `PORT=<其他端口> ./manage.sh start` |
+| 端口被占用 | `lsof -i :8080`，或 `PORT=<其他端口> ./manage.sh start` |
 | 容器起不来 | `./manage.sh logs` 查看日志，`docker exec vite-vue3-web nginx -t` 校验配置 |
 | 页面仍是旧版本 | 确认 `/web/version` 的 hash 是否为新版本；`index.html` 不缓存，刷新页面即可加载新版本 |

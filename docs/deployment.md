@@ -73,10 +73,10 @@ dist/
 tar -xzf vite-vue3-web_<hash>_<时间>.tar.gz
 cd vite_vue3_web
 ./manage.sh remove
-./manage.sh start          # 默认端口 31190，PORT=8080 ./manage.sh start 可改端口
+./manage.sh start          # 默认端口 8080，PORT=8081 ./manage.sh start 可改端口
 ```
 
-访问 `http://<host>:31190`，版本信息见 `http://<host>:31190/web/version`。热更新、回滚、Nginx 配置调整见 [deploy/README.md](../deploy/README.md)。
+访问 `http://<host>:8080`，版本信息见 `http://<host>:8080/web/version`。热更新、回滚、Nginx 配置调整见 [deploy/README.md](../deploy/README.md)。
 
 本地验证镜像（源码仓库中）：
 
