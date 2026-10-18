@@ -37,7 +37,7 @@ env:
   REPO_PREFIX: 'vite-vue3/web'
   APP_NAME: 'vite-vue3-web'
   PACKAGE_DIR: 'vite_vue3_web'
-  APP_PORT: '31190'
+  APP_PORT: '8080'
 
 jobs:
   build:

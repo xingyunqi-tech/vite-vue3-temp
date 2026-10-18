@@ -105,6 +105,7 @@ start_container() {
         docker run -d \
             --name "$CONTAINER_NAME" \
             -p "${PORT}:${NGINX_PORT}" \
+            --add-host host.docker.internal:host-gateway \
             -v "${SCRIPT_DIR}/nginx.conf:/etc/nginx/nginx.conf:ro" \
             --restart unless-stopped \
             "$IMAGE_NAME"
