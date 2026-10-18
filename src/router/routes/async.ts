@@ -114,6 +114,20 @@ export const asyncRoutes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/ai',
+    component: AppLayout,
+    redirect: '/ai/usage',
+    meta: { title: 'AI 用量', roles: [ROLES.ADMIN] },
+    children: [
+      {
+        path: 'usage',
+        name: 'AiUsage',
+        component: () => import('@/views/ai/usage/index.vue'),
+        meta: { title: '用量与成本', roles: [ROLES.ADMIN] },
+      },
+    ],
+  },
+  {
     path: '/system',
     component: AppLayout,
     redirect: '/system/config',

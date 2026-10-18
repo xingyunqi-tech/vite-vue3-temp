@@ -10,6 +10,7 @@
 import type {
   AdminAlert,
   AdminDailyQuestionSetDto,
+  AdminGetAiUsageParams,
   AdminGetDailyQuestionSetsParams,
   AdminGetErrataListParams,
   AdminGetExamsParams,
@@ -23,6 +24,7 @@ import type {
   AdminQuestionDto,
   AdminQuestionReportDetailDto,
   AdminQuestionVersionDto,
+  AiUsageDto,
   BatchPublishQuestionsDto,
   BatchPublishQuestionsResultDto,
   CreateErrataDto,
@@ -741,6 +743,15 @@ export const adminUpdateQuestionReport = (
 export const adminRetriggerAccountCleanup = (id: number, options?: SecondParameter<typeof customMutator<void>>) => {
   return customMutator<void>({ url: `/api/v1/admin/users/${id}/cleanup`, method: 'POST' }, options);
 };
+/**
+ * @summary AI 用量：按日、模型、类型返回请求数、失败数、token 与估算成本
+ */
+export const adminGetAiUsage = (
+  params: AdminGetAiUsageParams,
+  options?: SecondParameter<typeof customMutator<AiUsageDto>>,
+) => {
+  return customMutator<AiUsageDto>({ url: `/api/v1/admin/ai/usage`, method: 'GET', params }, options);
+};
 export type AdminGetExamsResult = NonNullable<Awaited<ReturnType<typeof adminGetExams>>>;
 export type AdminCreateExamResult = NonNullable<Awaited<ReturnType<typeof adminCreateExam>>>;
 export type AdminGetExamResult = NonNullable<Awaited<ReturnType<typeof adminGetExam>>>;
@@ -810,3 +821,4 @@ export type AdminGetQuestionReportsResult = NonNullable<Awaited<ReturnType<typeo
 export type AdminGetQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionReport>>>;
 export type AdminUpdateQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestionReport>>>;
 export type AdminRetriggerAccountCleanupResult = NonNullable<Awaited<ReturnType<typeof adminRetriggerAccountCleanup>>>;
+export type AdminGetAiUsageResult = NonNullable<Awaited<ReturnType<typeof adminGetAiUsage>>>;

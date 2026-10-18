@@ -1,6 +1,7 @@
 import type { StatusMeta } from './constants';
 import type {
   AdminGetQuestionReportsStatus,
+  AiMessageStatus,
   AdminGetQuestionReportsType,
   ErrataStatus,
   QuestionReportReason,
@@ -33,6 +34,14 @@ export const ERRATA_STATUS_META: Record<ErrataStatus, StatusMeta> = {
   RUNNING: { label: '执行中', tag: 'primary' },
   DONE: { label: '已完成', tag: 'success' },
   FAILED: { label: '失败', tag: 'danger' },
+};
+
+export const AI_MESSAGE_STATUS_META: Record<AiMessageStatus, StatusMeta> = {
+  STREAMING: { label: '生成中', tag: 'primary' },
+  DONE: { label: '已完成', tag: 'success' },
+  STOPPED: { label: '已停止', tag: 'info' },
+  FAILED: { label: '失败', tag: 'danger' },
+  BLOCKED: { label: '已拦截', tag: 'warning' },
 };
 
 export const REPORT_PAGE_SIZES = [10, 20, 50];

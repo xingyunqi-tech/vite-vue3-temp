@@ -28,7 +28,7 @@ metadata:
 |---------|--------------|
 | 基础组件（Props/Emits/scoped 样式） | `src/components/SvgIcon/index.vue` |
 | 带插槽与状态的组件 | `src/components/Skeleton/CardSkeleton/index.vue` |
-| 页面组件 | `src/views/home/index.vue`、`src/views/setting/Frontend.vue` |
+| 页面组件 | `src/views/ai/usage/index.vue`、`src/views/setting/Frontend.vue` |
 | 布局与嵌套组织 | `src/layout/LayoutMenu/` |
 
 ## 使用方式

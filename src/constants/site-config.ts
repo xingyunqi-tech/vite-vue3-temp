@@ -26,8 +26,9 @@ export const siteConfigSchema = {
         description: '登录后跳转的默认页面路径',
         inputType: 'text',
         required: true,
-        // (?!/) 挡住 `//evil.com`：它能过 `^/`，但 vue-router 会当成协议相对 URL，
+        // (?!/) 排除会被当作协议相对 URL 的 `//host`
         pattern: '^/(?!/)',
+        routePath: true,
         patternMessage: '应为以单个 / 开头的站内路径',
         defaultValue: DEFAULT_PAGE,
         span: 12,

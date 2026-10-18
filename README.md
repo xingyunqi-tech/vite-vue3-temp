@@ -88,7 +88,7 @@
 │   │   └── plugins/           # persist.ts（localforage + persistedstate）
 │   ├── styles/                # 全局样式、theme.scss（Element 变量桥接）
 │   ├── utils/                 # auth、datetime、error-handler
-│   ├── views/                 # exception、home、login、setting
+│   ├── views/                 # ai、content、exception、login、setting、system
 │   └── main.ts                # 入口
 ├── tests/                     # Vitest 测试（目录镜像 src/）
 ├── typings/                   # 全局类型声明

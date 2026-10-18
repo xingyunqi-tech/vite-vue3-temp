@@ -87,8 +87,10 @@ export function toStatusOptions<K extends string>(meta: Record<K, StatusMeta>): 
   return (Object.keys(meta) as K[]).map(value => ({ label: meta[value].label, value }));
 }
 
-export function statusMeta<K extends string>(meta: Record<K, StatusMeta>, status: K): StatusMeta {
-  return meta[status] ?? { label: status, tag: 'info' };
+const hasKey = <K extends string>(record: Record<K, unknown>, key: string): key is K => Object.hasOwn(record, key);
+
+export function statusMeta<K extends string>(meta: Record<K, StatusMeta>, status: string): StatusMeta {
+  return hasKey(meta, status) ? meta[status] : { label: status, tag: 'info' };
 }
 
 export const DEFAULT_PAGE_SIZE = 20;

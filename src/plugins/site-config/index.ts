@@ -147,6 +147,15 @@ export interface IValidateResult {
  */
 export const DEFAULT_INLINE_MAX_SIZE = 512 * 1024;
 
+let routePathMatcher: ((pathname: string) => boolean) | undefined;
+
+/** 注册 routePath 字段的路由匹配函数，由路由层在创建时调用 */
+export function setRoutePathMatcher(matcher: ((pathname: string) => boolean) | undefined): void {
+  routePathMatcher = matcher;
+}
+
+const toPathname = (path: string) => path.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -246,6 +255,10 @@ function validateField(
       }
       if (field.pattern && value !== '' && !new RegExp(field.pattern).test(value)) {
         issues.push({ path, message: field.patternMessage ?? `不满足格式要求（${field.pattern}）` });
+        return { ok: false };
+      }
+      if (field.routePath && value !== '' && routePathMatcher && !routePathMatcher(toPathname(value))) {
+        issues.push({ path, message: '未匹配到已有页面' });
         return { ok: false };
       }
       // 颜色字段：代码模式可以写任何字符串，解析不了的值渲染时会静默失效

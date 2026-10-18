@@ -1,5 +1,6 @@
 export * from './addresses/addresses';
 export * from './admin/admin';
+export * from './ai/ai';
 export * from './alipay/alipay';
 export * from './api/api';
 export * from './auth/auth';

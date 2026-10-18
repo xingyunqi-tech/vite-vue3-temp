@@ -42,6 +42,14 @@
           <span class="content-page__stem">{{ row.content || '—' }}</span>
         </template>
       </el-table-column>
+      <el-table-column label="AI 回答" min-width="200">
+        <template #default="{ row }">
+          <span v-if="row.type === 'ai_content' && row.messageSnapshot" class="content-page__stem">
+            {{ markdownSummary(row.messageSnapshot.content) }}
+          </span>
+          <span v-else class="content-page__muted">—</span>
+        </template>
+      </el-table-column>
       <el-table-column label="题目" min-width="220">
         <template #default="{ row }">
           <span v-if="row.question" class="content-page__stem">{{ markdownSummary(row.question.stem) }}</span>

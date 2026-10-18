@@ -72,6 +72,45 @@ describe('纠错单详情', () => {
     expect(wrapper.text()).not.toContain('发起勘误');
   });
 
+  it('AI 内容举报展示消息快照、关联题目与版本，不提供勘误操作', async () => {
+    vi.mocked(adminGetQuestionReport).mockResolvedValue(
+      reportDetail({
+        type: 'ai_content',
+        reason: null,
+        content: '回答有误导',
+        messageId: 'msg-1',
+        messageSnapshot: {
+          content: '答案是 **A**，因为 $x^2$',
+          reasoning: '先看选项',
+          status: 'BLOCKED',
+          createdAt: '2026-10-17T00:00:00.000Z',
+        },
+      }),
+    );
+    const { wrapper } = await mountPage();
+
+    expect(wrapper.text()).toContain('被举报的 AI 回答');
+    expect(wrapper.text()).toContain('已拦截');
+    expect(wrapper.text()).toContain('深度思考');
+    expect(wrapper.find('.report-detail__answer strong').text()).toBe('A');
+    expect(wrapper.find('.report-detail__answer .katex').exists()).toBe(true);
+    expect(wrapper.text()).toContain('回答有误导');
+    expect(wrapper.text()).toContain('提交时 v2');
+    expect(wrapper.find('.question-preview').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('关联勘误');
+    expect(wrapper.text()).not.toContain('发起勘误');
+    expect(adminGetErrataList).not.toHaveBeenCalled();
+  });
+
+  it('AI 内容举报缺少消息快照时给出提示', async () => {
+    vi.mocked(adminGetQuestionReport).mockResolvedValue(
+      reportDetail({ type: 'ai_content', reason: null, messageId: 'msg-1', messageSnapshot: null }),
+    );
+    const { wrapper } = await mountPage();
+
+    expect(wrapper.text()).toContain('未保存消息内容');
+  });
+
   it('保存状态与回复', async () => {
     vi.mocked(adminUpdateQuestionReport).mockResolvedValue(reportDetail({ status: 'closed', reply: '答案无误' }));
     const { wrapper } = await mountPage();

@@ -31,10 +31,8 @@ export const DEFAULT_APP_TITLE = '备考刷题运营后台';
 /** 默认主题 */
 export const DEFAULT_THEME_STYLE_VALUE = 'light';
 
-/**
- * 默认首页落点：读站点配置的 basic.defaultPage 解析不出可用路径时的内置落点
- */
-export const DEFAULT_PAGE = '/home';
+/** 根路径的内置落点：站点配置的 basic.defaultPage 不可用时使用 */
+export const DEFAULT_PAGE = '/content/questions';
 
 /**
  * 语言包选项

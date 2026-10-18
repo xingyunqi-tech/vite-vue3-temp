@@ -11,11 +11,15 @@ import { renderMarkdown } from '@/utils/markdown';
 interface Props {
   content: string | null | undefined;
   fileUrls?: Record<string, string>;
+  /** 图片渲染为链接文本，不自动加载 */
+  imagesAsLinks?: boolean;
 }
 
 const props = defineProps<Props>();
 
-const html = computed(() => renderMarkdown(props.content, fileId => props.fileUrls?.[fileId]));
+const html = computed(() =>
+  renderMarkdown(props.content, fileId => props.fileUrls?.[fileId], { imagesAsLinks: props.imagesAsLinks }),
+);
 </script>
 
 <style scoped lang="scss">

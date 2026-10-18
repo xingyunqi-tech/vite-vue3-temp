@@ -7,7 +7,7 @@ import { computed } from 'vue';
 import { statusMeta, type StatusMeta } from '../constants';
 
 interface Props {
-  status: K;
+  status: string;
   metaMap: Record<K, StatusMeta>;
 }
 

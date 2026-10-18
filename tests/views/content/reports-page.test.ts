@@ -37,6 +37,12 @@ beforeEach(() => {
         questionId: null,
         question: null,
         messageId: 'msg-1',
+        messageSnapshot: {
+          content: '答案是 **A**',
+          reasoning: null,
+          status: 'DONE',
+          createdAt: '2026-10-17T00:00:00.000Z',
+        },
         status: 'resolved',
         errataId: null,
       }),
@@ -56,6 +62,8 @@ describe('纠错与举报列表', () => {
     expect(questionRow.text()).toContain('待处理');
     expect(aiRow.text()).toContain('AI 内容举报');
     expect(aiRow.text()).toContain('AI 消息 msg-1');
+    expect(aiRow.text()).toContain('答案是 A');
+    expect(questionRow.text()).not.toContain('答案是 A');
     expect(aiRow.text()).toContain('已解决');
   });
 

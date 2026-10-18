@@ -9,6 +9,7 @@
  */
 import type { AdminQuestionReportDtoStatus } from './adminQuestionReportDtoStatus';
 import type { AdminQuestionReportDtoType } from './adminQuestionReportDtoType';
+import type { AiMessageSnapshot } from './aiMessageSnapshot';
 import type { QuestionReportQuestionDto } from './questionReportQuestionDto';
 import type { QuestionReportReason } from './questionReportReason';
 
@@ -46,6 +47,11 @@ export interface AdminQuestionReportDto {
    * @nullable
    */
   messageId?: string | null;
+  /**
+   * 举报时的 AI 消息内容，消息删除后仍保留
+   * @nullable
+   */
+  messageSnapshot?: AiMessageSnapshot | null;
   createdAt: string;
   updatedAt?: string;
   /** @nullable */

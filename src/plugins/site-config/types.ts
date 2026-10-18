@@ -35,6 +35,8 @@ export interface IStringSchema {
   pattern?: string;
   /** pattern 不匹配时的提示文案 */
   patternMessage?: string;
+  /** 值为站内路径，须命中 setRoutePathMatcher 注册的路由（未注册时不校验） */
+  routePath?: boolean;
   /**
    * image / file 类型的体积上限（字节）
    *

@@ -98,6 +98,30 @@ describe('renderMarkdown', () => {
     expect(html).not.toContain('src="data:image/svg');
   });
 
+  it('imagesAsLinks 把外链图片渲染为链接文本，不生成 img', () => {
+    const html = renderMarkdown('![示意](https://cdn/a.png) ![](https://cdn/b.png)', undefined, {
+      imagesAsLinks: true,
+    });
+
+    expect(html).not.toContain('<img');
+    expect(html).toContain('<a class="md-image-link" href="https://cdn/a.png"');
+    expect(html).toContain('[图片 示意]');
+    expect(html).toContain('[图片]</a>');
+  });
+
+  it('imagesAsLinks 下仍转义 HTML、不放行 javascript 链接与图片', () => {
+    const html = renderMarkdown(
+      '<script>alert(1)</script> [x](javascript:alert(1)) ![a](javascript:alert(1)) ![b](https://x/"onerror=alert(1))',
+      undefined,
+      { imagesAsLinks: true },
+    );
+
+    expect(html).not.toContain('<script>');
+    expect(html).not.toContain('<img');
+    expect(html).not.toContain('href="javascript:');
+    expect(html).not.toMatch(/"\s*onerror=/);
+  });
+
   it('KaTeX 不渲染 \\href 链接', () => {
     const html = renderMarkdown('$\\href{javascript:alert(1)}{点我}$');
 

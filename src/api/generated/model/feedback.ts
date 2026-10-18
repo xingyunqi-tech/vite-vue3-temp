@@ -7,6 +7,7 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
+import type { AiMessageSnapshot } from './aiMessageSnapshot';
 import type { FeedbackStatus } from './feedbackStatus';
 import type { FeedbackType } from './feedbackType';
 import type { QuestionReportReason } from './questionReportReason';
@@ -45,6 +46,11 @@ export interface Feedback {
    * @nullable
    */
   messageId?: string | null;
+  /**
+   * 举报时的 AI 消息内容，消息删除后仍保留
+   * @nullable
+   */
+  messageSnapshot?: AiMessageSnapshot | null;
   createdAt: string;
   updatedAt?: string;
 }

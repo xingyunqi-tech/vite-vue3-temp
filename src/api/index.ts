@@ -109,7 +109,22 @@ export {
   adminGetQuestionReport,
   adminUpdateQuestionReport,
   adminRetriggerAccountCleanup,
+  adminGetAiUsage,
 } from './generated/admin/admin';
+
+export {
+  createAiConversation,
+  getAiConversations,
+  getAiMessages,
+  sendAiMessage,
+  deleteAiConversation,
+  getAiMessage,
+  getAiMessageEvents,
+  stopAiMessage,
+  setAiMessageFeedback,
+  reportAiMessage,
+  getAiQuota,
+} from './generated/ai/ai';
 
 export {
   alipayControllerCreateMobilePaymentV1,

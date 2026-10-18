@@ -7,6 +7,7 @@
  *  * 如需自定义接口，请在 src/api/modules/ 目录下创建覆盖文件
  *  *\/
  */
+import type { AiMessageSnapshot } from './aiMessageSnapshot';
 import type { PublicQuestionUnitDto } from './publicQuestionUnitDto';
 import type { QuestionReportItemDtoStatus } from './questionReportItemDtoStatus';
 import type { QuestionReportItemDtoType } from './questionReportItemDtoType';
@@ -46,6 +47,11 @@ export interface QuestionReportItemDto {
    * @nullable
    */
   messageId?: string | null;
+  /**
+   * 举报时的 AI 消息内容，消息删除后仍保留
+   * @nullable
+   */
+  messageSnapshot?: AiMessageSnapshot | null;
   createdAt: string;
   updatedAt?: string;
   /**

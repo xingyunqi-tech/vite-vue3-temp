@@ -49,6 +49,29 @@
           </el-descriptions>
         </section>
 
+        <section v-if="report.type === 'ai_content'" class="report-detail__card">
+          <div class="report-detail__card-header">
+            <h3 class="report-detail__card-title">被举报的 AI 回答</h3>
+            <div v-if="snapshot" class="content-page__actions">
+              <StatusTag :status="snapshot.status" :meta-map="AI_MESSAGE_STATUS_META" />
+              <span class="content-page__muted">生成于 {{ formatDateTimeFull(snapshot.createdAt) }}</span>
+            </div>
+          </div>
+          <template v-if="snapshot">
+            <el-collapse v-if="snapshot.reasoning" class="report-detail__reasoning">
+              <el-collapse-item title="深度思考" name="reasoning">
+                <MarkdownContent :content="snapshot.reasoning" images-as-links />
+              </el-collapse-item>
+            </el-collapse>
+            <MarkdownContent
+              :content="snapshot.content || '（无回答内容）'"
+              images-as-links
+              class="report-detail__answer"
+            />
+          </template>
+          <p v-else class="content-page__muted">未保存消息内容</p>
+        </section>
+
         <section v-if="report.questionId" class="report-detail__card">
           <div class="report-detail__card-header">
             <h3 class="report-detail__card-title">题目</h3>
@@ -138,11 +161,13 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { confirmAction, runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
+import MarkdownContent from '../shared/components/MarkdownContent.vue';
 import QuestionPreview from '../shared/components/QuestionPreview.vue';
 import StatusTag from '../shared/components/StatusTag.vue';
 import { QUESTION_STATUS_META, statusMeta, toStatusOptions } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import {
+  AI_MESSAGE_STATUS_META,
   ERRATA_STATUS_META,
   REPORT_REASON_LABEL,
   REPORT_REPLY_MAX,
@@ -167,6 +192,7 @@ const linking = ref(false);
 const linkTarget = ref('');
 
 const reportId = computed(() => Number(route.params.id));
+const snapshot = computed(() => report.value?.messageSnapshot ?? null);
 const images = computed(() => (report.value?.images ?? []).filter(isHttpUrl));
 const canErrata = computed(
   () => report.value?.type === 'question_error' && !!question.value && canStartErrata(question.value),
@@ -285,6 +311,16 @@ const startErrata = () => {
     width: 96px;
     height: 96px;
     border-radius: 6px;
+  }
+
+  &__reasoning {
+    margin-bottom: 12px;
+  }
+
+  &__answer {
+    padding: 12px 16px;
+    border-radius: 6px;
+    background: var(--aix-colorFillQuaternary);
   }
 
   &__errata {

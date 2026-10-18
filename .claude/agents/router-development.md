@@ -39,7 +39,7 @@ src/router/
 
 | 路由类型 | 文件 | 特点 | 适用场景 |
 |---------|------|------|---------|
-| **静态路由** | `static.ts` | 初始直接注册，无需动态权限 | 登录页、全屏 403、首页 |
+| **静态路由** | `static.ts` | 初始直接注册，无需动态权限 | 登录页、全屏 403、根路径重定向 |
 | **异步路由** | `async.ts` | 需要登录+权限,动态注册 | 管理页面、设置页面 |
 | **全量表** | `declared.ts` | `resolveDeclaredRoutes()`：未按角色过滤的异步路由全量表 | 守卫过滤后注册；兜底页据此区分 403 / 404 |
 | **兜底路由** | `fallback.ts` | 守卫在权限路由之后单独注册，不参与角色过滤 | 布局内 403 / 404（保留原 URL） |
@@ -52,7 +52,7 @@ src/router/
 
 #### 1. 静态路由模板 (static.ts)
 
-静态路由是**初始直接注册**的路由，包含无需登录的页面和所有登录用户可访问的页面。
+静态路由是**初始直接注册**的路由，包含无需登录的页面与根路径重定向。
 
 ```typescript
 // static.ts 中的 staticRoutes 数组
@@ -71,25 +71,25 @@ src/router/
   meta: { title: '无访问权限' },
 }
 
-// 所有登录用户可访问的页面（添加到 AppLayout children 下）
+// 根路径：没有页面，只做重定向
 {
   path: '/',
-  component: AppLayout,
-  redirect: resolveDefaultPage, // 站点配置的默认页（basic.defaultPage），当前角色无权访问时回 /home
-  children: [
-    {
-      path: 'home',          // 子路由用相对路径，不带前导斜杠 → 实际路径 /home
-      name: 'Home',
-      component: () => import('@/views/home/index.vue'),
-      meta: { title: '首页' },
-    },
-  ],
+  redirect: resolveDefaultPage,
 }
 ```
 
+根路径落点由 `src/router/landing.ts` 的 `resolveLandingPath()` 决定，按顺序取第一个当前角色可访问的路径：
+
+1. 站点配置的默认页 `basic.defaultPage`（校验时须命中已声明路由，无效值读取时剔除）；
+2. 内置默认页 `DEFAULT_PAGE`（`/content/questions`，题目列表）；
+3. 菜单中第一个可访问的页面（跳过隐藏、禁用与外链项）；
+4. 都不可访问时回到 `DEFAULT_PAGE`，由兜底路由展示无权限。
+
+`/` 自身不作为落点。权限路由尚未生成时直接返回候选页，守卫生成路由后从 `/` 重走一次重定向。
+
 > 登录页是本仓库内的路由 `/login`（`src/views/login/`），与全屏 403 一起列在 `guards.ts` 的 `WHITE_LIST` 中。
 
-**适用场景:** 登录页、全屏 403 等免登录页面，以及首页等所有登录用户可访问的功能。404 不是静态路由——见下方「兜底路由」
+**适用场景:** 登录页、全屏 403 等免登录页面，以及根路径重定向。404 不是静态路由——见下方「兜底路由」
 
 **完整示例:** 查看 `src/router/routes/static.ts`
 
@@ -202,9 +202,9 @@ export const routes2 = [
 ```typescript
 // ✅ 正确:完整的 meta 配置
 {
-  path: '/home',
-  name: 'Home',
-  component: () => import('@/views/home/index.vue'),
+  path: 'questions',
+  name: 'ContentQuestions',
+  component: () => import('@/views/content/questions/index.vue'),
   meta: {
     title: '功能名称',                    // 页面标题(必需)
     roles: [ROLES.ADMIN, ROLES.STUDENT],   // 允许访问的角色(可选)
@@ -218,9 +218,9 @@ export const routes2 = [
 
 // ❌ 错误:缺少 meta.title
 {
-  path: '/home',
-  name: 'Home',
-  component: () => import('@/views/home/index.vue'),
+  path: 'questions',
+  name: 'ContentQuestions',
+  component: () => import('@/views/content/questions/index.vue'),
   // 缺少 meta
 }
 ```
@@ -373,7 +373,7 @@ export function setupRouterGuard(router: Router) {
 > - `routerBase()`：归一后的 `VITE_BASE_PATH`，整页跳转拼地址时使用
 >
 > **异常页不能成为死胡同。** 守卫跳 403 时把原目标放进 `query.redirect`；全屏 403 页（`src/views/exception/Forbidden.vue`）
-> 用 `readSafeRedirect()` 取出作为「重试」目标，「重新登录」走 `userStore.logoutAction()`（换账号，落到首页）。
+> 用 `readSafeRedirect()` 取出作为「重试」目标，「重新登录」走 `userStore.logoutAction()`（换账号，落到根路径落点）。
 >
 > **请求层 401 不经守卫。** 接口返回 401 时由 `redirectToLoginOnce()` 清 token 并调用 `jumpToLogin()`
 > 整页跳 `${base}/login?redirect=<当前站内路径>`，动态路由与各 Store 随页面重建复位。
@@ -627,8 +627,8 @@ const userId = route.params.id as string;
 ```typescript
 // ✅ 正确:路由重定向
 {
-  path: '/',
-  redirect: '/home',  // 访问 / 重定向到 /home
+  path: '/content',
+  redirect: '/content/exams',  // 访问 /content 重定向到 /content/exams
 }
 
 // ✅ 正确:父路由重定向到第一个子路由
@@ -695,7 +695,7 @@ router.push({
 });
 
 // ✅ 正确:替换当前路由(不留历史记录)
-router.replace({ name: 'Home' });
+router.replace({ name: 'ContentQuestions' });
 
 // ✅ 正确:返回上一页
 router.back();
@@ -757,7 +757,7 @@ const currentName = route.name;
 ### Q: 什么时候使用 static.ts 和 async.ts?
 
 **A**:
-- **static.ts**: 无需动态权限的路由——含无需登录的页面（`/login`、全屏 403）以及所有登录用户可访问的页面（首页）
+- **static.ts**: 无需动态权限的路由——含无需登录的页面（`/login`、全屏 403）以及根路径重定向
 - **fallback.ts**: 兜底路由，守卫在权限路由之后注册，在布局内渲染 403 / 404 并保留原 URL
 - **async.ts**: 需要特定角色权限的页面(管理页面、设置页面)
 

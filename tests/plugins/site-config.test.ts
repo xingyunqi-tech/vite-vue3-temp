@@ -1,6 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { siteConfigSchema } from '@/constants/site-config';
-import { defaultSiteConfig, diffConfig, mergeConfig, validateConfig, dataUrlByteSize } from '@/plugins/site-config';
+import {
+  defaultSiteConfig,
+  diffConfig,
+  mergeConfig,
+  validateConfig,
+  dataUrlByteSize,
+  setRoutePathMatcher,
+} from '@/plugins/site-config';
+import { matchesDeclaredRoute } from '@/router/routes';
 
 const { fontSize } = siteConfigSchema.watermark.properties;
 const { logoUrl } = siteConfigSchema.basic.properties;
@@ -55,7 +63,40 @@ describe('validateConfig', () => {
 
   it('defaultPage 必须是站内单斜杠路径', () => {
     expect(validateConfig({ basic: { defaultPage: '//evil.com' } }).value.basic).toEqual({});
-    expect(validateConfig({ basic: { defaultPage: '/home' } }).value.basic?.defaultPage).toBe('/home');
+    expect(validateConfig({ basic: { defaultPage: '/content/papers' } }).value.basic?.defaultPage).toBe(
+      '/content/papers',
+    );
+  });
+
+  describe('defaultPage 须命中已声明路由', () => {
+    afterEach(() => setRoutePathMatcher(undefined));
+
+    it('未注册路由匹配时不校验路由', () => {
+      expect(validateConfig({ basic: { defaultPage: '/home' } }).value.basic?.defaultPage).toBe('/home');
+    });
+
+    it('剔除未声明的路径与根路径，忽略 query、hash 与末尾斜杠', () => {
+      setRoutePathMatcher(matchesDeclaredRoute);
+
+      const removed = validateConfig({ basic: { defaultPage: '/home' } });
+      expect(removed.value.basic).toEqual({});
+      expect(removed.issues).toEqual([{ path: 'basic.defaultPage', message: '未匹配到已有页面' }]);
+      expect(validateConfig({ basic: { defaultPage: '/?tab=1' } }).value.basic).toEqual({});
+      expect(validateConfig({ basic: { defaultPage: '/system/monitor/?tab=1#top' } }).value.basic).toEqual({
+        defaultPage: '/system/monitor/?tab=1#top',
+      });
+      expect(validateConfig({ basic: { defaultPage: '/content/questions/q1' } }).value.basic?.defaultPage).toBe(
+        '/content/questions/q1',
+      );
+    });
+
+    it('读取时剔除无效的 defaultPage，回落到题目列表', () => {
+      setRoutePathMatcher(matchesDeclaredRoute);
+
+      expect(mergeConfig(validateConfig({ basic: { defaultPage: '/home' } }).value).basic.defaultPage).toBe(
+        '/content/questions',
+      );
+    });
   });
 
   it('解析不了的颜色被剔除', () => {

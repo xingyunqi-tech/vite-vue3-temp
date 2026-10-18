@@ -4,7 +4,7 @@ import { computed } from 'vue';
 interface Props {
   /**
    * 图标名称
-   * - 本地 SVG: 使用 "目录-文件名" 格式，如 "common-menu-home"
+   * - 本地 SVG: 使用 "目录-文件名" 格式，如 "common-arrow-right"
    * - iconfont: 使用完整 id，如 "icon-Union"
    */
   name: string;

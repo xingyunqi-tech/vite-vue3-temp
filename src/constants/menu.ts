@@ -1,6 +1,5 @@
 import { ChatDotRound, Collection, Monitor, TrendCharts } from '@element-plus/icons-vue';
 import type { Component } from 'vue';
-import { DEFAULT_ROLES } from './roles';
 
 /**
  * 菜单项类型
@@ -34,7 +33,6 @@ export interface MenuItem {
  * 默认菜单配置列表
  */
 export const DEFAULT_MENU_LIST: MenuItem[] = [
-  { title: '首页', path: '/home', icon: 'common-menu-home' },
   {
     title: '内容管理',
     path: '/content',
@@ -62,7 +60,7 @@ export const DEFAULT_MENU_LIST: MenuItem[] = [
     title: 'AI 用量',
     path: '/ai',
     icon: TrendCharts,
-    children: [{ title: '用量与成本', path: '/ai/usage', disabled: true, roles: [DEFAULT_ROLES.ADMIN] }],
+    children: [{ title: '用量与成本', path: '/ai/usage' }],
   },
   {
     title: '系统',

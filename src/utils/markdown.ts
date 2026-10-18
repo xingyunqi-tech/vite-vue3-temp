@@ -6,7 +6,12 @@ const FILE_REFERENCE = new RegExp(`^file:(${UUID})$`, 'i');
 
 export type FileUrlResolver = (fileId: string) => string | undefined;
 
-interface RenderEnv {
+export interface RenderOptions {
+  /** 图片渲染为链接文本，不自动加载 */
+  imagesAsLinks?: boolean;
+}
+
+interface RenderEnv extends RenderOptions {
   resolveFile?: FileUrlResolver;
 }
 
@@ -137,6 +142,12 @@ export function createMarkdownRenderer(): MarkdownIt {
     const token = tokens[index];
     const { url, fileId } = resolveSource(token.attrGet('src') ?? '', env);
     if (url === null) return `<span class="md-file-missing">[图片 ${md.utils.escapeHtml(fileId ?? '')}]</span>`;
+    if (env.imagesAsLinks) {
+      const alt = self.renderInlineAsText(token.children ?? [], options, env);
+      const label = md.utils.escapeHtml(alt ? `[图片 ${alt}]` : '[图片]');
+      const href = md.utils.escapeHtml(url);
+      return `<a class="md-image-link" href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    }
     token.attrSet('src', url);
     token.attrSet('loading', 'lazy');
     return self.renderToken(tokens, index, options);
@@ -159,10 +170,14 @@ export function createMarkdownRenderer(): MarkdownIt {
 let renderer: MarkdownIt | null = null;
 
 /** 渲染题目内容：Markdown + `$...$` / `$$...$$` 公式，`file:{fileId}` 图片经 resolveFile 换成地址 */
-export function renderMarkdown(text: string | null | undefined, resolveFile?: FileUrlResolver): string {
+export function renderMarkdown(
+  text: string | null | undefined,
+  resolveFile?: FileUrlResolver,
+  options: RenderOptions = {},
+): string {
   if (!text) return '';
   renderer ??= createMarkdownRenderer();
-  return renderer.render(text, { resolveFile } satisfies RenderEnv);
+  return renderer.render(text, { ...options, resolveFile } satisfies RenderEnv);
 }
 
 /** 列表摘要：图片记为「[图片]」，公式保留原文，合并空白并截断 */

@@ -24,6 +24,7 @@ import {
   createQuestionFilters,
   toQuestionQuery,
 } from '@/views/content/questions/useQuestionList';
+import { createReportFilters, toReportQuery } from '@/views/content/report-list/useReportList';
 import { createReviewFilters, toReviewQuery, useReviewList } from '@/views/content/review/useReviewList';
 
 vi.mock('@/api', () => ({
@@ -104,6 +105,20 @@ describe('列表查询参数', () => {
       type: 'REAL',
       status: 'PUBLISHED',
     });
+  });
+});
+
+describe('纠错与举报查询参数', () => {
+  it('按类型筛选 AI 内容举报，空条件不传，题目 ID 去空白', () => {
+    expect(toReportQuery(createReportFilters(), 1, 20)).toEqual({ page: 1, limit: 20 });
+    expect(toReportQuery({ type: 'ai_content', status: 'pending', questionId: ' q1 ' }, 2, 10)).toEqual({
+      page: 2,
+      limit: 10,
+      type: 'ai_content',
+      status: 'pending',
+      questionId: 'q1',
+    });
+    expect(toReportQuery({ ...createReportFilters(), type: 'question_error' }, 1, 20).type).toBe('question_error');
   });
 });
 
