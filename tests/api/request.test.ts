@@ -150,6 +150,115 @@ describe('HTTP 错误', () => {
   });
 });
 
+describe('错误响应解析', () => {
+  it('HTTP 4xx 显示后端业务文案，错误对象保留错误键与原始 data', async () => {
+    const data = { errorKey: 'errataInProgress' };
+    const error = await httpApi
+      .post('/errata', {}, { adapter: respond({ code: 409, message: '该题已有进行中的勘误', data }, 409) })
+      .catch((reason: AxiosError) => reason);
+
+    expect(ElMessage.error).toHaveBeenCalledWith('该题已有进行中的勘误');
+    expect(error).toBeInstanceOf(AxiosError);
+    expect((error as AxiosError).errorKey).toBe('errataInProgress');
+    expect((error as AxiosError).errorData).toEqual(data);
+  });
+
+  it('后端未给文案时用错误键的前端映射', async () => {
+    await expect(
+      httpApi.post(
+        '/errata',
+        {},
+        { adapter: respond({ code: 409, message: '', data: { errorKey: 'errataInProgress' } }, 409) },
+      ),
+    ).rejects.toThrow();
+
+    expect(ElMessage.error).toHaveBeenCalledWith('该题已有进行中的勘误');
+  });
+
+  it('422 字段错误合并显示，不推断错误键', async () => {
+    const error = await httpApi
+      .post(
+        '/items',
+        {},
+        {
+          adapter: respond(
+            { code: 422, message: '请求参数校验失败', data: { name: '名称不能为空', sort: '排序须为整数' } },
+            422,
+          ),
+        },
+      )
+      .catch((reason: AxiosError) => reason);
+
+    expect(ElMessage.error).toHaveBeenCalledWith('名称不能为空；排序须为整数');
+    expect((error as AxiosError).errorKey).toBe('');
+    expect((error as AxiosError).errorData).toEqual({ name: '名称不能为空', sort: '排序须为整数' });
+  });
+
+  it('5xx 响应体不是统一格式时回退 axios 文案（经 toFriendlyMessage 转换）', async () => {
+    await expect(httpApi.get('/boom', { adapter: respond('<html>', 502) })).rejects.toThrow();
+
+    expect(ElMessage.error).toHaveBeenCalledWith('Request failed with status code 502');
+  });
+
+  it('业务码失败同样解析错误键', async () => {
+    const error = await httpApi
+      .get('/fail', { adapter: respond({ code: 409, message: '', data: { errorKey: 'errataInProgress' } }) })
+      .catch((reason: AxiosError) => reason);
+
+    expect(ElMessage.error).toHaveBeenCalledWith('该题已有进行中的勘误');
+    expect((error as AxiosError).message).toBe('该题已有进行中的勘误');
+    expect((error as AxiosError).errorKey).toBe('errataInProgress');
+  });
+
+  it('HTTP 401 带后端文案时仍按状态提示，不显示后端文案', async () => {
+    await expect(
+      httpApi.get('/me', {
+        adapter: respond({ code: 401, message: '未授权', data: null }, 401),
+        skipAuthRedirect: true,
+      }),
+    ).rejects.toThrow();
+
+    expect(ElMessage.error).toHaveBeenCalledWith('Request failed with status code 401');
+    expect(ElMessage.error).not.toHaveBeenCalledWith('未授权');
+  });
+
+  it('HTTP 错误返回非 JSON Blob 或非法 JSON 时回退 axios 文案', async () => {
+    const text = new Blob(['oops'], { type: 'text/plain' });
+    const broken = new Blob(['{oops'], { type: 'application/json' });
+
+    await expect(downloadApi.get('/export', { adapter: respond(text, 500) })).rejects.toThrow();
+    await expect(downloadApi.get('/export', { adapter: respond(broken, 500) })).rejects.toThrow();
+
+    expect(ElMessage.error).toHaveBeenNthCalledWith(1, 'Request failed with status code 500');
+    expect(ElMessage.error).toHaveBeenNthCalledWith(2, 'Request failed with status code 500');
+  });
+
+  it('isIgnoreToast 时不提示，错误对象仍带错误键', async () => {
+    const error = await httpApi
+      .post(
+        '/errata',
+        {},
+        {
+          adapter: respond({ code: 409, message: '该题已有进行中的勘误', data: { errorKey: 'errataInProgress' } }, 409),
+          isIgnoreToast: true,
+        },
+      )
+      .catch((reason: AxiosError) => reason);
+
+    expect(ElMessage.error).not.toHaveBeenCalled();
+    expect((error as AxiosError).errorKey).toBe('errataInProgress');
+  });
+
+  it('下载接口 HTTP 错误返回 JSON 时解析后端文案', async () => {
+    const body = new Blob([JSON.stringify({ code: 404, message: '该导入任务没有错误报告', data: null })], {
+      type: 'application/json',
+    });
+
+    await expect(downloadApi.get('/export', { adapter: respond(body, 404) })).rejects.toThrow();
+    expect(ElMessage.error).toHaveBeenCalledWith('该导入任务没有错误报告');
+  });
+});
+
 describe('下载实例', () => {
   it('返回 JSON 业务错误时 reject', async () => {
     const body = new Blob([JSON.stringify({ code: 500, message: '无权限导出' })], { type: 'application/json' });

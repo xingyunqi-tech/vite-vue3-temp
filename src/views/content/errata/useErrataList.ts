@@ -55,7 +55,7 @@ export function useErrataList() {
   });
 
   const retry = async (errata: Errata) => {
-    await adminRetryErrata(errata.id, { isIgnoreToast: true });
+    await adminRetryErrata(errata.id);
     await list.load();
   };
 

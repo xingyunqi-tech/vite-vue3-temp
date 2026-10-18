@@ -89,13 +89,13 @@
 import { ElMessage } from 'element-plus';
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
 import StatusTag from '../shared/components/StatusTag.vue';
 import { PAGE_SIZES, toStatusOptions } from '../shared/constants';
 import { canRetryErrata, isErrataStale } from '../shared/errata';
 import { ERRATA_STATUS_META } from '../shared/feedback-constants';
-import { requestErrorMessage } from '../shared/request-error';
 import { isUuid, queryString } from '../shared/utils';
 import { useErrataList } from './useErrataList';
 import type { Errata } from '@/api';
@@ -132,14 +132,8 @@ const handleReset = () => reset().catch(() => undefined);
 
 const handleRetry = async (errata: Errata) => {
   retryingId.value = errata.id;
-  try {
-    await retry(errata);
-    ElMessage.success('已从中断处继续执行');
-  } catch (error) {
-    ElMessage.error(requestErrorMessage(error));
-  } finally {
-    retryingId.value = '';
-  }
+  await runAction(() => retry(errata), '已从中断处继续执行');
+  retryingId.value = '';
 };
 
 onMounted(() => {

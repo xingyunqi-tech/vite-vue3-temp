@@ -13,6 +13,7 @@ export type UploadFilePurpose = (typeof UploadFilePurpose)[keyof typeof UploadFi
 export const UploadFilePurpose = {
   image: 'image',
   'private-image': 'private-image',
+  'content-image': 'content-image',
   audio: 'audio',
   import: 'import',
   export: 'export',

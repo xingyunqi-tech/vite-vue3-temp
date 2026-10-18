@@ -10,6 +10,7 @@ import axios, {
 import { ElMessage } from 'element-plus';
 import { getActivePinia } from 'pinia';
 import type { RefreshResponseDto } from '../generated/model';
+import { parseErrorBody, type ParsedErrorBody } from './error';
 import type { ApiResponse, HttpInstanceType } from './types';
 import { API_CODE } from '@/constants';
 import { useGlobalStore } from '@/store/modules/global';
@@ -30,7 +31,7 @@ const isSuccessCode = (code: unknown) => String(code) === String(API_CODE.SUCCES
 /**
  * 请求失败时的统一提示
  *
- * 业务码不匹配时 msg 是后端 `message`，原样透出；HTTP / 网络失败时是 axios 的英文文案，交给 toFriendlyMessage 翻译。
+ * msg 为 parseErrorBody 解析出的后端文案时原样透出；解析不出时是 axios 的英文文案，交给 toFriendlyMessage 翻译。
  * 空串不弹提示。
  */
 const showRequestError = (config: AxiosRequestConfig | undefined, msg: string) => {
@@ -167,20 +168,32 @@ async function checkBusinessCode(instance: AxiosInstance, response: AxiosRespons
   const code = data?.code ?? data?.status;
   if (isSuccessCode(code)) return response;
 
-  const message: string = data?.message ?? '';
-  const error = new AxiosError(message, 'ERR_ERROR_MODULE', config, request, response);
+  const parsed = parseErrorBody(data);
+  const message = parsed.message;
+  const error = attachErrorInfo(new AxiosError(message, 'ERR_ERROR_MODULE', config, request, response), parsed);
   if (isUnauthorized(code, config)) return handleUnauthorized(instance, config, message, error);
   showRequestError(config, message);
   return Promise.reject(error);
 }
 
+/** 在错误对象上保留错误键与原始 data */
+function attachErrorInfo(error: AxiosError, parsed: ParsedErrorBody): AxiosError {
+  error.errorKey = parsed.errorKey;
+  error.errorData = parsed.data;
+  return error;
+}
+
 /** HTTP / 网络错误：取消请求直接放行，其余提示后 reject */
 async function handleResponseError(instance: AxiosInstance, error: AxiosError): Promise<AxiosResponse> {
   if (isCancel(error)) return Promise.reject(error);
+  if (error.response) await unwrapJsonErrorBlob(error.response);
+  const parsed = parseErrorBody(error.response?.data);
+  attachErrorInfo(error, parsed);
+  const message = error.response?.status === UNAUTHORIZED_CODE ? error.message : parsed.message || error.message;
   if (error.config && isUnauthorized(error.response?.status, error.config)) {
-    return handleUnauthorized(instance, error.config, error.message, error);
+    return handleUnauthorized(instance, error.config, message, error);
   }
-  showRequestError(error.config, error.message);
+  showRequestError(error.config, message);
   return Promise.reject(error);
 }
 

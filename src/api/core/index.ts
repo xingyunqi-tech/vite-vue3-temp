@@ -17,3 +17,6 @@ export { httpApi, downloadApi, instances } from './request';
 
 // 导出便捷请求函数
 export { post, get, put, del } from './request';
+
+// 导出错误解析工具
+export { ERROR_KEY_TEXT, parseErrorBody, requestErrorKey, requestErrorMessage } from './error';

@@ -54,7 +54,7 @@ describe('内容管理 API 扩展', () => {
     vi.mocked(uploadFile).mockResolvedValue({ file: { id: 'f1', path: '/a.png' } });
     const file = new File(['x'], 'a.png');
 
-    expect(await uploadContentFile(file, 'image')).toEqual({ id: 'f1', path: '/a.png' });
-    expect(uploadFile).toHaveBeenCalledWith({ file }, { purpose: 'image' });
+    expect(await uploadContentFile(file, 'content-image')).toEqual({ id: 'f1', path: '/a.png' });
+    expect(uploadFile).toHaveBeenCalledWith({ file }, { purpose: 'content-image' });
   });
 });

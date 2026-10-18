@@ -4,7 +4,8 @@ import { errata, page, QUESTION_ID, question, report } from './feedback-fixtures
 import { adminCreateErrata, adminGetQuestion, adminGetQuestionReports } from '@/api';
 import { useErrataForm } from '@/views/content/errata-create/useErrataForm';
 
-vi.mock('@/api', () => ({
+vi.mock('@/api', async () => ({
+  ...(await vi.importActual<typeof import('@/api/core/error')>('@/api/core/error')),
   adminCreateErrata: vi.fn(),
   adminGetQuestion: vi.fn(),
   adminGetQuestionReports: vi.fn(),
@@ -111,7 +112,11 @@ describe('useErrataForm', () => {
     expect(form.changes.value).toEqual({ answer: true, analysis: false });
     expect(adminCreateErrata).toHaveBeenCalledWith(
       QUESTION_ID,
-      { answer: { keys: ['B'] }, reply: '已更正为 B', reportIds: [7] },
+      {
+        answer: { keys: ['B'] },
+        reply: '已更正为 B',
+        reportIds: [7],
+      },
       { isIgnoreToast: true },
     );
   });

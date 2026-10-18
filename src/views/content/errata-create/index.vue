@@ -192,7 +192,6 @@ watch(() => [route.query.questionId, route.query.reportIds], reload, { immediate
 
 const handleSubmit = async () => {
   const errata = await submit();
-  if (submitError.value) ElMessage.error(submitError.value.message);
   if (!errata) return;
   ElMessage.success('已提交勘误');
   await router.replace(`/feedback/errata/${errata.id}`);

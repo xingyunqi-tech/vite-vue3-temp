@@ -96,7 +96,7 @@ describe('useErrataList', () => {
 
     await list.retry(errata({ status: 'FAILED' }));
 
-    expect(adminRetryErrata).toHaveBeenCalledWith('e1', { isIgnoreToast: true });
+    expect(adminRetryErrata).toHaveBeenCalledWith('e1');
     expect(adminGetErrataList).toHaveBeenCalledTimes(2);
     scope.stop();
   });

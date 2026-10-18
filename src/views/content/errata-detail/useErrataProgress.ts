@@ -88,7 +88,7 @@ export function useErrataProgress() {
 
   const retry = async () => {
     if (!errata.value) return;
-    errata.value = await adminRetryErrata(errata.value.id, { isIgnoreToast: true });
+    errata.value = await adminRetryErrata(errata.value.id);
     now.value = Date.now();
     polling.schedule();
   };

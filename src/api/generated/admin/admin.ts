@@ -735,6 +735,12 @@ export const adminUpdateQuestionReport = (
     options,
   );
 };
+/**
+ * @summary 重新触发已注销用户的数据清理；已有清理任务在排队或执行时不重复入队
+ */
+export const adminRetriggerAccountCleanup = (id: number, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/admin/users/${id}/cleanup`, method: 'POST' }, options);
+};
 export type AdminGetExamsResult = NonNullable<Awaited<ReturnType<typeof adminGetExams>>>;
 export type AdminCreateExamResult = NonNullable<Awaited<ReturnType<typeof adminCreateExam>>>;
 export type AdminGetExamResult = NonNullable<Awaited<ReturnType<typeof adminGetExam>>>;
@@ -803,3 +809,4 @@ export type AdminRetryErrataResult = NonNullable<Awaited<ReturnType<typeof admin
 export type AdminGetQuestionReportsResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionReports>>>;
 export type AdminGetQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestionReport>>>;
 export type AdminUpdateQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestionReport>>>;
+export type AdminRetriggerAccountCleanupResult = NonNullable<Awaited<ReturnType<typeof adminRetriggerAccountCleanup>>>;

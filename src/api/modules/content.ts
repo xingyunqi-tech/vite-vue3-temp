@@ -33,7 +33,10 @@ export function fetchAllSubjects(examId?: string): Promise<Subject[]> {
   );
 }
 
-export async function uploadContentFile(file: File, purpose: UploadFilePurpose): Promise<FileType> {
+/** 内容素材的上传用途：图片、听力音频、导入包 */
+export type ContentUploadPurpose = Extract<UploadFilePurpose, 'content-image' | 'audio' | 'import'>;
+
+export async function uploadContentFile(file: File, purpose: ContentUploadPurpose): Promise<FileType> {
   const result = await uploadFile({ file }, { purpose });
   return result.file;
 }

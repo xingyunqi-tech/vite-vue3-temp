@@ -30,7 +30,7 @@ describe('Markdown 编辑器', () => {
 
     await chooseFile(wrapper, file);
 
-    expect(uploadContentFile).toHaveBeenCalledWith(file, 'image');
+    expect(uploadContentFile).toHaveBeenCalledWith(file, 'content-image');
     expect(wrapper.emitted('uploaded')?.[0]).toEqual([{ id: FILE_ID, path: 'https://cdn/a.png' }]);
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([`前![图片](file:${FILE_ID})后`]);
     wrapper.unmount();

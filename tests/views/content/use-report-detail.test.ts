@@ -73,11 +73,7 @@ describe('useReportDetail', () => {
     detail.form.reply = '答案无误';
 
     expect(await detail.save()).toBe(true);
-    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(
-      7,
-      { status: 'closed', reply: '答案无误' },
-      { isIgnoreToast: true },
-    );
+    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { status: 'closed', reply: '答案无误' });
     expect(detail.report.value?.status).toBe('closed');
     expect(await detail.save()).toBe(false);
     expect(adminUpdateQuestionReport).toHaveBeenCalledTimes(1);
@@ -95,7 +91,7 @@ describe('useReportDetail', () => {
     expect(detail.form.status).toBe('resolved');
 
     await detail.linkErrata(null);
-    expect(adminUpdateQuestionReport).toHaveBeenLastCalledWith(7, { errataId: null }, { isIgnoreToast: true });
+    expect(adminUpdateQuestionReport).toHaveBeenLastCalledWith(7, { errataId: null });
     expect(detail.report.value?.errata).toBeNull();
   });
 });

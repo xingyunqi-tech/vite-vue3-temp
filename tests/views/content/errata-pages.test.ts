@@ -17,7 +17,8 @@ import ErrataListPage from '@/views/content/errata/index.vue';
 import ErrataCreatePage from '@/views/content/errata-create/index.vue';
 import ErrataDetailPage from '@/views/content/errata-detail/index.vue';
 
-vi.mock('@/api', () => ({
+vi.mock('@/api', async () => ({
+  ...(await vi.importActual<typeof import('@/api/core/error')>('@/api/core/error')),
   adminCreateErrata: vi.fn(),
   adminGetErrata: vi.fn(),
   adminGetErrataList: vi.fn(),
@@ -153,7 +154,7 @@ describe('勘误表单页', () => {
 
     await clickButton(wrapper, '提交勘误');
 
-    expect(ElMessage.error).toHaveBeenCalledWith('该题已有进行中的勘误');
+    expect(wrapper.find('.errata-create__form .el-alert--error').text()).toContain('该题已有进行中的勘误');
     await clickButton(wrapper, '查看该题勘误任务');
     expect(router.currentRoute.value.fullPath).toBe(`/feedback/errata?questionId=${QUESTION_ID}`);
   });
@@ -181,7 +182,7 @@ describe('勘误进度页', () => {
     expect(wrapper.text()).toContain('任务失败：boom');
     await clickButton(wrapper, '重试');
 
-    expect(adminRetryErrata).toHaveBeenCalledWith('e1', { isIgnoreToast: true });
+    expect(adminRetryErrata).toHaveBeenCalledWith('e1');
     expect(ElMessage.success).toHaveBeenCalledWith('已从中断处继续执行');
     expect(buttonTexts(wrapper)).not.toContain('重试');
   });
@@ -213,6 +214,6 @@ describe('勘误列表页', () => {
       .trigger('click');
     await flushPromises();
 
-    expect(adminRetryErrata).toHaveBeenCalledWith('e2', { isIgnoreToast: true });
+    expect(adminRetryErrata).toHaveBeenCalledWith('e2');
   });
 });

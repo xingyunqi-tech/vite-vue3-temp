@@ -8,7 +8,9 @@
  *  *\/
  */
 import type {
+  AgreeConsentDto,
   CheckinCalendarDto,
+  ConsentStatusDto,
   DailyStatDto,
   GetCheckinsParams,
   GetMyQuestionNotesParams,
@@ -134,6 +136,29 @@ export const getMyQuestionReports = (
     options,
   );
 };
+/**
+ * @summary 各协议当前版本与同意状态
+ */
+export const getMyConsents = (options?: SecondParameter<typeof customMutator<ConsentStatusDto[]>>) => {
+  return customMutator<ConsentStatusDto[]>({ url: `/api/v1/me/consents`, method: 'GET' }, options);
+};
+/**
+ * @summary 同意协议的当前版本，重复同意同一版本保留首次记录
+ */
+export const agreeConsent = (
+  agreeConsentDto: AgreeConsentDto,
+  options?: SecondParameter<typeof customMutator<ConsentStatusDto>>,
+) => {
+  return customMutator<ConsentStatusDto>(
+    {
+      url: `/api/v1/me/consents`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: agreeConsentDto,
+    },
+    options,
+  );
+};
 export type GetMyExamProfilesResult = NonNullable<Awaited<ReturnType<typeof getMyExamProfiles>>>;
 export type UpsertMyExamProfileResult = NonNullable<Awaited<ReturnType<typeof upsertMyExamProfile>>>;
 export type DeleteMyExamProfileResult = NonNullable<Awaited<ReturnType<typeof deleteMyExamProfile>>>;
@@ -145,3 +170,5 @@ export type GetStudyWeakPointsResult = NonNullable<Awaited<ReturnType<typeof get
 export type GetCheckinsResult = NonNullable<Awaited<ReturnType<typeof getCheckins>>>;
 export type GetMyQuestionNotesResult = NonNullable<Awaited<ReturnType<typeof getMyQuestionNotes>>>;
 export type GetMyQuestionReportsResult = NonNullable<Awaited<ReturnType<typeof getMyQuestionReports>>>;
+export type GetMyConsentsResult = NonNullable<Awaited<ReturnType<typeof getMyConsents>>>;
+export type AgreeConsentResult = NonNullable<Awaited<ReturnType<typeof agreeConsent>>>;

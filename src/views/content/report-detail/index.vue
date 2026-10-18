@@ -132,10 +132,11 @@
 </template>
 
 <script setup lang="ts">
+import { isAxiosError } from 'axios';
 import { ElMessage } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { confirmAction } from '../shared/actions';
+import { confirmAction, runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
 import QuestionPreview from '../shared/components/QuestionPreview.vue';
 import StatusTag from '../shared/components/StatusTag.vue';
@@ -148,11 +149,11 @@ import {
   REPORT_STATUS_META,
   reportTypeLabel,
 } from '../shared/feedback-constants';
-import { requestErrorMessage } from '../shared/request-error';
 import { isHttpUrl } from '../shared/utils';
-import { useReportDetail } from './useReportDetail';
+import { ReportValidationError, useReportDetail } from './useReportDetail';
 import type { Errata } from '@/api';
 import { formatDateTimeFull } from '@/utils/datetime';
+import { handleError } from '@/utils/error-handler';
 import { markdownSummary } from '@/utils/markdown';
 
 const route = useRoute();
@@ -189,7 +190,8 @@ const handleSave = async () => {
     if (await save()) ElMessage.success('已保存');
     else ElMessage.info('没有修改');
   } catch (error) {
-    ElMessage.error(requestErrorMessage(error));
+    if (error instanceof ReportValidationError) ElMessage.error(error.message);
+    else if (!isAxiosError(error)) handleError(error);
   } finally {
     saving.value = false;
   }
@@ -197,14 +199,8 @@ const handleSave = async () => {
 
 const runUpdate = async (task: () => Promise<unknown>, successMessage: string) => {
   linking.value = true;
-  try {
-    await task();
-    ElMessage.success(successMessage);
-  } catch (error) {
-    ElMessage.error(requestErrorMessage(error));
-  } finally {
-    linking.value = false;
-  }
+  await runAction(task, successMessage);
+  linking.value = false;
 };
 
 const handleLink = () =>

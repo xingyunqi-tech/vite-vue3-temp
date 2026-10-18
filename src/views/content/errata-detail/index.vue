@@ -98,14 +98,13 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from 'element-plus';
 import { watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
 import QuestionPreview from '../shared/components/QuestionPreview.vue';
 import StatusTag from '../shared/components/StatusTag.vue';
 import { ERRATA_STATUS_META, REPORT_REASON_LABEL, REPORT_STATUS_META } from '../shared/feedback-constants';
-import { requestErrorMessage } from '../shared/request-error';
 import { useErrataProgress } from './useErrataProgress';
 import type { QuestionReportReason } from '@/api';
 import { formatDateTimeFull } from '@/utils/datetime';
@@ -134,14 +133,8 @@ const handleRefresh = () => refresh().catch(() => undefined);
 
 const handleRetry = async () => {
   retrying.value = true;
-  try {
-    await retry();
-    ElMessage.success('已从中断处继续执行');
-  } catch (error) {
-    ElMessage.error(requestErrorMessage(error));
-  } finally {
-    retrying.value = false;
-  }
+  await runAction(retry, '已从中断处继续执行');
+  retrying.value = false;
 };
 </script>
 

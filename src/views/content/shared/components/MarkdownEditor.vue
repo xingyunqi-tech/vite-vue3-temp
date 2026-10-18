@@ -77,7 +77,7 @@ const handleFileChange = async (event: Event) => {
   input.value = '';
   if (!file) return;
   uploading.value = true;
-  const uploaded = await uploadContentFile(file, 'image').catch(() => null);
+  const uploaded = await uploadContentFile(file, 'content-image').catch(() => null);
   uploading.value = false;
   if (!uploaded) return;
   emit('uploaded', uploaded);

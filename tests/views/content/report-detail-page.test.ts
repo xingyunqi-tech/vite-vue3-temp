@@ -79,7 +79,7 @@ describe('纠错单详情', () => {
     await wrapper.find('textarea').setValue('答案无误');
     await clickButton(wrapper, '保存');
 
-    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { reply: '答案无误' }, { isIgnoreToast: true });
+    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { reply: '答案无误' });
     expect(ElMessage.success).toHaveBeenCalledWith('已保存');
   });
 
@@ -115,7 +115,7 @@ describe('纠错单详情', () => {
     await link().trigger('click');
     await flushPromises();
 
-    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { errataId: 'e1' }, { isIgnoreToast: true });
+    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { errataId: 'e1' });
     expect(ElMessage.success).toHaveBeenCalledWith('已关联勘误');
     expect(wrapper.text()).toContain('已解决');
     expect(wrapper.text()).toContain('10 / 10 人');
@@ -135,7 +135,7 @@ describe('纠错单详情', () => {
 
     await clickButton(wrapper, '取消关联');
 
-    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { errataId: null }, { isIgnoreToast: true });
+    expect(adminUpdateQuestionReport).toHaveBeenCalledWith(7, { errataId: null });
     expect(ElMessage.success).toHaveBeenCalledWith('已取消关联');
   });
 });

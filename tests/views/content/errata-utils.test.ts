@@ -1,4 +1,3 @@
-import { AxiosError, type AxiosResponse } from 'axios';
 import { describe, it, expect } from 'vitest';
 import { errata, question } from './feedback-fixtures';
 import {
@@ -11,16 +10,9 @@ import {
   isErrataStale,
   parseReportIds,
 } from '@/views/content/shared/errata';
-import { requestErrorKey, requestErrorMessage } from '@/views/content/shared/request-error';
 
 const UPDATED_AT = Date.parse('2026-10-17T00:00:00.000Z');
 const STALE_AT = ERRATA_STALE_MS + ERRATA_STALE_TOLERANCE_MS;
-
-const httpError = (status: number, body: unknown) =>
-  new AxiosError(`Request failed with status code ${status}`, 'ERR_BAD_REQUEST', undefined, undefined, {
-    status,
-    data: body,
-  } as AxiosResponse);
 
 describe('勘误任务工具', () => {
   it('进度为已处理用户占比，完成时为 100，无受影响用户时为 0', () => {
@@ -61,38 +53,5 @@ describe('勘误任务工具', () => {
     expect(parseReportIds('3, 5,x,0,3,-1,2.5')).toEqual([3, 5]);
     expect(parseReportIds(undefined)).toEqual([]);
     expect(parseReportIds(['3'])).toEqual([]);
-  });
-});
-
-describe('请求错误说明', () => {
-  it('业务错误返回错误键与后端文案', () => {
-    const error = httpError(409, {
-      code: 409,
-      message: '该题已有进行中的勘误',
-      data: { errorKey: 'errataInProgress' },
-    });
-
-    expect(requestErrorKey(error)).toBe('errataInProgress');
-    expect(requestErrorMessage(error)).toBe('该题已有进行中的勘误');
-  });
-
-  it('字段错误取首个字段说明，未翻译的错误键映射为中文', () => {
-    const translated = httpError(422, {
-      code: 422,
-      message: 'Validation failed',
-      data: { answer: '答案与解析没有变化' },
-    });
-    const raw = httpError(422, { code: 422, message: 'Validation failed', data: { status: 'errataNotRetryable' } });
-
-    expect(requestErrorMessage(translated)).toBe('答案与解析没有变化');
-    expect(requestErrorKey(raw)).toBe('errataNotRetryable');
-    expect(requestErrorMessage(raw)).toBe('只能继续执行失败或超过 10 分钟未进展的勘误任务');
-  });
-
-  it('没有响应体时使用友好提示或兜底文案', () => {
-    expect(requestErrorMessage(new AxiosError('Network Error'))).toBe('网络连接失败，请检查网络');
-    expect(requestErrorMessage(new Error('本地错误'))).toBe('本地错误');
-    expect(requestErrorMessage(null, '兜底')).toBe('兜底');
-    expect(requestErrorKey(new Error('x'))).toBe('');
   });
 });

@@ -112,7 +112,7 @@ describe('useErrataProgress', () => {
     expect(adminGetErrata).toHaveBeenCalledTimes(1);
 
     await progress.retry();
-    expect(adminRetryErrata).toHaveBeenCalledWith('e1', { isIgnoreToast: true });
+    expect(adminRetryErrata).toHaveBeenCalledWith('e1');
     expect(progress.retryable.value).toBe(false);
     vi.mocked(adminGetErrata).mockResolvedValue(errata({ status: 'RUNNING' }));
     await vi.advanceTimersByTimeAsync(ERRATA_POLL_INTERVAL);

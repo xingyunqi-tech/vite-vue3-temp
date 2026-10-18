@@ -48,9 +48,10 @@ interface ApiResponse<T> {
 | 情况 | 请求层行为 |
 |------|-----------|
 | `code === 200` | resolve 完整 axios response |
-| `code !== 200` | 弹出 `message`（`ElMessage.error`），reject `AxiosError`（`code: 'ERR_ERROR_MODULE'`） |
-| 业务码 401 或 HTTP 401 | 先用刷新 token 调 `/api/v1/auth/refresh` 换新 token 并重放原请求（并发只刷新一次，每个请求只重放一次）；刷新失败则清除 token，整页跳转 `/login?redirect=<当前页>`（并发只跳一次），同时按上一行提示并 reject |
-| HTTP / 网络错误 | 文案经 `toFriendlyMessage` 转换后提示，reject 原错误 |
+| `code !== 200` | 按下方「错误文案」解析后弹出（`ElMessage.error`），reject `AxiosError`（`code: 'ERR_ERROR_MODULE'`） |
+| 业务码 401 或 HTTP 401 | 先用刷新 token 调 `/api/v1/auth/refresh` 换新 token 并重放原请求（并发只刷新一次，每个请求只重放一次）；刷新失败则清除 token，整页跳转 `/login?redirect=<当前页>`（并发只跳一次）并 reject。提示文案：HTTP 401 固定为「未登录或登录已过期」（不用后端的「未授权」），业务码 401 用后端 `message` |
+| HTTP 错误（401 除外） | 响应体为 `{ code, message, data }` 时按下方「错误文案」解析后提示，解析不出时经 `toFriendlyMessage` 转为通用文案；reject 原错误 |
+| 网络错误 | 经 `toFriendlyMessage` 转为通用文案后提示，reject 原错误 |
 | 请求被取消 | 不提示，直接 reject |
 | 下载接口返回 JSON 业务错误 | 解析 Blob 后按业务码处理并 reject；正常文件 Blob 原样返回 |
 
@@ -273,7 +274,25 @@ try {
 }
 ```
 
-- 不想要自动提示时传 `isIgnoreToast: true`，再自行 `handleError(error)`（`src/utils/error-handler.ts`）或给出定制提示
+错误文案（`src/api/core/error.ts` 的 `parseErrorBody`）按以下顺序取：
+
+1. `data.errorKey` 存在（后端 `BusinessException`）：取后端 i18n 后的 `message`；`message` 为空或等于错误键时用 `ERROR_KEY_TEXT` 的中文映射，没有映射则显示错误键
+2. `data` 为字段错误（字段 → 后端已翻译的文案，可嵌套对象或数组）：递归收集全部叶子文案，去重后以「；」合并
+3. 其余取 `message`（为数组时以「；」合并）；仍为空时回退 HTTP 状态的通用文案
+
+reject 的 `AxiosError` 上带 `errorKey`（只取 `data.errorKey`，字段错误不推断，没有时为空串）与 `errorData`（原始 `data`），页面可按错误键分支：
+
+```typescript
+import { requestErrorKey, requestErrorMessage } from '@/api';
+
+try {
+  await adminCreateErrata(id, dto);
+} catch (error) {
+  if (requestErrorKey(error) === 'errataInProgress') showInProgressEntry(requestErrorMessage(error));
+}
+```
+
+- 不想要自动提示时传 `isIgnoreToast: true`，再用 `requestErrorMessage(error)` 取文案自行提示，或 `handleError(error)`（`src/utils/error-handler.ts`）
 - 不要在组件里自行判断 401 或跳登录页，统一由请求层处理
 
 ---

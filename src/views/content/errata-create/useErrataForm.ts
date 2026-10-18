@@ -9,8 +9,13 @@ import {
 } from '../shared/errata-form';
 import { LINKABLE_LIST_LIMIT } from '../shared/feedback-constants';
 import { mergeFileUrls, toQuestionForm, type QuestionForm } from '../shared/question-form';
-import { requestErrorKey, requestErrorMessage } from '../shared/request-error';
-import { adminCreateErrata, adminGetQuestion, adminGetQuestionReports } from '@/api';
+import {
+  adminCreateErrata,
+  adminGetQuestion,
+  adminGetQuestionReports,
+  requestErrorKey,
+  requestErrorMessage,
+} from '@/api';
 import type { AdminQuestionDto, AdminQuestionReportDto, AdminQuestionReportDtoStatus, Errata } from '@/api';
 
 const LINKABLE_REPORT_STATUSES: ReadonlySet<AdminQuestionReportDtoStatus> = new Set(['pending', 'processing']);

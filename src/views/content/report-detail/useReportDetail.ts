@@ -67,7 +67,7 @@ export function useReportDetail() {
 
   const update = async (patch: UpdateQuestionReportDto) => {
     if (!report.value) return;
-    apply(await adminUpdateQuestionReport(report.value.id, patch, { isIgnoreToast: true }));
+    apply(await adminUpdateQuestionReport(report.value.id, patch));
   };
 
   /** 返回是否有改动 */

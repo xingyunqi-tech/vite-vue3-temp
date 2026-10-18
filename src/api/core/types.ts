@@ -13,6 +13,13 @@ declare module 'axios' {
     /** 已用刷新后的 token 重放过，再次 401 不再刷新 */
     authRetried?: boolean;
   }
+
+  interface AxiosError {
+    /** 后端业务错误的 `data.errorKey`，没有时为空串 */
+    errorKey?: string;
+    /** 后端错误响应的原始 `data` */
+    errorData?: Record<string, unknown> | null;
+  }
 }
 
 /**
