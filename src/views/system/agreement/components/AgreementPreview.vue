@@ -51,6 +51,11 @@ const safeHtml = computed(() => renderAgreementPreview(props.html));
     border: 1px solid var(--aix-colorBorder);
   }
 
+  :deep(th > p),
+  :deep(td > p) {
+    margin: 0;
+  }
+
   :deep(blockquote) {
     margin: 8px 0;
     padding-left: 12px;

@@ -3,9 +3,11 @@ import {
   AGREEMENT_MAX_BYTES,
   checkAgreementContent,
   filterStyle,
+  isAllowedLinkUrl,
   isBlankHtml,
   renderAgreementPreview,
   sanitizeAgreementHtml,
+  toEditorHtml,
   suggestNextVersion,
   validateNextVersion,
 } from '@/views/system/agreement/agreement-html';
@@ -69,6 +71,89 @@ describe('sanitizeAgreementHtml', () => {
     const source =
       '<h1>标题</h1><ul><li>一</li></ul><a href="https://example.com">链接</a><table><tbody><tr><td>格</td></tr></tbody></table>';
     expect(sanitizeAgreementHtml(source)).toBe(source);
+  });
+});
+
+describe('Tiptap 输出', () => {
+  it('表格去掉 colgroup 与宽度样式，保留表头与单元格段落', () => {
+    const html = sanitizeAgreementHtml(
+      '<table style="min-width: 75px;"><colgroup><col style="min-width: 25px;"><col style="width: 120px;"></colgroup><tbody><tr><th><p>项目</p></th><th colspan="2"><p>说明</p></th></tr><tr><td><p>一</p></td><td style="text-align: center;"><p>二</p></td></tr></tbody></table>',
+    );
+    expect(html).toBe(
+      '<table><tbody><tr><th><p>项目</p></th><th colspan="2"><p>说明</p></th></tr><tr><td><p>一</p></td><td style="text-align: center"><p>二</p></td></tr></tbody></table>',
+    );
+  });
+
+  it('保留段落与标题的对齐样式及下划线、删除线', () => {
+    const source =
+      '<h2 style="text-align: center;">标题</h2><p style="text-align: right;"><u>下划线</u><s>删除线</s><br>换行</p><hr><blockquote><p>引用</p></blockquote>';
+    expect(sanitizeAgreementHtml(source)).toBe(
+      '<h2 style="text-align: center">标题</h2><p style="text-align: right"><u>下划线</u><s>删除线</s><br>换行</p><hr><blockquote><p>引用</p></blockquote>',
+    );
+  });
+});
+
+describe('空段落', () => {
+  it('净化后空段落补 <br>', () => {
+    expect(sanitizeAgreementHtml('<p>a</p><p></p>')).toBe('<p>a</p><p><br></p>');
+    expect(sanitizeAgreementHtml('<p style="text-align: center;"></p>')).toBe('<p style="text-align: center"><br></p>');
+  });
+
+  it('预览中空段落保留 <br>', () => {
+    expect(renderAgreementPreview('<p>a</p><p></p>')).toBe('<p>a</p><p><br></p>');
+  });
+
+  it('载入编辑器前只含 <br> 的段落还原为空段落', () => {
+    expect(toEditorHtml('<p>a</p><p><br></p><p style="text-align: center"><br/></p><p>b<br></p>')).toBe(
+      '<p>a</p><p></p><p style="text-align: center"></p><p>b<br></p>',
+    );
+  });
+});
+
+describe('链接净化', () => {
+  it('a 只保留 href', () => {
+    expect(
+      sanitizeAgreementHtml(
+        '<a href="https://example.com" class="x" rel="nofollow" title="t" target="_blank" style="font-weight: bold">链接</a>',
+      ),
+    ).toBe('<a href="https://example.com">链接</a>');
+  });
+
+  it('不允许的 href 被移除，保留文字', () => {
+    expect(
+      sanitizeAgreementHtml('<a href="ftp://example.com">一</a><a href="//example.com">二</a><a href="tel:110">三</a>'),
+    ).toBe('<a>一</a><a>二</a><a>三</a>');
+  });
+
+  it('预览中只为合法链接追加新窗口属性', () => {
+    expect(renderAgreementPreview('<a href="mailto:a@example.com">邮件</a><a href="data:text/html,x">坏</a>')).toBe(
+      '<a href="mailto:a@example.com" target="_blank" rel="noopener noreferrer">邮件</a><a>坏</a>',
+    );
+  });
+});
+
+describe('isAllowedLinkUrl', () => {
+  it.each(['https://example.com', 'http://example.com/a?b=1#c', 'HTTPS://EXAMPLE.COM', 'mailto:help@example.com'])(
+    '%s 允许',
+    url => {
+      expect(isAllowedLinkUrl(url)).toBe(true);
+    },
+  );
+
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,x',
+    'ftp://example.com',
+    'example.com',
+    'https://',
+    'mailto:',
+    '',
+    ' https://example.com',
+    '\njavascript:alert(1)',
+    '//example.com',
+    'https://a b',
+  ])('%s 不允许', url => {
+    expect(isAllowedLinkUrl(url)).toBe(false);
   });
 });
 

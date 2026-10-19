@@ -24,6 +24,8 @@ const FORBIDDEN_TAGS = [
   'style',
   'link',
   'meta',
+  'colgroup',
+  'col',
 ];
 
 const ALLOWED_STYLE_PROPERTIES = new Set([
@@ -39,6 +41,13 @@ const ALLOWED_STYLE_PROPERTIES = new Set([
 const SAFE_STYLE_VALUE = /^[\w\s.,%-]+$/;
 
 export const AGREEMENT_MAX_BYTES = 250 * 1024;
+
+const LINK_URL = /^(?:https?:\/\/[^\s/?#]+\S*|mailto:[^\s@]+@[^\s@]+)$/i;
+
+/** 正文链接只允许 http、https 与 mailto */
+export function isAllowedLinkUrl(url: string): boolean {
+  return LINK_URL.test(url);
+}
 
 /** style 只保留排版类声明，其余声明丢弃 */
 export function filterStyle(style: string): string {
@@ -58,7 +67,15 @@ export function filterStyle(style: string): string {
 
 const purifier = DOMPurify();
 
-purifier.addHook('uponSanitizeAttribute', (_node, data) => {
+purifier.addHook('uponSanitizeAttribute', (node, data) => {
+  if (node.nodeName === 'A' && data.attrName !== 'href') {
+    data.keepAttr = false;
+    return;
+  }
+  if (data.attrName === 'href' && !isAllowedLinkUrl(data.attrValue)) {
+    data.keepAttr = false;
+    return;
+  }
   if (data.attrName !== 'style') return;
   const style = filterStyle(data.attrValue);
   if (style) {
@@ -68,9 +85,21 @@ purifier.addHook('uponSanitizeAttribute', (_node, data) => {
   }
 });
 
+/** 空段落补 <br>，小程序与预览中保留空行高度 */
+purifier.addHook('afterSanitizeElements', node => {
+  if (node.nodeName === 'P' && !node.hasChildNodes()) node.appendChild(node.ownerDocument!.createElement('br'));
+});
+
 /** 协议正文只保留文本类标签与排版样式，去掉脚本、事件属性与图片音视频等嵌入内容 */
 export function sanitizeAgreementHtml(html: string): string {
   return purifier.sanitize(html, { FORBID_TAGS: FORBIDDEN_TAGS, FORBID_ATTR: ['srcset'] });
+}
+
+const BREAK_ONLY_PARAGRAPH = /<p(\s[^>]*)?>\s*<br\s*\/?>\s*<\/p>/gi;
+
+/** 编辑器载入用：只含 <br> 的段落还原为空段落 */
+export function toEditorHtml(html: string): string {
+  return html.replace(BREAK_ONLY_PARAGRAPH, '<p$1></p>');
 }
 
 /** 预览用：净化后链接在新窗口打开 */
