@@ -56,9 +56,12 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
     "@sentry/vue": "^10.11.0",
+    "@wangeditor-next/editor": "6.5.0",
+    "@wangeditor-next/editor-for-vue": "6.5.0",
     "axios": "^1.20.0",
     "core-js": "^3.50.0",
     "dayjs": "^1.11.23",
+    "dompurify": "3.4.17",
     "element-plus": "^2.14.5",
     "js-cookie": "^3.0.8",
     "katex": "^0.16.47",

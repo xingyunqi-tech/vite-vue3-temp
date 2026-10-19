@@ -2,6 +2,8 @@ allowBuilds:
   '@parcel/watcher': true
   '@sentry/cli': true
   core-js: true
+  # wangeditor 间接依赖，postinstall 只打印信息，不构建
+  es5-ext: false
   esbuild: true
   # code-inspector-plugin 的可选原生依赖，不构建；删掉此行 pnpm 会报 ERR_PNPM_IGNORED_BUILDS
   node-pty: false

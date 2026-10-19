@@ -1,3 +1,5 @@
+import { AGREEMENT_MANAGE_PATH } from './agreement';
+
 export type RemoteConfigType = 'boolean' | 'number' | 'string' | 'json';
 
 export interface RemoteConfigDefinition {
@@ -9,6 +11,8 @@ export interface RemoteConfigDefinition {
   description: string;
   /** number 类型允许的小数位数 */
   precision?: number;
+  /** 在专用页面编辑的配置项，值为该页面路径 */
+  managedPath?: string;
 }
 
 /** 远程配置项，与后端 config-definitions.ts 登记表一致 */
@@ -64,6 +68,27 @@ export const REMOTE_CONFIG_DEFINITIONS: readonly RemoteConfigDefinition[] = [
   { key: 'consent.privacyPolicyVersion', type: 'string', isPublic: true, description: '隐私政策当前版本' },
   { key: 'consent.userAgreementVersion', type: 'string', isPublic: true, description: '用户协议当前版本' },
   { key: 'consent.aiServiceVersion', type: 'string', isPublic: true, description: 'AI 服务声明当前版本' },
+  {
+    key: 'agreement.userAgreement',
+    type: 'string',
+    isPublic: true,
+    description: '用户协议正文（HTML），未配置时小程序显示内置文本',
+    managedPath: AGREEMENT_MANAGE_PATH,
+  },
+  {
+    key: 'agreement.privacyPolicy',
+    type: 'string',
+    isPublic: true,
+    description: '隐私政策正文（HTML），未配置时小程序显示内置文本',
+    managedPath: AGREEMENT_MANAGE_PATH,
+  },
+  {
+    key: 'agreement.aiService',
+    type: 'string',
+    isPublic: true,
+    description: 'AI 服务声明正文（HTML），未配置时小程序显示内置文本',
+    managedPath: AGREEMENT_MANAGE_PATH,
+  },
   { key: 'alert.thresholds', type: 'json', isPublic: false, description: '各监控项告警阈值' },
 ];
 

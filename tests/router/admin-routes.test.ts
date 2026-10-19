@@ -20,12 +20,13 @@ beforeEach(() => {
 });
 
 describe('后台路由与菜单', () => {
-  it('管理员可访问远程配置与监控告警', () => {
+  it('管理员可访问远程配置、监控告警与协议管理', () => {
     const store = usePermissionStore();
     store.generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN]);
 
     expect(store.hasAccessibleRoute('/system/config')).toBe(true);
     expect(store.hasAccessibleRoute('/system/monitor')).toBe(true);
+    expect(store.hasAccessibleRoute('/system/agreement')).toBe(true);
   });
 
   it('管理员可访问内容管理各页面', () => {
@@ -78,6 +79,7 @@ describe('后台路由与菜单', () => {
 
     expect(store.hasAccessibleRoute('/system/config')).toBe(false);
     expect(store.hasAccessibleRoute('/system/monitor')).toBe(false);
+    expect(store.hasAccessibleRoute('/system/agreement')).toBe(false);
   });
 
   it('管理员可访问 AI 用量页，其他角色不可访问', () => {
@@ -96,6 +98,7 @@ describe('后台路由与菜单', () => {
     expect(menus.find(menu => menu.path === '/system')?.children?.map(child => child.path)).toEqual([
       '/system/config',
       '/system/monitor',
+      '/system/agreement',
     ]);
     const content = menus.find(menu => menu.path === '/content')?.children ?? [];
     expect(content.map(child => child.path)).toEqual([

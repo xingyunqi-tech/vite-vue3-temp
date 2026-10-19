@@ -18,6 +18,9 @@
       <el-table-column label="当前值" min-width="200">
         <template #default="{ row }">
           <el-tag v-if="row.loadFailed" type="danger" size="small">读取失败</el-tag>
+          <el-tag v-else-if="row.managedPath" :type="row.stored ? 'success' : 'info'" size="small">
+            {{ row.stored ? '已配置' : '未设置' }}
+          </el-tag>
           <template v-else>
             <span class="remote-config__value">{{ formatConfigValue(row.type, row.value) }}</span>
             <el-tag v-if="!row.stored" type="info" size="small" class="remote-config__tag">
@@ -37,9 +40,18 @@
       <el-table-column label="更新时间" width="170">
         <template #default="{ row }">{{ formatDateTimeFull(row.updatedAt ?? undefined) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="90" fixed="right">
+      <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" :disabled="row.loadFailed" @click="openEditor(row as RemoteConfigRow)">
+          <el-button
+            v-if="row.managedPath"
+            link
+            type="primary"
+            class="remote-config__manage"
+            @click="router.push(row.managedPath)"
+          >
+            前往协议管理
+          </el-button>
+          <el-button v-else link type="primary" :disabled="row.loadFailed" @click="openEditor(row as RemoteConfigRow)">
             编辑
           </el-button>
         </template>
@@ -53,12 +65,14 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import ConfigValueDialog from './components/ConfigValueDialog.vue';
 import { formatConfigValue } from './config-value';
 import { useRemoteConfig, type RemoteConfigRow } from './useRemoteConfig';
 import { REMOTE_CONFIG_TYPE_LABEL, type RemoteConfigType } from '@/constants/remote-config';
 import { formatDateTimeFull } from '@/utils/datetime';
 
+const router = useRouter();
 const { rows, loading, load, save } = useRemoteConfig();
 
 const dialogVisible = ref(false);

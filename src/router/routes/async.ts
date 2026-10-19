@@ -145,6 +145,12 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/monitor/index.vue'),
         meta: { title: '监控告警', roles: [ROLES.ADMIN] },
       },
+      {
+        path: 'agreement',
+        name: 'Agreement',
+        component: () => import('@/views/system/agreement/index.vue'),
+        meta: { title: '协议管理', roles: [ROLES.ADMIN] },
+      },
     ],
   },
   {

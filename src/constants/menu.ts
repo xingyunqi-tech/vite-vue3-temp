@@ -69,6 +69,7 @@ export const DEFAULT_MENU_LIST: MenuItem[] = [
     children: [
       { title: '远程配置', path: '/system/config' },
       { title: '监控告警', path: '/system/monitor' },
+      { title: '协议管理', path: '/system/agreement' },
     ],
   },
 ];

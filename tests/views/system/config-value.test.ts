@@ -30,8 +30,19 @@ describe('配置项登记表', () => {
       'consent.privacyPolicyVersion',
       'consent.userAgreementVersion',
       'consent.aiServiceVersion',
+      'agreement.userAgreement',
+      'agreement.privacyPolicy',
+      'agreement.aiService',
       'alert.thresholds',
     ]);
+  });
+
+  it('协议正文配置项指向协议管理页', () => {
+    const managed = REMOTE_CONFIG_DEFINITIONS.filter(item => item.managedPath).map(item => item.key);
+    expect(managed).toEqual(['agreement.userAgreement', 'agreement.privacyPolicy', 'agreement.aiService']);
+    expect(new Set(REMOTE_CONFIG_DEFINITIONS.map(item => item.managedPath).filter(Boolean))).toEqual(
+      new Set(['/system/agreement']),
+    );
   });
 });
 
