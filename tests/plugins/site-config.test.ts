@@ -50,6 +50,25 @@ describe('validateConfig', () => {
     expect(validateConfig({ watermark: { fontSize: fontSize.min - 1 } }).value.watermark?.fontSize).toBe(fontSize.min);
   });
 
+  it('传入 schema 时按该 schema 校验', () => {
+    const schema = {
+      contact: {
+        type: 'object',
+        title: '联系方式',
+        properties: {
+          phone: { type: 'string', title: '电话', pattern: '^\\d+$', patternMessage: '只能是数字', defaultValue: '' },
+        },
+      },
+    } as const;
+    const { value, issues } = validateConfig({ contact: { phone: 'abc' }, basic: {} }, schema);
+    expect(value).toEqual({ contact: {} });
+    expect(issues).toEqual([
+      { path: 'contact.phone', message: '只能是数字' },
+      { path: 'basic', message: '未知配置分组，已忽略' },
+    ]);
+    expect(validateConfig({ contact: { phone: '123' } }, schema).value).toEqual({ contact: { phone: '123' } });
+  });
+
   it('非法枚举值被剔除', () => {
     const { value } = validateConfig({ theme: { defaultMode: 'rainbow' } });
     expect(value.theme).toEqual({});

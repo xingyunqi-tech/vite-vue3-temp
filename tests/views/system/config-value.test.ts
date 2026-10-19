@@ -11,7 +11,7 @@ const definition = (overrides: Partial<RemoteConfigDefinition>): RemoteConfigDef
 });
 
 describe('配置项登记表', () => {
-  it('列出附录 9.1 的全部配置项且 key 不重复', () => {
+  it('列出通用配置接口可读写的全部配置项且 key 不重复，专用接口管理的 app.profile 不在其中', () => {
     const keys = REMOTE_CONFIG_DEFINITIONS.map(item => item.key);
     expect(new Set(keys).size).toBe(keys.length);
     expect(keys).toEqual([
@@ -35,6 +35,7 @@ describe('配置项登记表', () => {
       'agreement.aiService',
       'alert.thresholds',
     ]);
+    expect(keys).not.toContain('app.profile');
   });
 
   it('协议正文配置项指向协议管理页', () => {

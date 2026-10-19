@@ -25,6 +25,7 @@ import type {
   AdminQuestionReportDetailDto,
   AdminQuestionVersionDto,
   AiUsageDto,
+  AppProfile,
   BatchPublishQuestionsDto,
   BatchPublishQuestionsResultDto,
   CreateErrataDto,
@@ -60,6 +61,7 @@ import type {
   QueuesOverviewDto,
   SetPaperQuestionsDto,
   Subject,
+  UpdateAppProfileDto,
   UpdateExamDto,
   UpdateKnowledgePointDto,
   UpdatePaperDto,
@@ -752,6 +754,23 @@ export const adminGetAiUsage = (
 ) => {
   return customMutator<AiUsageDto>({ url: `/api/v1/admin/ai/usage`, method: 'GET', params }, options);
 };
+/**
+ * @summary 保存小程序站点信息：整体覆盖，未传或空白的字段保存为未配置（null）
+ */
+export const adminUpdateAppProfile = (
+  updateAppProfileDto: UpdateAppProfileDto,
+  options?: SecondParameter<typeof customMutator<AppProfile>>,
+) => {
+  return customMutator<AppProfile>(
+    {
+      url: `/api/v1/admin/app-profile`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: updateAppProfileDto,
+    },
+    options,
+  );
+};
 export type AdminGetExamsResult = NonNullable<Awaited<ReturnType<typeof adminGetExams>>>;
 export type AdminCreateExamResult = NonNullable<Awaited<ReturnType<typeof adminCreateExam>>>;
 export type AdminGetExamResult = NonNullable<Awaited<ReturnType<typeof adminGetExam>>>;
@@ -822,3 +841,4 @@ export type AdminGetQuestionReportResult = NonNullable<Awaited<ReturnType<typeof
 export type AdminUpdateQuestionReportResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestionReport>>>;
 export type AdminRetriggerAccountCleanupResult = NonNullable<Awaited<ReturnType<typeof adminRetriggerAccountCleanup>>>;
 export type AdminGetAiUsageResult = NonNullable<Awaited<ReturnType<typeof adminGetAiUsage>>>;
+export type AdminUpdateAppProfileResult = NonNullable<Awaited<ReturnType<typeof adminUpdateAppProfile>>>;

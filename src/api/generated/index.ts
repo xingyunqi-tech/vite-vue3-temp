@@ -3,6 +3,7 @@ export * from './admin/admin';
 export * from './ai/ai';
 export * from './alipay/alipay';
 export * from './api/api';
+export * from './app-profile/app-profile';
 export * from './auth/auth';
 export * from './config/config';
 export * from './default/default';

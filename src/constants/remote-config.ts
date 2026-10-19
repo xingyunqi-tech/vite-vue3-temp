@@ -15,7 +15,7 @@ export interface RemoteConfigDefinition {
   managedPath?: string;
 }
 
-/** 远程配置项，与后端 config-definitions.ts 登记表一致 */
+/** 远程配置项，与后端 config-definitions.ts 登记表一致；只能经专用接口读写的键（dedicated，如 app.profile）不在此列 */
 export const REMOTE_CONFIG_DEFINITIONS: readonly RemoteConfigDefinition[] = [
   { key: 'ai.enabled', type: 'boolean', defaultValue: true, isPublic: true, description: 'AI 功能总开关' },
   {

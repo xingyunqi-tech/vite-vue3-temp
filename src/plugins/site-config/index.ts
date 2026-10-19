@@ -297,10 +297,11 @@ function validateField(
  *
  * 未在 schema 中声明的分组/字段一律剔除，但会记入 issues 交给 UI 提示——
  * 是「告知后丢弃」而非静默丢弃。
+ *
+ * @param schema 校验所依据的 schema，缺省为站点配置 schema
  */
-export function validateConfig(input: unknown): IValidateResult {
+export function validateConfig(input: unknown, schema: SiteSchema = siteConfigSchema): IValidateResult {
   const issues: IConfigIssue[] = [];
-  const schema: SiteSchema = siteConfigSchema;
 
   if (!isPlainObject(input)) {
     if (input !== undefined) issues.push({ path: '', message: `配置根节点应为对象，实际为${typeName(input)}` });

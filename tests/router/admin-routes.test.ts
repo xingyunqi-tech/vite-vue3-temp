@@ -119,6 +119,20 @@ describe('后台路由与菜单', () => {
     expect(ai.some(child => child.disabled)).toBe(false);
   });
 
+  it('小程序配置页仅管理员可访问，教师仍可访问前端配置', () => {
+    const store = usePermissionStore();
+    const route = store
+      .generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN])
+      .find(item => item.path === '/setting')
+      ?.children?.[0]?.children?.find(child => child.path === 'mini-program');
+    expect(route?.meta?.title).toBe('小程序配置');
+    expect(store.hasAccessibleRoute('/setting/mini-program')).toBe(true);
+
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+    expect(store.hasAccessibleRoute('/setting/mini-program')).toBe(false);
+    expect(store.hasAccessibleRoute('/setting/frontend')).toBe(true);
+  });
+
   it('非管理员看不到任何业务菜单', () => {
     expect(menusFor(ROLES.STUDENT)).toEqual([]);
   });

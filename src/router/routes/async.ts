@@ -184,6 +184,15 @@ export const asyncRoutes: RouteRecordRaw[] = [
               roles: [ROLES.TEACHER, ROLES.ADMIN],
             },
           },
+          {
+            path: 'mini-program',
+            name: 'MiniProgram',
+            component: () => import('@/views/setting/mini-program/index.vue'),
+            meta: {
+              title: '小程序配置',
+              roles: [ROLES.ADMIN],
+            },
+          },
         ],
       },
     ],
