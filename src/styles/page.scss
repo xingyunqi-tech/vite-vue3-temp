@@ -1,4 +1,4 @@
-.content-page {
+.page {
   box-sizing: border-box;
   min-height: 100%;
   padding: 20px;
@@ -20,6 +20,19 @@
     color: var(--aix-colorTextHeading);
     font-size: 18px;
     font-weight: 600;
+  }
+
+  &__subtitle {
+    margin: 0 0 12px;
+    color: var(--aix-colorTextHeading);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &__card {
+    padding: 20px;
+    border-radius: 8px;
+    background: var(--aix-colorBgContainer);
   }
 
   &__actions {

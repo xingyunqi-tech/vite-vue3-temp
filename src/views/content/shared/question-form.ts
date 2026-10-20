@@ -1,3 +1,4 @@
+import { DIFFICULTY_MAX, DIFFICULTY_MIN } from './constants';
 import type {
   AdminQuestionDto,
   CreateQuestionDto,
@@ -326,8 +327,8 @@ export function validateQuestionForm(form: QuestionForm, options: ValidateOption
   if (form.sourceNote.trim().length > CONTENT_LIMITS.sourceNote) {
     errors.push(`来源说明不能超过 ${CONTENT_LIMITS.sourceNote} 字`);
   }
-  if (!Number.isInteger(form.difficulty) || form.difficulty < 1 || form.difficulty > 5) {
-    errors.push('难度须为 1-5');
+  if (!Number.isInteger(form.difficulty) || form.difficulty < DIFFICULTY_MIN || form.difficulty > DIFFICULTY_MAX) {
+    errors.push(`难度须为 ${DIFFICULTY_MIN}-${DIFFICULTY_MAX}`);
   }
 
   if (form.type === 'MATERIAL') {

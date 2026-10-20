@@ -1,7 +1,7 @@
 <template>
-  <div class="ai-usage">
-    <div class="ai-usage__header">
-      <h2 class="ai-usage__title">AI 用量与成本</h2>
+  <div class="page ai-usage">
+    <div class="page__header">
+      <h2 class="page__title">AI 用量与成本</h2>
     </div>
 
     <el-form inline @submit.prevent="handleSearch">
@@ -92,13 +92,13 @@ import {
   formatRate,
   isAfterBusinessToday,
   usageKindLabel,
-  validateUsageRange,
   type UsageDimension,
   type UsageRow,
 } from './usage-stats';
 import { useAiUsage } from './useAiUsage';
 import type { AiUsageTotalDto } from '@/api';
 import dayjs from '@/plugins/dayjs';
+import { validateDateRange } from '@/utils/business-date';
 
 type MetricKey = keyof Omit<UsageRow, 'key'>;
 type DetailKey = keyof AiUsageTotalDto;
@@ -151,7 +151,7 @@ const summary = computed(() => [
 ]);
 
 const handleSearch = () => {
-  const message = validateUsageRange(range.value);
+  const message = validateDateRange(range.value);
   if (message) {
     ElMessage.warning(message);
     return;
@@ -163,26 +163,9 @@ onMounted(handleSearch);
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/page';
+
 .ai-usage {
-  box-sizing: border-box;
-  min-height: 100%;
-  padding: 20px;
-  background: var(--aix-colorBgLayout);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  &__title {
-    margin: 0;
-    color: var(--aix-colorTextHeading);
-    font-size: 18px;
-    font-weight: 600;
-  }
-
   &__range {
     width: 280px;
   }

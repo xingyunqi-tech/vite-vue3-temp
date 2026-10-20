@@ -1,4 +1,3 @@
-import { usePagedList } from '../shared/usePagedList';
 import {
   adminCopyPaper,
   adminCreatePaper,
@@ -8,6 +7,7 @@ import {
   adminPublishPaper,
 } from '@/api';
 import type { AdminGetPapersParams, AdminPaperDto, ContentStatus, CreatePaperDto, Paper, PaperType } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface PaperFilters {
   subjectId: string;

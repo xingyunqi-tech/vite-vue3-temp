@@ -1,7 +1,7 @@
 <template>
-  <div class="remote-config">
-    <div class="remote-config__header">
-      <h2 class="remote-config__title">远程配置</h2>
+  <div class="page remote-config">
+    <div class="page__header">
+      <h2 class="page__title">远程配置</h2>
       <el-button :loading="loading" @click="load">刷新</el-button>
     </div>
 
@@ -101,29 +101,12 @@ onMounted(load);
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/page';
+
 .remote-config {
-  box-sizing: border-box;
-  min-height: 100%;
-  padding: 20px;
-  background: var(--aix-colorBgLayout);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  &__title {
-    margin: 0;
-    color: var(--aix-colorTextHeading);
-    font-size: 18px;
-    font-weight: 600;
-  }
-
   &__key {
     color: var(--aix-colorTextHeading);
-    font-family: Menlo, Consolas, monospace;
+    font-family: var(--aix-fontFamilyCode);
   }
 
   &__desc {

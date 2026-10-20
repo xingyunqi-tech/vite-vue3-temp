@@ -39,6 +39,7 @@
           </el-table>
         </div>
       </template>
+      <el-empty v-else-if="failed" description="试生成失败，可点击「重新生成」再试" :image-size="80" />
     </div>
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">关闭</el-button>
@@ -66,15 +67,23 @@ const emit = defineEmits<{
 
 const draft = ref<PaperDraftDto | null>(null);
 const loading = ref(false);
+const failed = ref(false);
+let requestSeq = 0;
 
 const questionsOf = (sectionIndex: number) =>
   draft.value?.questions.filter(question => question.sectionIndex === sectionIndex) ?? [];
 
 const generate = async () => {
+  const seq = ++requestSeq;
   draft.value = null;
+  failed.value = false;
+  loading.value = false;
   if (!props.rule) return;
   loading.value = true;
-  draft.value = await adminPreviewPaperRule(props.rule.id).catch(() => null);
+  const result = await adminPreviewPaperRule(props.rule.id).catch(() => null);
+  if (seq !== requestSeq) return;
+  draft.value = result;
+  failed.value = result === null;
   loading.value = false;
 };
 </script>

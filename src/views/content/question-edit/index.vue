@@ -1,13 +1,13 @@
 <template>
-  <div v-loading="loading" class="content-page question-edit">
-    <div class="content-page__header">
-      <div class="content-page__actions">
+  <div v-loading="loading" class="page question-edit">
+    <div class="page__header">
+      <div class="page__actions">
         <el-button @click="router.push('/content/questions')">返回</el-button>
-        <h2 class="content-page__title">{{ question || loadFailed ? '编辑题目' : '新建题目' }}</h2>
+        <h2 class="page__title">{{ question || loadFailed ? '编辑题目' : '新建题目' }}</h2>
         <StatusTag v-if="question" :status="question.status" :meta-map="QUESTION_STATUS_META" />
-        <span v-if="question?.currentVersion" class="content-page__muted">当前版本 v{{ question.currentVersion }}</span>
+        <span v-if="question?.currentVersion" class="page__muted">当前版本 v{{ question.currentVersion }}</span>
       </div>
-      <div v-if="!loadFailed" class="content-page__actions">
+      <div v-if="!loadFailed" class="page__actions">
         <el-button v-if="question && question.currentVersion > 0" @click="versionsTarget = question.id">
           版本历史
         </el-button>
@@ -45,7 +45,7 @@
       />
 
       <div class="question-edit__body">
-        <div class="question-edit__form">
+        <div class="page__card question-edit__form">
           <el-form label-width="88px">
             <el-form-item label="科目" required>
               <SubjectCascader v-model="subjectId" :disabled="!!question" :clearable="false" />
@@ -80,11 +80,11 @@
             @versions="versionsTarget = $event.id"
             @errata="router.push(errataCreateLocation($event.id))"
           />
-          <p v-else-if="form.type === 'MATERIAL'" class="content-page__muted">保存材料后可添加小题</p>
+          <p v-else-if="form.type === 'MATERIAL'" class="page__muted">保存材料后可添加小题</p>
         </div>
 
-        <aside class="question-edit__preview">
-          <h3 class="question-edit__preview-title">预览</h3>
+        <aside class="page__card question-edit__preview">
+          <h3 class="page__subtitle">预览</h3>
           <QuestionPreview :question="previewQuestion" :file-urls="fileUrls" />
         </aside>
       </div>
@@ -98,10 +98,8 @@
 import { ElMessage } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { confirmAction, runAction } from '../shared/actions';
 import QuestionPreview, { type PreviewQuestion } from '../shared/components/QuestionPreview.vue';
 import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vue';
-import StatusTag from '../shared/components/StatusTag.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_STATUS_META } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
@@ -110,7 +108,9 @@ import MaterialChildren from './components/MaterialChildren.vue';
 import QuestionFields from './components/QuestionFields.vue';
 import { QuestionValidationError, useQuestionEditor } from './useQuestionEditor';
 import type { AdminQuestionDto } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { confirmAction, runAction } from '@/utils/actions';
 
 const route = useRoute();
 const router = useRouter();
@@ -221,7 +221,7 @@ const handleRemoveChild = async (child: AdminQuestionDto) => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .question-edit {
   &__notice {
@@ -237,9 +237,6 @@ const handleRemoveChild = async (child: AdminQuestionDto) => {
   &__form {
     flex: 1;
     min-width: 0;
-    padding: 20px;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
   }
 
   &__children {
@@ -252,17 +249,7 @@ const handleRemoveChild = async (child: AdminQuestionDto) => {
     flex: none;
     width: 420px;
     max-height: calc(100vh - 160px);
-    padding: 20px;
     overflow: auto;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
-  }
-
-  &__preview-title {
-    margin: 0 0 12px;
-    color: var(--aix-colorTextHeading);
-    font-size: 16px;
-    font-weight: 600;
   }
 }
 </style>

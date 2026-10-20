@@ -1,7 +1,7 @@
 import type { ReportStatus, ReportType } from '../shared/feedback-constants';
-import { usePagedList } from '../shared/usePagedList';
 import { adminGetQuestionReports } from '@/api';
 import type { AdminGetQuestionReportsParams, AdminQuestionReportDto } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface ReportFilters {
   type: ReportType | '';

@@ -4,7 +4,7 @@
 
 <script setup lang="ts" generic="K extends string">
 import { computed } from 'vue';
-import { statusMeta, type StatusMeta } from '../constants';
+import { statusMeta, type StatusMeta } from '@/constants';
 
 interface Props {
   status: string;

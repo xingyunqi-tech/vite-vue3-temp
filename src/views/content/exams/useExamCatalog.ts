@@ -1,5 +1,4 @@
 import { ref } from 'vue';
-import { usePagedList } from '../shared/usePagedList';
 import {
   adminCreateExam,
   adminCreateSubject,
@@ -25,6 +24,7 @@ import type {
   UpdateExamDto,
   UpdateSubjectDto,
 } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface ExamFilters {
   keyword: string;

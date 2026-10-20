@@ -1,17 +1,22 @@
 <template>
-  <div v-loading="loading" class="content-page report-detail">
-    <div class="content-page__header">
-      <div class="content-page__actions">
+  <div v-loading="loading" class="page report-detail">
+    <div class="page__header">
+      <div class="page__actions">
         <el-button @click="router.push('/feedback/reports')">返回</el-button>
-        <h2 class="content-page__title">纠错单 #{{ reportId }}</h2>
+        <h2 class="page__title">纠错单 #{{ reportId }}</h2>
         <StatusTag v-if="report" :status="report.status" :meta-map="REPORT_STATUS_META" />
       </div>
     </div>
 
-    <div v-if="report" class="report-detail__body">
+    <el-result v-if="loadFailed" icon="error" title="纠错单加载失败" sub-title="可能已被删除，或网络异常">
+      <template #extra>
+        <el-button type="primary" @click="reload">重新加载</el-button>
+      </template>
+    </el-result>
+    <div v-else-if="report" class="report-detail__body">
       <div class="report-detail__main">
-        <section class="report-detail__card">
-          <h3 class="report-detail__card-title">用户反馈</h3>
+        <section class="page__card">
+          <h3 class="page__subtitle">用户反馈</h3>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="类型">{{ reportTypeLabel(report.type) }}</el-descriptions-item>
             <el-descriptions-item label="原因">
@@ -26,7 +31,7 @@
             </el-descriptions-item>
             <el-descriptions-item v-if="report.questionId" label="题目版本" :span="2">
               提交时 v{{ report.questionVersion ?? '—' }}
-              <span v-if="question" class="content-page__muted">（当前 v{{ question.currentVersion }}）</span>
+              <span v-if="question" class="page__muted">（当前 v{{ question.currentVersion }}）</span>
             </el-descriptions-item>
             <el-descriptions-item label="联系方式" :span="2">{{ report.contact || '—' }}</el-descriptions-item>
             <el-descriptions-item label="说明" :span="2">
@@ -49,12 +54,12 @@
           </el-descriptions>
         </section>
 
-        <section v-if="report.type === 'ai_content'" class="report-detail__card">
+        <section v-if="report.type === 'ai_content'" class="page__card">
           <div class="report-detail__card-header">
-            <h3 class="report-detail__card-title">被举报的 AI 回答</h3>
-            <div v-if="snapshot" class="content-page__actions">
+            <h3 class="page__subtitle">被举报的 AI 回答</h3>
+            <div v-if="snapshot" class="page__actions">
               <StatusTag :status="snapshot.status" :meta-map="AI_MESSAGE_STATUS_META" />
-              <span class="content-page__muted">生成于 {{ formatDateTimeFull(snapshot.createdAt) }}</span>
+              <span class="page__muted">生成于 {{ formatDateTimeFull(snapshot.createdAt) }}</span>
             </div>
           </div>
           <template v-if="snapshot">
@@ -69,13 +74,13 @@
               class="report-detail__answer"
             />
           </template>
-          <p v-else class="content-page__muted">未保存消息内容</p>
+          <p v-else class="page__muted">未保存消息内容</p>
         </section>
 
-        <section v-if="report.questionId" class="report-detail__card">
+        <section v-if="report.questionId" class="page__card">
           <div class="report-detail__card-header">
-            <h3 class="report-detail__card-title">题目</h3>
-            <div v-if="question" class="content-page__actions">
+            <h3 class="page__subtitle">题目</h3>
+            <div v-if="question" class="page__actions">
               <StatusTag :status="question.status" :meta-map="QUESTION_STATUS_META" />
               <el-button
                 link
@@ -88,14 +93,14 @@
             </div>
           </div>
           <QuestionPreview v-if="question" :question="question" />
-          <p v-else-if="report.question" class="content-page__muted">{{ markdownSummary(report.question.stem) }}</p>
-          <p v-else class="content-page__muted">题目不存在</p>
+          <p v-else-if="report.question" class="page__muted">{{ markdownSummary(report.question.stem) }}</p>
+          <p v-else class="page__muted">题目不存在</p>
         </section>
       </div>
 
       <aside class="report-detail__side">
-        <section class="report-detail__card">
-          <h3 class="report-detail__card-title">处理</h3>
+        <section class="page__card">
+          <h3 class="page__subtitle">处理</h3>
           <el-form label-position="top" @submit.prevent>
             <el-form-item label="状态">
               <el-select v-model="form.status">
@@ -116,17 +121,17 @@
           </el-form>
         </section>
 
-        <section v-if="report.type === 'question_error'" class="report-detail__card">
-          <h3 class="report-detail__card-title">关联勘误</h3>
+        <section v-if="report.type === 'question_error'" class="page__card">
+          <h3 class="page__subtitle">关联勘误</h3>
           <template v-if="report.errata">
             <div class="report-detail__errata">
-              <div class="content-page__actions">
+              <div class="page__actions">
                 <StatusTag :status="report.errata.status" :meta-map="ERRATA_STATUS_META" />
                 <span>v{{ report.errata.fromVersion }} → v{{ report.errata.toVersion }}</span>
-                <span class="content-page__muted">{{ report.errata.answerChanged ? '答案与解析' : '仅解析' }}</span>
+                <span class="page__muted">{{ report.errata.answerChanged ? '答案与解析' : '仅解析' }}</span>
               </div>
               <ErrataProgress :errata="report.errata" />
-              <div class="content-page__actions">
+              <div class="page__actions">
                 <el-button link type="primary" @click="router.push(`/feedback/errata/${report.errata.id}`)">
                   查看进度
                 </el-button>
@@ -159,12 +164,10 @@ import { isAxiosError } from 'axios';
 import { ElMessage } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { confirmAction, runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
 import MarkdownContent from '../shared/components/MarkdownContent.vue';
 import QuestionPreview from '../shared/components/QuestionPreview.vue';
-import StatusTag from '../shared/components/StatusTag.vue';
-import { QUESTION_STATUS_META, statusMeta, toStatusOptions } from '../shared/constants';
+import { QUESTION_STATUS_META } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import {
   AI_MESSAGE_STATUS_META,
@@ -177,6 +180,9 @@ import {
 import { isHttpUrl } from '../shared/utils';
 import { ReportValidationError, useReportDetail } from './useReportDetail';
 import type { Errata } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { statusMeta, toStatusOptions } from '@/constants';
+import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { handleError } from '@/utils/error-handler';
 import { markdownSummary } from '@/utils/markdown';
@@ -201,11 +207,23 @@ const canErrata = computed(
 const errataLabel = (errata: Errata) =>
   `v${errata.fromVersion} → v${errata.toVersion} · ${statusMeta(ERRATA_STATUS_META, errata.status).label} · ${formatDateTimeFull(errata.createdAt)}`;
 
+const loadFailed = ref(false);
+
+const loadById = (id: number) => {
+  if (!Number.isInteger(id) || id <= 0) return;
+  loadFailed.value = false;
+  load(id).catch(() => {
+    if (reportId.value === id) loadFailed.value = true;
+  });
+};
+
+const reload = () => loadById(reportId.value);
+
 watch(
   reportId,
   id => {
     linkTarget.value = '';
-    if (Number.isInteger(id) && id > 0) load(id).catch(() => undefined);
+    loadById(id);
   },
   { immediate: true },
 );
@@ -247,7 +265,7 @@ const startErrata = () => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .report-detail {
   &__body {
@@ -272,28 +290,15 @@ const startErrata = () => {
     width: 380px;
   }
 
-  &__card {
-    padding: 20px;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
-  }
-
   &__card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
 
-    .report-detail__card-title {
+    .page__subtitle {
       margin-bottom: 0;
     }
-  }
-
-  &__card-title {
-    margin: 0 0 12px;
-    color: var(--aix-colorTextHeading);
-    font-size: 16px;
-    font-weight: 600;
   }
 
   &__content {

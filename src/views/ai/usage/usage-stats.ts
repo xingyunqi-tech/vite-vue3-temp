@@ -1,11 +1,8 @@
 import type { AiUsageItemDto, AiUsageTotalDto } from '@/api';
 import dayjs from '@/plugins/dayjs';
+import { businessToday, DATE_FORMAT } from '@/utils/business-date';
 
-const DATE_FORMAT = 'YYYY-MM-DD';
-/** 业务日期按北京时间 */
-const BUSINESS_UTC_OFFSET_MINUTES = 480;
 export const DEFAULT_RANGE_DAYS = 7;
-export const MAX_RANGE_DAYS = 366;
 
 export type UsageRange = [string, string];
 export type UsageDimension = 'date' | 'model' | 'kind';
@@ -23,9 +20,6 @@ export const AI_USAGE_KIND_LABEL: Record<string, string> = {
 
 export const usageKindLabel = (kind: string) => AI_USAGE_KIND_LABEL[kind] ?? kind;
 
-export const businessToday = (now: Date = new Date()) =>
-  dayjs(now).utcOffset(BUSINESS_UTC_OFFSET_MINUTES).format(DATE_FORMAT);
-
 /** 日期（按本地日历日）是否晚于北京时间今天 */
 export const isAfterBusinessToday = (date: Date, now: Date = new Date()) =>
   dayjs(date).format(DATE_FORMAT) > businessToday(now);
@@ -34,13 +28,6 @@ export const isAfterBusinessToday = (date: Date, now: Date = new Date()) =>
 export function defaultUsageRange(now: Date = new Date(), days = DEFAULT_RANGE_DAYS): UsageRange {
   const today = dayjs(businessToday(now));
   return [today.subtract(days - 1, 'day').format(DATE_FORMAT), today.format(DATE_FORMAT)];
-}
-
-export function validateUsageRange([from, to]: UsageRange): string | null {
-  const days = dayjs(to).diff(dayjs(from), 'day');
-  if (days < 0) return '结束日期不能早于开始日期';
-  if (days >= MAX_RANGE_DAYS) return `日期范围不能超过 ${MAX_RANGE_DAYS} 天`;
-  return null;
 }
 
 /** 成本保留 6 位小数，消除浮点累加误差 */

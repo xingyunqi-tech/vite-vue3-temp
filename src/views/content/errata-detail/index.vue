@@ -1,18 +1,23 @@
 <template>
-  <div v-loading="loading" class="content-page errata-detail">
-    <div class="content-page__header">
-      <div class="content-page__actions">
+  <div v-loading="loading" class="page errata-detail">
+    <div class="page__header">
+      <div class="page__actions">
         <el-button @click="router.push('/feedback/errata')">返回</el-button>
-        <h2 class="content-page__title">勘误进度</h2>
+        <h2 class="page__title">勘误进度</h2>
         <StatusTag v-if="errata" :status="errata.status" :meta-map="ERRATA_STATUS_META" />
       </div>
-      <div class="content-page__actions">
+      <div v-if="!loadFailed" class="page__actions">
         <el-button @click="handleRefresh">刷新</el-button>
         <el-button v-if="retryable" type="warning" :loading="retrying" @click="handleRetry">重试</el-button>
       </div>
     </div>
 
-    <template v-if="errata">
+    <el-result v-if="loadFailed" icon="error" title="勘误任务加载失败" sub-title="可能已被删除，或网络异常">
+      <template #extra>
+        <el-button type="primary" @click="reload">重新加载</el-button>
+      </template>
+    </el-result>
+    <template v-else-if="errata">
       <el-alert
         v-if="errata.status === 'FAILED'"
         type="error"
@@ -26,7 +31,7 @@
         type="warning"
         :closable="false"
         show-icon
-        title="任务超过 10 分钟未进展，可点击「重试」从中断处继续"
+        :title="`任务超过 ${ERRATA_STALE_MINUTES} 分钟未进展，可点击「重试」从中断处继续`"
         class="errata-detail__notice"
       />
       <el-alert
@@ -38,7 +43,7 @@
         class="errata-detail__notice"
       />
 
-      <section class="errata-detail__card">
+      <section class="page__card errata-detail__card">
         <div class="errata-detail__progress">
           <span class="errata-detail__label">受影响用户</span>
           <ErrataProgress :errata="errata" class="errata-detail__bar" />
@@ -62,8 +67,8 @@
         </el-descriptions>
       </section>
 
-      <section class="errata-detail__card">
-        <h3 class="errata-detail__title">关联纠错单（{{ reports.length }}）</h3>
+      <section class="page__card errata-detail__card">
+        <h3 class="page__subtitle">关联纠错单（{{ reports.length }}）</h3>
         <el-table :data="reports" row-key="id" empty-text="未关联纠错单" class="data-table">
           <el-table-column label="编号" prop="id" width="80" />
           <el-table-column label="原因" width="110">
@@ -73,7 +78,7 @@
           </el-table-column>
           <el-table-column label="说明" min-width="200">
             <template #default="{ row }">
-              <span class="content-page__stem">{{ row.content || '—' }}</span>
+              <span class="page__stem">{{ row.content || '—' }}</span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="90">
@@ -89,8 +94,8 @@
         </el-table>
       </section>
 
-      <section v-if="question" class="errata-detail__card">
-        <h3 class="errata-detail__title">题目当前版本 v{{ question.currentVersion }}</h3>
+      <section v-if="question" class="page__card errata-detail__card">
+        <h3 class="page__subtitle">题目当前版本 v{{ question.currentVersion }}</h3>
         <QuestionPreview :question="question" />
       </section>
     </template>
@@ -100,13 +105,14 @@
 <script setup lang="ts">
 import { watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { runAction } from '../shared/actions';
 import ErrataProgress from '../shared/components/ErrataProgress.vue';
 import QuestionPreview from '../shared/components/QuestionPreview.vue';
-import StatusTag from '../shared/components/StatusTag.vue';
+import { ERRATA_STALE_MINUTES } from '../shared/errata';
 import { ERRATA_STATUS_META, REPORT_REASON_LABEL, REPORT_STATUS_META } from '../shared/feedback-constants';
 import { useErrataProgress } from './useErrataProgress';
 import type { QuestionReportReason } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 
 const route = useRoute();
@@ -115,14 +121,19 @@ const router = useRouter();
 const { errata, question, reports, loading, active, stale, retryable, load, refresh, retry } = useErrataProgress();
 
 const retrying = ref(false);
+const loadFailed = ref(false);
 
-watch(
-  () => route.params.id,
-  id => {
-    if (typeof id === 'string' && id) load(id).catch(() => undefined);
-  },
-  { immediate: true },
-);
+const loadById = (id: unknown) => {
+  if (typeof id !== 'string' || !id) return;
+  loadFailed.value = false;
+  load(id).catch(() => {
+    if (route.params.id === id) loadFailed.value = true;
+  });
+};
+
+const reload = () => loadById(route.params.id);
+
+watch(() => route.params.id, loadById, { immediate: true });
 
 const openQuestion = () => {
   if (!errata.value) return;
@@ -139,21 +150,15 @@ const handleRetry = async () => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .errata-detail {
   &__notice {
     margin-bottom: 16px;
   }
 
-  &__card {
-    padding: 20px;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
-
-    & + & {
-      margin-top: 16px;
-    }
+  &__card + &__card {
+    margin-top: 16px;
   }
 
   &__progress {
@@ -170,13 +175,6 @@ const handleRetry = async () => {
 
   &__bar {
     flex: 1;
-  }
-
-  &__title {
-    margin: 0 0 12px;
-    color: var(--aix-colorTextHeading);
-    font-size: 16px;
-    font-weight: 600;
   }
 }
 </style>

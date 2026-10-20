@@ -1,16 +1,17 @@
+import { DEFAULT_DURATION_MIN, DIFFICULTY_MAX, DIFFICULTY_MIN, PAPER_SHARED_LIMITS } from '../shared/constants';
 import type { CreatePaperRuleDto, MultiScoringRule, PaperRule, PaperRuleItemDto, QuestionType } from '@/api';
 
 export const RULE_LIMITS = {
   nameLength: 100,
-  maxDurationMin: 600,
+  maxDurationMin: PAPER_SHARED_LIMITS.maxDurationMin,
   items: 20,
-  sectionTitleLength: 50,
+  sectionTitleLength: PAPER_SHARED_LIMITS.sectionTitleLength,
   knowledgePoints: 50,
   countPerItem: 200,
-  minScore: 0.01,
-  maxScore: 999.99,
-  totalQuestions: 500,
-  maxTotalScore: 9999.99,
+  minScore: PAPER_SHARED_LIMITS.minScore,
+  maxScore: PAPER_SHARED_LIMITS.maxScore,
+  totalQuestions: PAPER_SHARED_LIMITS.questions,
+  maxTotalScore: PAPER_SHARED_LIMITS.maxTotalScore,
 } as const;
 
 export interface RuleItemForm {
@@ -36,7 +37,7 @@ export const createRuleItem = (): RuleItemForm => ({
   questionType: 'SINGLE',
   knowledgePointIds: [],
   limitDifficulty: false,
-  difficultyRange: [1, 5],
+  difficultyRange: [DIFFICULTY_MIN, DIFFICULTY_MAX],
   count: 10,
   scorePerQuestion: 1,
 });
@@ -44,7 +45,7 @@ export const createRuleItem = (): RuleItemForm => ({
 export const createPaperRuleForm = (subjectId = ''): PaperRuleForm => ({
   subjectId,
   name: '',
-  durationMin: 120,
+  durationMin: DEFAULT_DURATION_MIN,
   multiScoringRule: 'ALL_OR_NOTHING',
   items: [createRuleItem()],
 });
@@ -60,7 +61,9 @@ export function toPaperRuleForm(rule: PaperRule): PaperRuleForm {
       questionType: item.questionType,
       knowledgePointIds: [...(item.knowledgePointIds ?? [])],
       limitDifficulty: !!item.difficultyRange,
-      difficultyRange: item.difficultyRange ? [item.difficultyRange[0], item.difficultyRange[1]] : [1, 5],
+      difficultyRange: item.difficultyRange
+        ? [item.difficultyRange[0], item.difficultyRange[1]]
+        : [DIFFICULTY_MIN, DIFFICULTY_MAX],
       count: item.count,
       scorePerQuestion: item.scorePerQuestion,
     })),
@@ -116,8 +119,8 @@ export function validatePaperRuleForm(form: PaperRuleForm): string[] {
       errors.push(`${label}知识点不能超过 ${RULE_LIMITS.knowledgePoints} 个`);
     }
     const [min, max] = item.difficultyRange;
-    if (item.limitDifficulty && !(min >= 1 && max <= 5 && min <= max)) {
-      errors.push(`${label}难度范围须在 1-5 之间且下限不大于上限`);
+    if (item.limitDifficulty && !(min >= DIFFICULTY_MIN && max <= DIFFICULTY_MAX && min <= max)) {
+      errors.push(`${label}难度范围须在 ${DIFFICULTY_MIN}-${DIFFICULTY_MAX} 之间且下限不大于上限`);
     }
     if (!Number.isInteger(item.count) || item.count < 1 || item.count > RULE_LIMITS.countPerItem) {
       errors.push(`${label}题数须为 1-${RULE_LIMITS.countPerItem}`);

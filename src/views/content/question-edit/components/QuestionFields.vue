@@ -67,7 +67,7 @@
         />
       </el-form-item>
       <el-form-item label="难度">
-        <el-rate v-model="form.difficulty" :max="5" />
+        <el-rate v-model="form.difficulty" :max="DIFFICULTY_MAX" />
       </el-form-item>
     </template>
 
@@ -106,12 +106,13 @@ import { computed } from 'vue';
 import AnswerEditor from '../../shared/components/AnswerEditor.vue';
 import KnowledgePointSelect from '../../shared/components/KnowledgePointSelect.vue';
 import MarkdownEditor from '../../shared/components/MarkdownEditor.vue';
-import { QUESTION_SOURCE_LABEL, QUESTION_TYPE_LABEL, toOptions } from '../../shared/constants';
+import { DIFFICULTY_MAX, QUESTION_SOURCE_LABEL, QUESTION_TYPE_LABEL } from '../../shared/constants';
 import type { KnowledgeNode } from '../../shared/knowledge-tree';
 import { CONTENT_LIMITS, isChoiceType, selectableQuestionTypes, type QuestionForm } from '../../shared/question-form';
 import AudioUploader from './AudioUploader.vue';
 import OptionsEditor from './OptionsEditor.vue';
 import type { FileType, QuestionType } from '@/api';
+import { toOptions } from '@/constants';
 
 interface Props {
   subjectId: string;

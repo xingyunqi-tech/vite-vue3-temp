@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   adminGetDailyQuestionSets,
   adminGetQuestion,
+  adminGetQuestionVersions,
   adminGetSubjectKnowledgePoints,
   adminPreviewPaperRule,
   type AdminQuestionDto,
@@ -14,11 +15,13 @@ import PaperRuleDialog from '@/views/content/paper-rules/components/PaperRuleDia
 import PaperRulePreviewDialog from '@/views/content/paper-rules/components/PaperRulePreviewDialog.vue';
 import KnowledgePointSelect from '@/views/content/shared/components/KnowledgePointSelect.vue';
 import QuestionPreviewDialog from '@/views/content/shared/components/QuestionPreviewDialog.vue';
+import QuestionVersionDrawer from '@/views/content/shared/components/QuestionVersionDrawer.vue';
 import { invalidateKnowledgeTree } from '@/views/content/shared/knowledge-tree-cache';
 
 vi.mock('@/api', () => ({
   adminGetDailyQuestionSets: vi.fn(),
   adminGetQuestion: vi.fn(),
+  adminGetQuestionVersions: vi.fn(),
   adminGetSubjectKnowledgePoints: vi.fn(),
   adminPreviewPaperRule: vi.fn(),
   adminRegenerateDailyQuestionSet: vi.fn(),
@@ -262,6 +265,35 @@ describe('QuestionPreviewDialog', () => {
 
     expect(document.body.textContent).toContain('第二题题干');
     expect(document.body.textContent).not.toContain('第一题题干');
+    wrapper.unmount();
+  });
+});
+
+describe('加载失败的提示', () => {
+  it('题目预览加载失败时提示并可重新加载', async () => {
+    vi.mocked(adminGetQuestion).mockRejectedValueOnce(new Error('network'));
+    const wrapper = mount(QuestionPreviewDialog, {
+      props: { modelValue: false, questionId: 'a' },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('题目加载失败');
+    wrapper.unmount();
+  });
+
+  it('版本历史加载失败时提示加载失败而不是暂无版本', async () => {
+    vi.mocked(adminGetQuestionVersions).mockRejectedValueOnce(new Error('network'));
+    const wrapper = mount(QuestionVersionDrawer, {
+      props: { modelValue: false, questionId: 'a' },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('版本历史加载失败');
+    expect(document.body.textContent).not.toContain('尚未发布');
     wrapper.unmount();
   });
 });

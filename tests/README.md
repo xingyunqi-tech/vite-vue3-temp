@@ -198,8 +198,8 @@ it('格式化完整日期时间', () => {
   expect(formatDate('2024-01-15 13:45:30', 'YYYY-MM-DD HH:mm:ss')).toBe('2024-01-15 13:45:30');
 });
 
-it('输入为空时返回 -', () => {
-  expect(formatDateShort(undefined)).toBe('-');
+it('输入为空时返回 —', () => {
+  expect(formatDateShort(undefined)).toBe('—');
 });
 ```
 

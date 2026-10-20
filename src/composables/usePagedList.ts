@@ -1,5 +1,5 @@
 import { reactive, ref, type Ref, type UnwrapRef } from 'vue';
-import { DEFAULT_PAGE_SIZE } from './constants';
+import { DEFAULT_PAGE_SIZE } from '@/constants';
 
 export interface PageData<T> {
   list: T[];

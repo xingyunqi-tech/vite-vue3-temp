@@ -1,27 +1,27 @@
 <template>
-  <div class="content-page">
-    <section class="content-page__section">
-      <div class="content-page__header">
-        <h2 class="content-page__title">考试</h2>
+  <div class="page">
+    <section class="page__section">
+      <div class="page__header">
+        <h2 class="page__title">考试</h2>
         <el-button type="primary" @click="openEditor(null)">新建考试</el-button>
       </div>
-      <el-form :model="filters" inline @submit.prevent="search">
+      <el-form :model="filters" inline @submit.prevent="handleSearch">
         <el-form-item label="关键字">
           <el-input v-model="filters.keyword" placeholder="考试名称" clearable maxlength="50" />
         </el-form-item>
         <el-form-item label="类别">
-          <el-select v-model="filters.category" placeholder="全部" clearable class="content-page__select">
+          <el-select v-model="filters.category" placeholder="全部" clearable class="page__select">
             <el-option v-for="item in categoryOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="filters.status" placeholder="全部" clearable class="content-page__select">
+          <el-select v-model="filters.status" placeholder="全部" clearable class="page__select">
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" native-type="submit" :loading="loading">查询</el-button>
-          <el-button @click="reset">重置</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
 
@@ -59,7 +59,7 @@
                 :loading="isActing(row.id)"
                 @click="handlePublish(row as Exam)"
               >
-                上架
+                发布
               </el-button>
               <el-button
                 v-if="canOffline(row.status)"
@@ -90,13 +90,13 @@
         :total="total"
         :page-sizes="PAGE_SIZES"
         layout="total, sizes, prev, pager, next"
-        class="content-page__pagination"
+        class="page__pagination"
         @update:current-page="changePage"
         @update:page-size="changeSize"
       />
     </section>
 
-    <section class="content-page__section">
+    <section class="page__section">
       <SubjectPanel :exam="selectedExam" />
     </section>
 
@@ -106,13 +106,15 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { confirmAction, runAction, useRowAction } from '../shared/actions';
-import StatusTag from '../shared/components/StatusTag.vue';
-import { CONTENT_STATUS_META, EXAM_CATEGORY_LABEL, PAGE_SIZES, toOptions, toStatusOptions } from '../shared/constants';
+import { CONTENT_STATUS_META, EXAM_CATEGORY_LABEL } from '../shared/constants';
 import ExamFormDialog from './components/ExamFormDialog.vue';
 import SubjectPanel from './components/SubjectPanel.vue';
 import { canDelete, canOffline, canPublish, useExamList } from './useExamCatalog';
 import type { CreateExamDto, Exam, ExamCategory } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { useRowAction } from '@/composables/useRowAction';
+import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 
 const categoryOptions = toOptions(EXAM_CATEGORY_LABEL);
@@ -162,7 +164,7 @@ const handleSubmit = async (dto: CreateExamDto) => {
 
 const { isActing, run: runRowAction } = useRowAction();
 
-const handlePublish = (exam: Exam) => runRowAction(exam.id, () => publish(exam), '已上架');
+const handlePublish = (exam: Exam) => runRowAction(exam.id, () => publish(exam), '已发布');
 
 const handleOffline = async (exam: Exam) => {
   if (!(await confirmAction(`下架考试「${exam.name}」？用户将看不到该考试，历史记录保留`, '下架考试'))) return;
@@ -174,11 +176,14 @@ const handleRemove = async (exam: Exam) => {
   await runRowAction(exam.id, () => remove(exam), '已删除');
 };
 
+const handleSearch = () => search().catch(() => undefined);
+const handleReset = () => reset().catch(() => undefined);
+
 onMounted(() => {
   load().catch(() => undefined);
 });
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 </style>

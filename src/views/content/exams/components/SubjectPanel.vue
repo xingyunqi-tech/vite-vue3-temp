@@ -3,7 +3,7 @@
     <div class="subject-panel__header">
       <h3 class="subject-panel__title">{{ exam ? `「${exam.name}」的科目` : '科目' }}</h3>
       <div>
-        <el-button :disabled="!exam" :loading="loading" @click="load()">刷新</el-button>
+        <el-button :disabled="!exam" :loading="loading" @click="handleRefresh">刷新</el-button>
         <el-button type="primary" :disabled="!exam" @click="openEditor(null)">新建科目</el-button>
       </div>
     </div>
@@ -30,7 +30,7 @@
             :loading="isActing(row.id)"
             @click="handlePublish(row as Subject)"
           >
-            上架
+            发布
           </el-button>
           <el-button
             v-if="canOffline(row.status)"
@@ -61,13 +61,14 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { confirmAction, runAction, useRowAction } from '../../shared/actions';
-import StatusTag from '../../shared/components/StatusTag.vue';
 import { CONTENT_STATUS_META } from '../../shared/constants';
 import { canDelete, canOffline, canPublish, useSubjectList } from '../useExamCatalog';
 import KnowledgePointDrawer from './KnowledgePointDrawer.vue';
 import SubjectFormDialog from './SubjectFormDialog.vue';
 import type { Exam, Subject, UpdateSubjectDto } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { useRowAction } from '@/composables/useRowAction';
+import { confirmAction, runAction } from '@/utils/actions';
 
 interface Props {
   exam: Exam | null;
@@ -101,6 +102,8 @@ const openKnowledge = (subject: Subject) => {
   knowledgeVisible.value = true;
 };
 
+const handleRefresh = () => load().catch(() => undefined);
+
 const handleSubmit = async (dto: Required<UpdateSubjectDto>) => {
   saving.value = true;
   try {
@@ -112,7 +115,7 @@ const handleSubmit = async (dto: Required<UpdateSubjectDto>) => {
 
 const { isActing, run: runRowAction } = useRowAction();
 
-const handlePublish = (subject: Subject) => runRowAction(subject.id, () => publish(subject), '已上架');
+const handlePublish = (subject: Subject) => runRowAction(subject.id, () => publish(subject), '已发布');
 
 const handleOffline = async (subject: Subject) => {
   if (!(await confirmAction(`下架科目「${subject.name}」？用户将看不到该科目，历史记录保留`, '下架科目'))) return;

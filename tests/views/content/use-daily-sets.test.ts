@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { adminGetDailyQuestionSets, adminRegenerateDailyQuestionSet, type AdminDailyQuestionSetDto } from '@/api';
-import {
-  businessToday,
-  canRegenerate,
-  defaultDateRange,
-  useDailySets,
-  validateDateRange,
-} from '@/views/content/daily/useDailySets';
+import { canRegenerate, defaultDateRange, useDailySets } from '@/views/content/daily/useDailySets';
 
 vi.mock('@/api', () => ({
   adminGetDailyQuestionSets: vi.fn(),
@@ -28,19 +22,8 @@ beforeEach(() => {
 });
 
 describe('每日一练日期', () => {
-  it('业务日期按北京时间', () => {
-    expect(businessToday(new Date('2026-10-17T16:30:00.000Z'))).toBe('2026-10-18');
-    expect(businessToday(new Date('2026-10-17T15:59:00.000Z'))).toBe('2026-10-17');
-  });
-
   it('默认查询最近 7 天到明天', () => {
     expect(defaultDateRange(new Date('2026-10-17T04:00:00.000Z'))).toEqual(['2026-10-11', '2026-10-18']);
-  });
-
-  it('日期范围不能倒置且不超过 366 天', () => {
-    expect(validateDateRange(['2026-10-10', '2026-10-01'])).toBe('结束日期不能早于开始日期');
-    expect(validateDateRange(['2026-01-01', '2027-01-02'])).toBe('日期范围不能超过 366 天');
-    expect(validateDateRange(['2026-01-01', '2026-12-31'])).toBeNull();
   });
 
   it('当日及以后可重新生成', () => {

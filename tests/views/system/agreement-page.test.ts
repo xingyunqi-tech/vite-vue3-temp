@@ -180,7 +180,7 @@ describe('协议管理页', () => {
     await wrapper.find('.agreement-panel__preview').trigger('click');
     await flushPromises();
 
-    const preview = document.body.querySelector('.agreement-preview');
+    const preview = document.body.querySelector('.agreement-preview__body');
     expect(preview?.innerHTML).toBe('<h2>预览标题</h2>');
     wrapper.unmount();
   });

@@ -4,6 +4,7 @@
     :title="title"
     width="440px"
     destroy-on-close
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
     @open="reset"
   >
@@ -15,7 +16,7 @@
         <el-input v-model="form.name" maxlength="50" show-word-limit />
       </el-form-item>
       <el-form-item label="排序" prop="sort">
-        <el-input-number v-model="form.sort" :min="0" :max="100000" controls-position="right" />
+        <el-input-number v-model="form.sort" :min="0" :max="MAX_SORT" controls-position="right" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -28,6 +29,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus';
 import { reactive, ref } from 'vue';
+import { MAX_SORT } from '../../shared/constants';
 import type { KnowledgePointDraft } from '../useKnowledgeTree';
 
 interface Props {

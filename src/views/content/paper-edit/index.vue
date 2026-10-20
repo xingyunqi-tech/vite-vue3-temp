@@ -1,12 +1,12 @@
 <template>
-  <div v-loading="loading" class="content-page paper-edit">
-    <div class="content-page__header">
-      <div class="content-page__actions">
+  <div v-loading="loading" class="page paper-edit">
+    <div class="page__header">
+      <div class="page__actions">
         <el-button @click="router.push('/content/papers')">返回</el-button>
-        <h2 class="content-page__title">{{ paper?.title || '试卷' }}</h2>
+        <h2 class="page__title">{{ paper?.title || '试卷' }}</h2>
         <StatusTag v-if="paper" :status="paper.status" :meta-map="CONTENT_STATUS_META" />
       </div>
-      <div v-if="paper" class="content-page__actions">
+      <div v-if="paper" class="page__actions">
         <el-button type="primary" :loading="saving && !acting" :disabled="!dirty || busy" @click="handleSave">
           保存
         </el-button>
@@ -59,8 +59,8 @@
     />
 
     <template v-if="paper">
-      <section class="paper-edit__panel paper-edit__block">
-        <h3 class="paper-edit__subtitle">基本信息</h3>
+      <section class="page__card paper-edit__block">
+        <h3 class="page__subtitle">基本信息</h3>
         <el-form
           ref="basicFormRef"
           :model="basic"
@@ -74,10 +74,10 @@
       </section>
 
       <section class="paper-edit__block">
-        <div class="content-page__header">
-          <h3 class="paper-edit__subtitle">
+        <div class="page__header">
+          <h3 class="page__subtitle">
             题目
-            <span class="content-page__muted">
+            <span class="page__muted">
               共 {{ summary.questionCount }} 题 · 总分 {{ summary.totalScore }} · 客观题 {{ summary.objectiveScore }}
             </span>
           </h3>
@@ -119,8 +119,6 @@
 import { ElMessage, type FormInstance } from 'element-plus';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { confirmAction, runAction } from '../shared/actions';
-import StatusTag from '../shared/components/StatusTag.vue';
 import { CONTENT_STATUS_META } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import PaperBasicFields from './components/PaperBasicFields.vue';
@@ -130,7 +128,9 @@ import { paperBasicRules } from './paper-basic';
 import { setMaterialScore, type PaperItem, type PaperItemChild } from './paper-items';
 import { PaperValidationError, usePaperEditor } from './usePaperEditor';
 import type { AdminQuestionDto, QuestionType } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { confirmAction, runAction } from '@/utils/actions';
 
 const route = useRoute();
 const router = useRouter();
@@ -270,24 +270,11 @@ const handleRemove = async () => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .paper-edit {
   &__block {
     margin-bottom: 20px;
-  }
-
-  &__panel {
-    padding: 20px;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
-  }
-
-  &__subtitle {
-    margin: 0 0 12px;
-    color: var(--aix-colorTextHeading);
-    font-size: 16px;
-    font-weight: 600;
   }
 
   &__basic {

@@ -1,21 +1,21 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">试卷</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">试卷</h2>
       <el-button type="primary" @click="createVisible = true">新建试卷</el-button>
     </div>
 
-    <el-form :model="filters" inline @submit.prevent="search">
+    <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="科目">
         <SubjectCascader v-model="filters.subjectId" :options="subjectOptions" />
       </el-form-item>
       <el-form-item label="类型">
-        <el-select v-model="filters.type" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.type" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="filters.status" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.status" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
@@ -24,7 +24,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" native-type="submit" :loading="loading">查询</el-button>
-        <el-button @click="reset">重置</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -75,7 +75,7 @@
       :total="total"
       :page-sizes="PAGE_SIZES"
       layout="total, sizes, prev, pager, next"
-      class="content-page__pagination"
+      class="page__pagination"
       @update:current-page="changePage"
       @update:page-size="changeSize"
     />
@@ -93,14 +93,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { confirmAction, runAction } from '../shared/actions';
-import StatusTag from '../shared/components/StatusTag.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
-import { CONTENT_STATUS_META, PAGE_SIZES, PAPER_TYPE_LABEL, toOptions, toStatusOptions } from '../shared/constants';
+import { CONTENT_STATUS_META, PAPER_TYPE_LABEL } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import PaperCreateDialog from './components/PaperCreateDialog.vue';
 import { usePaperList } from './usePaperList';
 import type { CreatePaperDto, Paper, PaperType } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { confirmAction, runAction } from '@/utils/actions';
 
 const router = useRouter();
 const typeOptions = toOptions(PAPER_TYPE_LABEL);
@@ -162,6 +163,9 @@ const handleRemove = async (paper: Paper) => {
   await runAction(() => remove(paper), '已删除');
 };
 
+const handleSearch = () => search().catch(() => undefined);
+const handleReset = () => reset().catch(() => undefined);
+
 onMounted(() => {
   loadSubjects().catch(() => undefined);
   load().catch(() => undefined);
@@ -169,5 +173,5 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 </style>

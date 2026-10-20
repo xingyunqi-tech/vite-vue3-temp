@@ -19,7 +19,12 @@
       />
     </el-form-item>
     <el-form-item label="时长（分钟）" prop="durationMin">
-      <el-input-number v-model="model.durationMin" :min="1" :max="MAX_DURATION" controls-position="right" />
+      <el-input-number
+        v-model="model.durationMin"
+        :min="1"
+        :max="PAPER_SHARED_LIMITS.maxDurationMin"
+        controls-position="right"
+      />
     </el-form-item>
     <el-form-item label="多选判分" prop="multiScoringRule">
       <el-radio-group v-model="model.multiScoringRule" :disabled="lockDraftOnly">
@@ -33,7 +38,12 @@
 </template>
 
 <script setup lang="ts">
-import { CATALOG_PAPER_TYPES, MULTI_SCORING_RULE_LABEL, PAPER_TYPE_LABEL } from '../../shared/constants';
+import {
+  CATALOG_PAPER_TYPES,
+  MULTI_SCORING_RULE_LABEL,
+  PAPER_SHARED_LIMITS,
+  PAPER_TYPE_LABEL,
+} from '../../shared/constants';
 import type { PaperBasicForm } from '../paper-basic';
 
 interface Props {
@@ -47,5 +57,4 @@ const model = defineModel<PaperBasicForm>({ required: true });
 const TITLE_LENGTH = 100;
 const MIN_YEAR = 1949;
 const MAX_YEAR = 2100;
-const MAX_DURATION = 600;
 </script>

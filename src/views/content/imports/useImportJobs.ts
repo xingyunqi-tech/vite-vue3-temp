@@ -1,9 +1,9 @@
 import { watch } from 'vue';
-import { saveBlob } from '../shared/actions';
-import { usePagedList } from '../shared/usePagedList';
-import { usePolling } from '../shared/usePolling';
 import { adminCreateImport, adminDownloadImportErrors, adminGetImports, uploadContentFile } from '@/api';
 import type { ImportJob, ImportJobStatus } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
+import { usePolling } from '@/composables/usePolling';
+import { saveBlob } from '@/utils/actions';
 
 export const IMPORT_POLL_INTERVAL = 3000;
 export const IMPORT_ACCEPT = '.zip,.xlsx,.json';

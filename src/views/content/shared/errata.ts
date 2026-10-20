@@ -2,7 +2,8 @@ import type { RouteLocationRaw } from 'vue-router';
 import type { AdminQuestionDto, Errata } from '@/api';
 
 export const ERRATA_POLL_INTERVAL = 3000;
-export const ERRATA_STALE_MS = 10 * 60_000;
+export const ERRATA_STALE_MINUTES = 10;
+export const ERRATA_STALE_MS = ERRATA_STALE_MINUTES * 60_000;
 export const ERRATA_STALE_TOLERANCE_MS = 60_000;
 
 export const isErrataActive = (errata: Pick<Errata, 'status'>) =>

@@ -1,26 +1,26 @@
 <template>
-  <div class="content-page">
-    <section class="content-page__section">
-      <div class="content-page__header">
-        <h2 class="content-page__title">批量导入</h2>
+  <div class="page">
+    <section class="page__section">
+      <div class="page__header">
+        <h2 class="page__title">批量导入</h2>
       </div>
       <ImportUploadCard ref="uploadCard" :submitting="submitting" @submit="handleSubmit" />
     </section>
 
-    <section class="content-page__section">
-      <div class="content-page__header">
-        <h2 class="content-page__title">导入任务</h2>
-        <div class="content-page__actions">
+    <section class="page__section">
+      <div class="page__header">
+        <h2 class="page__title">导入任务</h2>
+        <div class="page__actions">
           <el-select
             v-model="filters.status"
             placeholder="全部状态"
             clearable
-            class="content-page__select"
-            @change="search"
+            class="page__select"
+            @change="handleSearch"
           >
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
-          <el-button :loading="loading" @click="load()">刷新</el-button>
+          <el-button :loading="loading" @click="handleRefresh">刷新</el-button>
         </div>
       </div>
 
@@ -59,9 +59,7 @@
         <el-table-column label="说明" min-width="160">
           <template #default="{ row }">
             <span v-if="row.failureReason" class="import-page__failed">{{ row.failureReason }}</span>
-            <span v-else-if="row.finishedAt" class="content-page__muted">
-              完成于 {{ formatDateTimeFull(row.finishedAt) }}
-            </span>
+            <span v-else-if="row.finishedAt" class="page__muted">完成于 {{ formatDateTimeFull(row.finishedAt) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="130" fixed="right">
@@ -75,7 +73,7 @@
             >
               下载错误报告
             </el-button>
-            <span v-else class="content-page__muted">—</span>
+            <span v-else class="page__muted">—</span>
           </template>
         </el-table-column>
       </el-table>
@@ -86,7 +84,7 @@
         :total="total"
         :page-sizes="PAGE_SIZES"
         layout="total, sizes, prev, pager, next"
-        class="content-page__pagination"
+        class="page__pagination"
         @update:current-page="changePage"
         @update:page-size="changeSize"
       />
@@ -96,12 +94,13 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { runAction } from '../shared/actions';
-import StatusTag from '../shared/components/StatusTag.vue';
-import { IMPORT_STATUS_META, PAGE_SIZES, toStatusOptions } from '../shared/constants';
+import { IMPORT_STATUS_META } from '../shared/constants';
 import ImportUploadCard from './components/ImportUploadCard.vue';
 import { hasErrorReport, jobProgress, useImportJobs } from './useImportJobs';
 import type { ImportJob } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { PAGE_SIZES, toStatusOptions } from '@/constants';
+import { runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 
 const statusOptions = toStatusOptions(IMPORT_STATUS_META);
@@ -124,13 +123,16 @@ const handleDownload = async (job: ImportJob) => {
   downloadingId.value = '';
 };
 
+const handleSearch = () => search().catch(() => undefined);
+const handleRefresh = () => load().catch(() => undefined);
+
 onMounted(() => {
   load().catch(() => undefined);
 });
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .import-page {
   &__succeeded {

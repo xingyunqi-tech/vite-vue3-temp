@@ -7,7 +7,7 @@
     @update:model-value="emit('update:modelValue', $event)"
     @open="handleOpen"
   >
-    <el-form :model="filters" inline @submit.prevent="search">
+    <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="题型">
         <el-select v-model="filters.type" placeholder="全部" clearable class="picker__select">
           <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
@@ -31,6 +31,7 @@
       :data="list"
       row-key="id"
       max-height="420"
+      class="data-table"
       @selection-change="handleSelection"
     >
       <el-table-column
@@ -65,7 +66,14 @@
     <template #footer>
       <span class="picker__score">
         每题分值
-        <el-input-number v-model="score" :min="0.01" :max="999.99" :precision="2" :step="0.5" size="small" />
+        <el-input-number
+          v-model="score"
+          :min="PAPER_SHARED_LIMITS.minScore"
+          :max="PAPER_SHARED_LIMITS.maxScore"
+          :precision="2"
+          :step="0.5"
+          size="small"
+        />
       </span>
       <el-button @click="emit('update:modelValue', false)">取消</el-button>
       <el-button type="primary" :disabled="selected.length === 0" :loading="confirming" @click="confirm">
@@ -79,11 +87,12 @@
 import type { TableInstance } from 'element-plus';
 import { computed, ref } from 'vue';
 import KnowledgePointSelect from '../../shared/components/KnowledgePointSelect.vue';
-import { QUESTION_TYPE_LABEL, toOptions } from '../../shared/constants';
-import { usePagedList } from '../../shared/usePagedList';
+import { PAPER_SHARED_LIMITS, QUESTION_TYPE_LABEL } from '../../shared/constants';
 import { DEFAULT_SCORE } from '../paper-items';
 import { adminGetQuestion, adminGetQuestions } from '@/api';
 import type { AdminQuestionDto, QuestionType } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
+import { toOptions } from '@/constants';
 import { markdownSummary } from '@/utils/markdown';
 
 interface Props {
@@ -140,6 +149,8 @@ const knowledgeModel = computed({
   },
 });
 
+const handleSearch = () => search().catch(() => undefined);
+
 const handleOpen = () => {
   selected.value = [];
   tableRef.value?.clearSelection();
@@ -168,7 +179,7 @@ const confirm = async () => {
 <style scoped lang="scss">
 .picker {
   &__select {
-    width: 130px;
+    width: 140px;
   }
 
   &__knowledge {

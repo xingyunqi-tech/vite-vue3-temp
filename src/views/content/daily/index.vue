@@ -1,7 +1,7 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">每日一练</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">每日一练</h2>
     </div>
 
     <el-form inline @submit.prevent="search">
@@ -40,7 +40,7 @@
         </el-button>
       </el-form-item>
     </el-form>
-    <p class="content-page__muted daily-page__hint">
+    <p class="page__muted daily-page__hint">
       每天 00:05（北京时间）自动为已发布科目生成；当日及以后的题组在无人作答时可重新生成
     </p>
 
@@ -55,7 +55,7 @@
               class="daily-page__question"
             >
               <el-tag size="small" type="info">{{ QUESTION_TYPE_LABEL[question.type] }}</el-tag>
-              <span v-if="question.parentId" class="content-page__muted">材料小题</span>
+              <span v-if="question.parentId" class="page__muted">材料小题</span>
               <span>{{ markdownSummary(question.stem, 100) }}</span>
             </li>
           </ol>
@@ -79,7 +79,7 @@
           >
             重新生成
           </el-button>
-          <span v-else class="content-page__muted">已过期</span>
+          <span v-else class="page__muted">已过期</span>
         </template>
       </el-table-column>
     </el-table>
@@ -89,13 +89,14 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { onMounted, ref, watch } from 'vue';
-import { confirmAction, runAction } from '../shared/actions';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_TYPE_LABEL } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
-import { businessToday, canRegenerate, defaultDateRange, useDailySets, validateDateRange } from './useDailySets';
+import { canRegenerate, defaultDateRange, useDailySets } from './useDailySets';
 import type { AdminDailyQuestionSetDto } from '@/api';
 import dayjs from '@/plugins/dayjs';
+import { confirmAction, runAction } from '@/utils/actions';
+import { businessToday, validateDateRange } from '@/utils/business-date';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
@@ -118,7 +119,7 @@ const search = async () => {
   if (!subjectId.value) return;
   const error = validateDateRange(range.value);
   if (error) {
-    ElMessage.error(error);
+    ElMessage.warning(error);
     return;
   }
   const target = subjectId.value;
@@ -149,7 +150,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .daily-page {
   &__range {

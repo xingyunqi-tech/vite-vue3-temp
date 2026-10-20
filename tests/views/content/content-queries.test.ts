@@ -123,13 +123,13 @@ describe('纠错与举报查询参数', () => {
 });
 
 describe('状态操作条件', () => {
-  it('考试与科目：草稿或已下架可上架，已发布可下架，只有草稿可删除', () => {
+  it('考试与科目：草稿或已下架可发布，已发布可下架，只有草稿可删除', () => {
     expect([canPublish('DRAFT'), canPublish('OFFLINE'), canPublish('PUBLISHED')]).toEqual([true, true, false]);
     expect([canOffline('PUBLISHED'), canOffline('DRAFT')]).toEqual([true, false]);
     expect([canDelete('DRAFT'), canDelete('OFFLINE')]).toEqual([true, false]);
   });
 
-  it('题目：只有从未发布的草稿可删除，已下架可重新上架', () => {
+  it('题目：只有从未发布的草稿可删除，已下架可重新发布', () => {
     const question = (status: AdminQuestionDto['status'], currentVersion: number) =>
       ({ status, currentVersion }) as AdminQuestionDto;
 

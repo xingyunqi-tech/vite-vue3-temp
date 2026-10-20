@@ -4,6 +4,7 @@
     :title="subject ? '编辑科目' : '新建科目'"
     width="480px"
     destroy-on-close
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
     @open="reset"
   >
@@ -12,7 +13,7 @@
         <el-input v-model="form.name" maxlength="50" show-word-limit placeholder="如：行测" />
       </el-form-item>
       <el-form-item label="排序" prop="sort">
-        <el-input-number v-model="form.sort" :min="0" :max="100000" controls-position="right" />
+        <el-input-number v-model="form.sort" :min="0" :max="MAX_SORT" controls-position="right" />
       </el-form-item>
       <el-form-item label="含主观题" prop="hasSubjective">
         <el-switch v-model="form.hasSubjective" />
@@ -28,6 +29,7 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus';
 import { reactive, ref } from 'vue';
+import { MAX_SORT } from '../../shared/constants';
 import type { Subject, UpdateSubjectDto } from '@/api';
 
 interface Props {

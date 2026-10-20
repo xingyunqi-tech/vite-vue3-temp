@@ -7,14 +7,15 @@
     @open="load"
   >
     <div v-loading="loading" class="version-drawer">
-      <el-empty v-if="!loading && versions.length === 0" description="尚未发布，暂无版本" :image-size="80" />
+      <el-empty v-if="!loading && failed" description="版本历史加载失败" :image-size="80">
+        <el-button type="primary" @click="load">重新加载</el-button>
+      </el-empty>
+      <el-empty v-else-if="!loading && versions.length === 0" description="尚未发布，暂无版本" :image-size="80" />
       <el-collapse v-else v-model="expanded">
         <el-collapse-item v-for="version in versions" :key="version.id" :name="version.id">
           <template #title>
             <span class="version-drawer__title">v{{ version.version }}</span>
-            <el-tag size="small" :type="CHANGE_TYPE_META[version.changeType].tag">
-              {{ CHANGE_TYPE_META[version.changeType].label }}
-            </el-tag>
+            <StatusTag :status="version.changeType" :meta-map="CHANGE_TYPE_META" />
             <span v-if="version.materialVersion !== null" class="version-drawer__muted">
               材料 v{{ version.materialVersion }}
             </span>
@@ -29,9 +30,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { StatusMeta } from '../constants';
 import QuestionPreview from './QuestionPreview.vue';
-import { adminGetQuestionVersions, type QuestionChangeType, type QuestionVersion } from '@/api';
+import { adminGetQuestionVersions, type AdminQuestionVersionDto, type QuestionChangeType } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import type { StatusMeta } from '@/constants';
 import { formatDateTimeFull } from '@/utils/datetime';
 
 interface Props {
@@ -51,15 +53,22 @@ const CHANGE_TYPE_META: Record<QuestionChangeType, StatusMeta> = {
   ERRATA: { label: '勘误', tag: 'warning' },
 };
 
-const versions = ref<QuestionVersion[]>([]);
+const versions = ref<AdminQuestionVersionDto[]>([]);
 const expanded = ref<string[]>([]);
 const loading = ref(false);
+const failed = ref(false);
+let requestSeq = 0;
 
 const load = async () => {
+  const seq = ++requestSeq;
   versions.value = [];
+  failed.value = false;
+  loading.value = false;
   if (!props.questionId) return;
   loading.value = true;
-  const result = await adminGetQuestionVersions(props.questionId, { disableDedup: true }).catch(() => []);
+  const result = await adminGetQuestionVersions(props.questionId, { disableDedup: true }).catch(() => null);
+  if (seq !== requestSeq) return;
+  failed.value = result === null;
   versions.value = [...(result ?? [])].sort((a, b) => b.version - a.version);
   expanded.value = versions.value.slice(0, 1).map(version => version.id);
   loading.value = false;

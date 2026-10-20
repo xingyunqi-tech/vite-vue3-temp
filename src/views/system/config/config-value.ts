@@ -1,6 +1,5 @@
+import { EMPTY_TEXT } from '@/constants';
 import type { RemoteConfigDefinition, RemoteConfigType } from '@/constants/remote-config';
-
-export const EMPTY_TEXT = '—';
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

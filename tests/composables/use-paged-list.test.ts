@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { usePagedList } from '@/views/content/shared/usePagedList';
+import { usePagedList } from '@/composables/usePagedList';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

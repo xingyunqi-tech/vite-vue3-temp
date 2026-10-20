@@ -1,4 +1,5 @@
 import type { FormRules } from 'element-plus';
+import { DEFAULT_DURATION_MIN } from '../shared/constants';
 import type { AdminPaperDto, CatalogPaperType, MultiScoringRule, UpdatePaperDto } from '@/api';
 
 export interface PaperBasicForm {
@@ -9,8 +10,6 @@ export interface PaperBasicForm {
   multiScoringRule: MultiScoringRule;
   isFree: boolean;
 }
-
-export const DEFAULT_DURATION_MIN = 120;
 
 export const createPaperBasicForm = (): PaperBasicForm => ({
   title: '',

@@ -1,9 +1,9 @@
 import { computed, getCurrentScope, onScopeDispose, ref } from 'vue';
 import { canRetryErrata, ERRATA_POLL_INTERVAL, isErrataActive, isErrataStale } from '../shared/errata';
 import { LINKABLE_LIST_LIMIT } from '../shared/feedback-constants';
-import { usePolling } from '../shared/usePolling';
 import { adminGetErrata, adminGetQuestion, adminGetQuestionReports, adminRetryErrata } from '@/api';
 import type { AdminQuestionDto, AdminQuestionReportDto, Errata } from '@/api';
+import { usePolling } from '@/composables/usePolling';
 
 /** 勘误任务进度：排队或执行中时定时刷新 */
 export function useErrataProgress() {

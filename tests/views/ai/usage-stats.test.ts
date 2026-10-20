@@ -10,7 +10,6 @@ import {
   groupUsage,
   sumUsage,
   usageKindLabel,
-  validateUsageRange,
 } from '@/views/ai/usage/usage-stats';
 
 const item = (overrides: Partial<AiUsageItemDto> = {}): AiUsageItemDto => ({
@@ -34,13 +33,6 @@ describe('AI 用量日期区间', () => {
 
   it('可指定天数', () => {
     expect(defaultUsageRange(new Date('2026-10-18T03:00:00Z'), 30)).toEqual(['2026-09-19', '2026-10-18']);
-  });
-
-  it('结束日期不能早于开始日期，跨度不超过 366 天', () => {
-    expect(validateUsageRange(['2026-10-12', '2026-10-18'])).toBeNull();
-    expect(validateUsageRange(['2025-10-18', '2026-10-18'])).toBeNull();
-    expect(validateUsageRange(['2026-10-18', '2026-10-12'])).toBe('结束日期不能早于开始日期');
-    expect(validateUsageRange(['2025-10-17', '2026-10-18'])).toBe('日期范围不能超过 366 天');
   });
 
   it('晚于北京时间今天的日期不可选', () => {

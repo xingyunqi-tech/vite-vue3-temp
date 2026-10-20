@@ -1,18 +1,18 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">审核发布</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">审核发布</h2>
       <el-button type="primary" :disabled="selectedIds.length === 0" :loading="batching" @click="handleBatchPublish">
         批量发布{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}
       </el-button>
     </div>
 
-    <el-form :model="filters" inline @submit.prevent="search">
+    <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="科目">
         <SubjectCascader v-model="filters.subjectId" :options="subjectOptions" />
       </el-form-item>
       <el-form-item label="题型">
-        <el-select v-model="filters.type" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.type" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
@@ -21,7 +21,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" native-type="submit" :loading="loading">查询</el-button>
-        <el-button @click="reset">重置</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -35,7 +35,7 @@
       <el-table-column type="selection" width="48" />
       <el-table-column label="题干" min-width="300">
         <template #default="{ row }">
-          <span class="content-page__stem">
+          <span class="page__stem">
             {{ markdownSummary(row.type === 'MATERIAL' ? row.material : row.stem) }}
           </span>
         </template>
@@ -67,7 +67,7 @@
       :total="total"
       :page-sizes="PAGE_SIZES"
       layout="total, sizes, prev, pager, next"
-      class="content-page__pagination"
+      class="page__pagination"
       @update:current-page="changePage"
       @update:page-size="changeSize"
     />
@@ -87,13 +87,14 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { onMounted, ref } from 'vue';
-import { confirmAction, runAction } from '../shared/actions';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
-import { PAGE_SIZES, QUESTION_TYPE_LABEL, toOptions } from '../shared/constants';
+import { QUESTION_TYPE_LABEL } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import { useReviewList } from './useReviewList';
 import type { AdminQuestionDto, QuestionType } from '@/api';
+import { PAGE_SIZES, toOptions } from '@/constants';
+import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
@@ -148,6 +149,9 @@ const handleBatchPublish = async () => {
   batching.value = false;
 };
 
+const handleSearch = () => search().catch(() => undefined);
+const handleReset = () => reset().catch(() => undefined);
+
 onMounted(() => {
   loadSubjects().catch(() => undefined);
   load().catch(() => undefined);
@@ -155,5 +159,5 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 </style>

@@ -174,6 +174,21 @@ describe('勘误进度页', () => {
     expect(buttonTexts(wrapper)).not.toContain('重试');
   });
 
+  it('加载失败时显示错误并可重新加载', async () => {
+    vi.mocked(adminGetErrata)
+      .mockRejectedValueOnce(new Error('not found'))
+      .mockResolvedValueOnce(errata({ status: 'DONE', processedUsers: 10 }));
+    const { wrapper } = await mountAt('/feedback/errata/e1', ErrataDetailPage);
+
+    expect(wrapper.text()).toContain('勘误任务加载失败');
+    expect(buttonTexts(wrapper)).not.toContain('刷新');
+
+    await clickButton(wrapper, '重新加载');
+
+    expect(wrapper.text()).not.toContain('勘误任务加载失败');
+    expect(wrapper.text()).toContain('10 / 10 人');
+  });
+
   it('失败的任务可以重试', async () => {
     vi.mocked(adminGetErrata).mockResolvedValue(errata({ status: 'FAILED', failureReason: 'boom' }));
     vi.mocked(adminRetryErrata).mockResolvedValue(errata({ status: 'DONE', processedUsers: 10 }));

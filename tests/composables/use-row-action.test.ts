@@ -1,6 +1,6 @@
 import { ElMessage } from 'element-plus';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useRowAction } from '@/views/content/shared/actions';
+import { useRowAction } from '@/composables/useRowAction';
 
 const deferred = () => {
   let resolve!: () => void;

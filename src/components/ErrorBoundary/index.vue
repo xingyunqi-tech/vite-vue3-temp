@@ -21,7 +21,7 @@
             <el-collapse-item title="错误详情" name="details">
               <div class="error-stack-wrapper">
                 <div class="error-stack-header">
-                  <span>错误堆栈</span>
+                  <span class="error-stack-title">错误堆栈</span>
                   <el-button size="small" text @click="copyErrorDetails">复制</el-button>
                 </div>
                 <pre class="error-stack">{{ errorDetails }}</pre>
@@ -265,7 +265,7 @@ defineExpose({
     margin-bottom: 12px;
     padding: 8px 0;
 
-    span {
+    .error-stack-title {
       color: var(--aix-colorTextSecondary);
       font-size: 13px;
       font-weight: 500;

@@ -1,12 +1,12 @@
 <template>
-  <div v-loading="loading" class="content-page errata-create">
-    <div class="content-page__header">
-      <div class="content-page__actions">
+  <div v-loading="loading" class="page errata-create">
+    <div class="page__header">
+      <div class="page__actions">
         <el-button @click="router.back()">返回</el-button>
-        <h2 class="content-page__title">题目勘误</h2>
-        <span v-if="question" class="content-page__muted">基于当前版本 v{{ question.currentVersion }}</span>
+        <h2 class="page__title">题目勘误</h2>
+        <span v-if="question" class="page__muted">基于当前版本 v{{ question.currentVersion }}</span>
       </div>
-      <div class="content-page__actions">
+      <div class="page__actions">
         <el-button type="primary" :loading="submitting" :disabled="!allowed" @click="handleSubmit">提交勘误</el-button>
       </div>
     </div>
@@ -43,12 +43,12 @@
 
       <div class="errata-create__body">
         <div class="errata-create__form">
-          <section class="errata-create__section">
-            <h3 class="errata-create__title">当前版本</h3>
+          <section class="page__card errata-create__section">
+            <h3 class="page__subtitle">当前版本</h3>
             <QuestionPreview :question="question" />
           </section>
 
-          <el-form v-if="allowed" label-width="88px" class="errata-create__section">
+          <el-form v-if="allowed" label-width="88px" class="page__card errata-create__section">
             <el-form-item label="新答案" required>
               <AnswerEditor v-model:form="draft.form" fixed-blanks />
             </el-form-item>
@@ -85,7 +85,7 @@
               />
             </el-form-item>
             <el-form-item>
-              <span class="content-page__muted">{{ changeSummary }}</span>
+              <span class="page__muted">{{ changeSummary }}</span>
             </el-form-item>
           </el-form>
 
@@ -106,8 +106,8 @@
           </el-alert>
         </div>
 
-        <aside v-if="allowed" class="errata-create__preview">
-          <h3 class="errata-create__title">勘误后预览</h3>
+        <aside v-if="allowed" class="page__card errata-create__preview">
+          <h3 class="page__subtitle">勘误后预览</h3>
           <QuestionPreview :question="previewQuestion" :file-urls="fileUrls" />
         </aside>
       </div>
@@ -199,7 +199,7 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .errata-create {
   &__notice {
@@ -219,16 +219,6 @@ const handleSubmit = async () => {
 
   &__section {
     margin-bottom: 16px;
-    padding: 20px;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
-  }
-
-  &__title {
-    margin: 0 0 12px;
-    color: var(--aix-colorTextHeading);
-    font-size: 16px;
-    font-weight: 600;
   }
 
   &__reports {
@@ -250,10 +240,7 @@ const handleSubmit = async () => {
     flex: none;
     width: 420px;
     max-height: calc(100vh - 160px);
-    padding: 20px;
     overflow: auto;
-    border-radius: 8px;
-    background: var(--aix-colorBgContainer);
   }
 }
 </style>

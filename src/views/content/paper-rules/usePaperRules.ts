@@ -1,7 +1,7 @@
-import { usePagedList } from '../shared/usePagedList';
 import { toPaperRuleDto, type PaperRuleForm } from './paper-rule-form';
 import { adminCreatePaperRule, adminDeletePaperRule, adminGetPaperRules, adminUpdatePaperRule } from '@/api';
 import type { AdminGetPaperRulesParams, ContentStatus, PaperRule } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface PaperRuleFilters {
   subjectId: string;

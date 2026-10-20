@@ -6,8 +6,10 @@
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <!-- eslint-disable-next-line vue/no-v-html -->
-    <div class="agreement-preview" v-html="safeHtml" />
+    <div class="agreement-preview">
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <div class="agreement-preview__body" v-html="safeHtml" />
+    </div>
   </el-dialog>
 </template>
 
@@ -32,35 +34,18 @@ const safeHtml = computed(() => renderAgreementPreview(props.html));
 </script>
 
 <style scoped lang="scss">
+@use '../agreement-content' as content;
+
 .agreement-preview {
   max-height: 60vh;
   overflow-y: auto;
-  color: var(--aix-colorText);
-  font-size: 14px;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
 
-  :deep(table) {
-    width: 100%;
-    border-collapse: collapse;
-  }
+  :deep(.agreement-preview__body) {
+    @include content.agreement-content;
 
-  :deep(th),
-  :deep(td) {
-    padding: 4px 8px;
-    border: 1px solid var(--aix-colorBorder);
-  }
-
-  :deep(th > p),
-  :deep(td > p) {
-    margin: 0;
-  }
-
-  :deep(blockquote) {
-    margin: 8px 0;
-    padding-left: 12px;
-    border-left: 4px solid var(--aix-colorBorder);
-    color: var(--aix-colorTextSecondary);
+    table {
+      width: 100%;
+    }
   }
 }
 </style>

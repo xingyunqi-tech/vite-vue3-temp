@@ -60,6 +60,18 @@ describe('纠错单详情', () => {
     expect(router.currentRoute.value.query).toEqual({ questionId: QUESTION_ID, reportIds: '7' });
   });
 
+  it('加载失败时显示错误并可重新加载', async () => {
+    vi.mocked(adminGetQuestionReport).mockRejectedValueOnce(new Error('not found'));
+    const { wrapper } = await mountPage();
+
+    expect(wrapper.text()).toContain('纠错单加载失败');
+
+    await clickButton(wrapper, '重新加载');
+
+    expect(wrapper.text()).not.toContain('纠错单加载失败');
+    expect(wrapper.text()).toContain('答案应为 B');
+  });
+
   it('AI 内容举报显示消息 ID，不显示题目与勘误', async () => {
     vi.mocked(adminGetQuestionReport).mockResolvedValue(
       reportDetail({ type: 'ai_content', reason: null, questionId: null, question: null, messageId: 'msg-1' }),

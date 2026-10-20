@@ -1,4 +1,4 @@
-import type { StatusMeta } from './constants';
+import { TASK_STATUS_META } from './constants';
 import type {
   AdminGetQuestionReportsStatus,
   AiMessageStatus,
@@ -6,6 +6,7 @@ import type {
   ErrataStatus,
   QuestionReportReason,
 } from '@/api';
+import type { StatusMeta } from '@/constants';
 
 export type ReportStatus = AdminGetQuestionReportsStatus;
 export type ReportType = AdminGetQuestionReportsType;
@@ -29,12 +30,7 @@ export const REPORT_REASON_LABEL: Record<QuestionReportReason, string> = {
   other: '其他',
 };
 
-export const ERRATA_STATUS_META: Record<ErrataStatus, StatusMeta> = {
-  PENDING: { label: '排队中', tag: 'info' },
-  RUNNING: { label: '执行中', tag: 'primary' },
-  DONE: { label: '已完成', tag: 'success' },
-  FAILED: { label: '失败', tag: 'danger' },
-};
+export const ERRATA_STATUS_META: Record<ErrataStatus, StatusMeta> = TASK_STATUS_META;
 
 export const AI_MESSAGE_STATUS_META: Record<AiMessageStatus, StatusMeta> = {
   STREAMING: { label: '生成中', tag: 'primary' },

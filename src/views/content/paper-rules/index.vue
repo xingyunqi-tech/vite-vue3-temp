@@ -1,16 +1,16 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">组卷规则</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">组卷规则</h2>
       <el-button type="primary" @click="openEditor(null)">新建规则</el-button>
     </div>
 
-    <el-form :model="filters" inline @submit.prevent="search">
+    <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="科目">
         <SubjectCascader v-model="filters.subjectId" :options="subjectOptions" />
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="filters.status" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.status" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
@@ -19,7 +19,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" native-type="submit" :loading="loading">查询</el-button>
-        <el-button @click="reset">重置</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </el-form-item>
     </el-form>
 
@@ -33,7 +33,7 @@
       </el-table-column>
       <el-table-column label="抽题项" min-width="220">
         <template #default="{ row }">
-          <span class="content-page__muted">{{ describeItems(row as PaperRule) }}</span>
+          <span class="page__muted">{{ describeItems(row as PaperRule) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="90">
@@ -65,7 +65,7 @@
       :total="total"
       :page-sizes="PAGE_SIZES"
       layout="total, sizes, prev, pager, next"
-      class="content-page__pagination"
+      class="page__pagination"
       @update:current-page="changePage"
       @update:page-size="changeSize"
     />
@@ -84,16 +84,17 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { confirmAction, runAction } from '../shared/actions';
-import StatusTag from '../shared/components/StatusTag.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
-import { CONTENT_STATUS_META, PAGE_SIZES, QUESTION_TYPE_LABEL, toStatusOptions } from '../shared/constants';
+import { CONTENT_STATUS_META, QUESTION_TYPE_LABEL } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import PaperRuleDialog from './components/PaperRuleDialog.vue';
 import PaperRulePreviewDialog from './components/PaperRulePreviewDialog.vue';
 import type { PaperRuleForm } from './paper-rule-form';
 import { usePaperRules } from './usePaperRules';
 import type { ContentStatus, PaperRule } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { PAGE_SIZES, toStatusOptions } from '@/constants';
+import { confirmAction, runAction } from '@/utils/actions';
 
 const statusOptions = toStatusOptions(CONTENT_STATUS_META);
 const { options: subjectOptions, load: loadSubjects, subjectLabel } = useSubjectOptions();
@@ -159,6 +160,9 @@ const handleRemove = async (rule: PaperRule) => {
   await runAction(() => remove(rule), '已删除');
 };
 
+const handleSearch = () => search().catch(() => undefined);
+const handleReset = () => reset().catch(() => undefined);
+
 onMounted(() => {
   loadSubjects().catch(() => undefined);
   load().catch(() => undefined);
@@ -166,5 +170,5 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 </style>

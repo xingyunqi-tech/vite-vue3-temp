@@ -8,7 +8,10 @@
 
 <style scoped lang="scss">
 .layout-content {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-height: 100%;
   padding: 0;
 }
 </style>

@@ -1,7 +1,7 @@
 import { ref } from 'vue';
-import { usePagedList } from '../shared/usePagedList';
 import { adminBatchPublishQuestions, adminGetQuestions, adminPublishQuestion, adminRejectQuestion } from '@/api';
 import type { AdminGetQuestionsParams, AdminQuestionDto, QuestionType } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface ReviewFilters {
   subjectId: string;

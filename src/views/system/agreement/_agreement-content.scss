@@ -1,0 +1,91 @@
+/** 协议正文排版，编辑区与预览共用 */
+@mixin agreement-content {
+  color: var(--aix-colorText);
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  p {
+    margin: 0 0 8px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 16px 0 8px;
+    color: var(--aix-colorTextHeading);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  h2 {
+    font-size: 19px;
+  }
+
+  h3 {
+    font-size: 17px;
+  }
+
+  h4 {
+    font-size: 15px;
+  }
+
+  ul,
+  ol {
+    margin: 0 0 8px;
+    padding-left: 24px;
+  }
+
+  li > p {
+    margin: 0;
+  }
+
+  blockquote {
+    margin: 8px 0;
+    padding-left: 12px;
+    border-left: 4px solid var(--aix-colorBorder);
+    color: var(--aix-colorTextSecondary);
+  }
+
+  hr {
+    margin: 12px 0;
+    border: none;
+    border-top: 1px solid var(--aix-colorSplit);
+  }
+
+  a {
+    color: var(--aix-colorPrimary);
+    text-decoration: underline;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    box-sizing: border-box;
+    padding: 4px 8px;
+    border: 1px solid var(--aix-colorBorder);
+    vertical-align: top;
+
+    > p {
+      margin: 0;
+    }
+  }
+
+  th {
+    background: var(--aix-colorFillTertiary);
+    font-weight: 600;
+    text-align: left;
+  }
+}

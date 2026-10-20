@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { effectScope } from 'vue';
-import { usePolling } from '@/views/content/shared/usePolling';
+import { usePolling } from '@/composables/usePolling';
 
 beforeEach(() => {
   vi.useFakeTimers();

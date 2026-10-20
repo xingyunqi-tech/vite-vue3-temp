@@ -1,5 +1,11 @@
 <template>
-  <ErrorPage :code="preset.code" :title="preset.title" :description="preset.description" :icon="preset.icon">
+  <ErrorPage
+    :code="preset.code"
+    :title="preset.title"
+    :description="preset.description"
+    :icon="preset.icon"
+    :fullscreen="false"
+  >
     <template #actions>
       <el-button type="primary" @click="goHome">返回首页</el-button>
       <el-button v-if="forbidden" :loading="loggingOut" @click="loginAgain">重新登录</el-button>

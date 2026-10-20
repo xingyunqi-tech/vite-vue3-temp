@@ -1,17 +1,17 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">纠错与举报</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">纠错与举报</h2>
     </div>
 
     <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="类型">
-        <el-select v-model="filters.type" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.type" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="filters.status" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.status" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
@@ -39,22 +39,22 @@
       </el-table-column>
       <el-table-column label="说明" min-width="200">
         <template #default="{ row }">
-          <span class="content-page__stem">{{ row.content || '—' }}</span>
+          <span class="page__stem">{{ row.content || '—' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="AI 回答" min-width="200">
         <template #default="{ row }">
-          <span v-if="row.type === 'ai_content' && row.messageSnapshot" class="content-page__stem">
+          <span v-if="row.type === 'ai_content' && row.messageSnapshot" class="page__stem">
             {{ markdownSummary(row.messageSnapshot.content) }}
           </span>
-          <span v-else class="content-page__muted">—</span>
+          <span v-else class="page__muted">—</span>
         </template>
       </el-table-column>
       <el-table-column label="题目" min-width="220">
         <template #default="{ row }">
-          <span v-if="row.question" class="content-page__stem">{{ markdownSummary(row.question.stem) }}</span>
-          <span v-else-if="row.messageId" class="content-page__muted">AI 消息 {{ row.messageId }}</span>
-          <span v-else class="content-page__muted">—</span>
+          <span v-if="row.question" class="page__stem">{{ markdownSummary(row.question.stem) }}</span>
+          <span v-else-if="row.messageId" class="page__muted">AI 消息 {{ row.messageId }}</span>
+          <span v-else class="page__muted">—</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="90">
@@ -65,7 +65,7 @@
       <el-table-column label="勘误" width="80">
         <template #default="{ row }">
           <span v-if="row.errataId">已关联</span>
-          <span v-else class="content-page__muted">—</span>
+          <span v-else class="page__muted">—</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="90" fixed="right">
@@ -81,7 +81,7 @@
       :total="total"
       :page-sizes="REPORT_PAGE_SIZES"
       layout="total, sizes, prev, pager, next"
-      class="content-page__pagination"
+      class="page__pagination"
       @update:current-page="changePage"
       @update:page-size="changeSize"
     />
@@ -92,8 +92,6 @@
 import { ElMessage } from 'element-plus';
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import StatusTag from '../shared/components/StatusTag.vue';
-import { toOptions, toStatusOptions } from '../shared/constants';
 import {
   REPORT_PAGE_SIZES,
   REPORT_REASON_LABEL,
@@ -104,6 +102,8 @@ import {
 import { isUuid, queryString } from '../shared/utils';
 import { useReportList } from './useReportList';
 import type { QuestionReportReason } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { toOptions, toStatusOptions } from '@/constants';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
@@ -133,7 +133,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .report-list__question {
   width: 300px;

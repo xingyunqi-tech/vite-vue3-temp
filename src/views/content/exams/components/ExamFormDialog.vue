@@ -4,6 +4,7 @@
     :title="exam ? '编辑考试' : '新建考试'"
     width="520px"
     destroy-on-close
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
     @open="reset"
   >
@@ -23,7 +24,7 @@
         <el-input v-model="form.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
       </el-form-item>
       <el-form-item label="排序" prop="sort">
-        <el-input-number v-model="form.sort" :min="0" :max="100000" controls-position="right" />
+        <el-input-number v-model="form.sort" :min="0" :max="MAX_SORT" controls-position="right" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -36,8 +37,9 @@
 <script setup lang="ts">
 import type { FormInstance, FormRules } from 'element-plus';
 import { reactive, ref } from 'vue';
-import { EXAM_CATEGORY_LABEL, toOptions } from '../../shared/constants';
+import { EXAM_CATEGORY_LABEL, MAX_SORT } from '../../shared/constants';
 import type { CreateExamDto, Exam, ExamCategory } from '@/api';
+import { toOptions } from '@/constants';
 
 interface Props {
   modelValue: boolean;

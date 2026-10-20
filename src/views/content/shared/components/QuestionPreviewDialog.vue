@@ -19,6 +19,9 @@
         </div>
         <QuestionPreview :question="question" />
       </template>
+      <el-empty v-else-if="failed" description="题目加载失败" :image-size="80">
+        <el-button type="primary" @click="load">重新加载</el-button>
+      </el-empty>
     </div>
     <template v-if="$slots.footer && question" #footer>
       <slot name="footer" :question="question" />
@@ -30,8 +33,8 @@
 import { ref } from 'vue';
 import { QUESTION_SOURCE_LABEL, QUESTION_STATUS_META } from '../constants';
 import QuestionPreview from './QuestionPreview.vue';
-import StatusTag from './StatusTag.vue';
 import { adminGetQuestion, type AdminQuestionDto } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
 
 interface Props {
   modelValue: boolean;
@@ -50,17 +53,20 @@ defineSlots<{
 
 const question = ref<AdminQuestionDto | null>(null);
 const loading = ref(false);
+const failed = ref(false);
 let requestSeq = 0;
 
 const load = async () => {
   const seq = ++requestSeq;
   question.value = null;
+  failed.value = false;
   loading.value = false;
   if (!props.questionId) return;
   loading.value = true;
   const result = await adminGetQuestion(props.questionId, { disableDedup: true }).catch(() => null);
   if (seq !== requestSeq) return;
   question.value = result;
+  failed.value = result === null;
   loading.value = false;
 };
 </script>

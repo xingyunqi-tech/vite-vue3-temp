@@ -4,6 +4,7 @@
     title="新建试卷"
     width="560px"
     destroy-on-close
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
     @open="reset"
   >

@@ -4,6 +4,7 @@
     :title="row ? `编辑 ${row.key}` : ''"
     width="560px"
     destroy-on-close
+    :close-on-click-modal="false"
     @update:model-value="emit('update:modelValue', $event)"
     @open="resetDraft"
   >
@@ -120,7 +121,7 @@ const submit = () => {
 }
 
 .config-dialog__json :deep(textarea) {
-  font-family: Menlo, Consolas, monospace;
+  font-family: var(--aix-fontFamilyCode);
 }
 
 .config-dialog__error {

@@ -57,7 +57,7 @@
       <img v-if="value" :src="value as string" class="image-uploader__preview" />
       <div v-else class="image-uploader__placeholder">
         <el-icon :size="28"><Plus /></el-icon>
-        <span>点击上传</span>
+        <span class="image-uploader__placeholder-text">点击上传</span>
       </div>
     </el-upload>
     <div v-if="value" class="image-uploader__actions">
@@ -284,10 +284,10 @@ async function handleFileChange(file: UploadFile): Promise<void> {
     height: 100%;
     color: var(--aix-colorTextPlaceholder);
     gap: 4px;
+  }
 
-    span {
-      font-size: 12px;
-    }
+  &__placeholder-text {
+    font-size: 12px;
   }
 }
 

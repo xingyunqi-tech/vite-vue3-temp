@@ -84,7 +84,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { QUESTION_TYPE_LABEL, toOptions } from '../../shared/constants';
+import { QUESTION_TYPE_LABEL } from '../../shared/constants';
 import {
   computePaperScores,
   isMaterialItem,
@@ -94,6 +94,7 @@ import {
   type PaperItemChild,
 } from '../paper-items';
 import type { PaperSection, QuestionType } from '@/api';
+import { toOptions } from '@/constants';
 import { markdownSummary } from '@/utils/markdown';
 
 interface Props {

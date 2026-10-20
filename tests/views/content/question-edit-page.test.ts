@@ -153,7 +153,7 @@ describe('题目编辑页', () => {
       }),
     );
     const material = await mountAt('/content/questions/m1');
-    const headerButtons = material.wrapper.find('.content-page__header').findAll('button');
+    const headerButtons = material.wrapper.find('.page__header').findAll('button');
     expect(headerButtons.map(button => button.text())).not.toContain('勘误');
 
     await material.wrapper

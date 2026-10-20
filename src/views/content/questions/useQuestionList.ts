@@ -1,4 +1,3 @@
-import { usePagedList } from '../shared/usePagedList';
 import {
   adminDeleteQuestion,
   adminGetQuestions,
@@ -7,6 +6,7 @@ import {
   adminSubmitQuestion,
 } from '@/api';
 import type { AdminGetQuestionsParams, AdminQuestionDto, QuestionSource, QuestionStatus, QuestionType } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
 
 export interface QuestionFilters {
   subjectId: string;

@@ -1,4 +1,4 @@
-import { OBJECTIVE_TYPES } from '../shared/constants';
+import { OBJECTIVE_TYPES, PAPER_SHARED_LIMITS } from '../shared/constants';
 import type {
   AdminPaperDto,
   AdminPaperQuestionDto,
@@ -10,11 +10,11 @@ import type {
 
 export const PAPER_LIMITS = {
   sections: 50,
-  sectionTitleLength: 50,
-  questions: 500,
-  minScore: 0.01,
-  maxScore: 999.99,
-  maxTotalScore: 9999.99,
+  sectionTitleLength: PAPER_SHARED_LIMITS.sectionTitleLength,
+  questions: PAPER_SHARED_LIMITS.questions,
+  minScore: PAPER_SHARED_LIMITS.minScore,
+  maxScore: PAPER_SHARED_LIMITS.maxScore,
+  maxTotalScore: PAPER_SHARED_LIMITS.maxTotalScore,
 } as const;
 
 export const DEFAULT_SCORE = 1;

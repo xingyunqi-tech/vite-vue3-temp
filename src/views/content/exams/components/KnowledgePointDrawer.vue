@@ -8,7 +8,7 @@
   >
     <div class="kp-drawer__toolbar">
       <el-button type="primary" @click="openCreate(null)">新增一级知识点</el-button>
-      <el-button :loading="loading" @click="load()">刷新</el-button>
+      <el-button :loading="loading" @click="handleRefresh">刷新</el-button>
       <span class="kp-drawer__hint">最多三级；题目只能关联叶子节点，括号内为已发布题目数</span>
     </div>
 
@@ -70,7 +70,6 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { computed, reactive, ref } from 'vue';
-import { confirmAction, runAction } from '../../shared/actions';
 import {
   MAX_KNOWLEDGE_LEVEL,
   migrateTargets,
@@ -83,6 +82,7 @@ import { useKnowledgeTree, type KnowledgePointDraft } from '../useKnowledgeTree'
 import KnowledgePointFormDialog from './KnowledgePointFormDialog.vue';
 import KnowledgePointPickDialog from './KnowledgePointPickDialog.vue';
 import type { Subject } from '@/api';
+import { confirmAction, runAction } from '@/utils/actions';
 
 interface Props {
   modelValue: boolean;
@@ -158,6 +158,8 @@ const withSaving = async (task: () => Promise<unknown>, message?: string) => {
   saving.value = false;
   return ok;
 };
+
+const handleRefresh = () => load().catch(() => undefined);
 
 const handleFormSubmit = async (draft: KnowledgePointDraft) => {
   const node = formTarget.node;

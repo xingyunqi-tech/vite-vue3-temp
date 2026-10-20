@@ -68,8 +68,8 @@
           <template v-if="row.limitDifficulty">
             <el-input-number
               v-model="row.difficultyRange[0]"
-              :min="1"
-              :max="5"
+              :min="DIFFICULTY_MIN"
+              :max="DIFFICULTY_MAX"
               size="small"
               controls-position="right"
               class="rule-dialog__difficulty"
@@ -77,8 +77,8 @@
             -
             <el-input-number
               v-model="row.difficultyRange[1]"
-              :min="1"
-              :max="5"
+              :min="DIFFICULTY_MIN"
+              :max="DIFFICULTY_MAX"
               size="small"
               controls-position="right"
               class="rule-dialog__difficulty"
@@ -134,7 +134,7 @@
 import { ref, watch } from 'vue';
 import KnowledgePointSelect from '../../shared/components/KnowledgePointSelect.vue';
 import SubjectCascader from '../../shared/components/SubjectCascader.vue';
-import { MULTI_SCORING_RULE_LABEL, QUESTION_TYPE_LABEL, toOptions } from '../../shared/constants';
+import { DIFFICULTY_MAX, DIFFICULTY_MIN, MULTI_SCORING_RULE_LABEL, QUESTION_TYPE_LABEL } from '../../shared/constants';
 import type { SubjectOption } from '../../shared/useSubjectOptions';
 import {
   createPaperRuleForm,
@@ -146,6 +146,7 @@ import {
   type PaperRuleForm,
 } from '../paper-rule-form';
 import type { PaperRule } from '@/api';
+import { toOptions } from '@/constants';
 
 interface Props {
   modelValue: boolean;

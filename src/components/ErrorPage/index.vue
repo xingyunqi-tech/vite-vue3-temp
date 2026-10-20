@@ -1,5 +1,5 @@
 <template>
-  <div class="error-page" :class="`is-${props.tone}`">
+  <div class="error-page" :class="[`is-${props.tone}`, { 'is-fullscreen': props.fullscreen }]">
     <div class="error-content">
       <div v-if="props.icon" class="error-icon">
         <el-icon :size="28">
@@ -25,8 +25,7 @@ import type { Component } from 'vue';
 /**
  * 通用异常页（403 / 404 / 500 等）的纯展示骨架：图标 → 状态码 → 标题 → 说明 → 动作 → 附加内容
  *
- * 无背景、无卡片，内容在容器内垂直居中。既可全屏使用，也可放在布局主区域内：
- * 两处容器都是一屏高，min-height: 100dvh 在两处都恰好铺满且不产生滚动；
+ * 无背景、无卡片，内容在容器内垂直居中。全屏时铺满一屏；放在布局主区域内时撑满主区域剩余高度；
  * 内容超高（如横屏小窗）时随容器自然滚动，不裁切。
  */
 interface Props {
@@ -40,11 +39,14 @@ interface Props {
   icon?: Component;
   /** 视觉基调：primary 用于权限 / 路径类异常，error 用于程序或服务异常 */
   tone?: 'primary' | 'error';
+  /** 全屏展示；放在布局主区域内时传 false */
+  fullscreen?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   icon: undefined,
   tone: 'primary',
+  fullscreen: true,
 });
 </script>
 
@@ -52,10 +54,15 @@ const props = withDefaults(defineProps<Props>(), {
 .error-page {
   display: flex;
   box-sizing: border-box;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 100dvh;
+  min-height: 100%;
   padding: 48px 24px;
+
+  &.is-fullscreen {
+    min-height: 100dvh;
+  }
 }
 
 .error-content {

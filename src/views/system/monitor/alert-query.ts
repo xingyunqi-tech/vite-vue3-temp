@@ -1,4 +1,5 @@
 import type { AdminAlertLevel, GetMonitorAlertsParams } from '@/api';
+import type { StatusMeta } from '@/constants';
 
 export type AckStatus = 'all' | 'unacknowledged' | 'acknowledged';
 
@@ -14,7 +15,7 @@ export const ACK_STATUS_OPTIONS: { label: string; value: AckStatus }[] = [
   { label: '全部', value: 'all' },
 ];
 
-export const ALERT_LEVEL_META: Record<AdminAlertLevel, { label: string; tag: 'info' | 'warning' | 'danger' }> = {
+export const ALERT_LEVEL_META: Record<AdminAlertLevel, StatusMeta> = {
   INFO: { label: '提示', tag: 'info' },
   WARN: { label: '警告', tag: 'warning' },
   CRITICAL: { label: '严重', tag: 'danger' },

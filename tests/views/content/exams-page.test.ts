@@ -86,7 +86,7 @@ describe('考试与科目页', () => {
     await flushPromises();
 
     const [draft, published] = examRows(wrapper);
-    expect(draft.findAll('button').map(button => button.text())).toEqual(['编辑', '上架', '删除']);
+    expect(draft.findAll('button').map(button => button.text())).toEqual(['编辑', '发布', '删除']);
     expect(published.findAll('button').map(button => button.text())).toEqual(['编辑', '下架']);
   });
 

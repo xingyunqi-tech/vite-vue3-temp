@@ -1,11 +1,11 @@
 <template>
-  <div class="content-page">
-    <div class="content-page__header">
-      <h2 class="content-page__title">题目</h2>
+  <div class="page">
+    <div class="page__header">
+      <h2 class="page__title">题目</h2>
       <el-button type="primary" @click="router.push('/content/questions/create')">新建题目</el-button>
     </div>
 
-    <el-form :model="filters" inline @submit.prevent="search">
+    <el-form :model="filters" inline @submit.prevent="handleSearch">
       <el-form-item label="科目">
         <SubjectCascader v-model="filters.subjectId" :options="subjectOptions" @update:model-value="onSubjectChange" />
       </el-form-item>
@@ -18,17 +18,17 @@
         />
       </el-form-item>
       <el-form-item label="题型">
-        <el-select v-model="filters.type" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.type" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">
-        <el-select v-model="filters.status" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.status" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
       <el-form-item label="来源">
-        <el-select v-model="filters.source" placeholder="全部" clearable class="content-page__select">
+        <el-select v-model="filters.source" placeholder="全部" clearable class="page__select">
           <el-option v-for="item in sourceOptions" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
@@ -44,7 +44,7 @@
     <el-table v-loading="loading" :data="list" row-key="id" class="data-table">
       <el-table-column label="题干" min-width="280">
         <template #default="{ row }">
-          <span class="content-page__stem">
+          <span class="page__stem">
             {{ markdownSummary(row.type === 'MATERIAL' ? row.material : row.stem) }}
           </span>
         </template>
@@ -117,7 +117,7 @@
             :loading="isActing(row.id)"
             @click="handleRepublish(row as AdminQuestionDto)"
           >
-            重新上架
+            重新发布
           </el-button>
           <el-button
             v-if="canDeleteQuestion(row as AdminQuestionDto)"
@@ -138,7 +138,7 @@
       :total="total"
       :page-sizes="PAGE_SIZES"
       layout="total, sizes, prev, pager, next"
-      class="content-page__pagination"
+      class="page__pagination"
       @update:current-page="changePage"
       @update:page-size="changeSize"
     />
@@ -151,20 +151,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { confirmAction, useRowAction } from '../shared/actions';
 import KnowledgePointSelect from '../shared/components/KnowledgePointSelect.vue';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
 import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vue';
-import StatusTag from '../shared/components/StatusTag.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
-import {
-  PAGE_SIZES,
-  QUESTION_SOURCE_LABEL,
-  QUESTION_STATUS_META,
-  QUESTION_TYPE_LABEL,
-  toOptions,
-  toStatusOptions,
-} from '../shared/constants';
+import { QUESTION_SOURCE_LABEL, QUESTION_STATUS_META, QUESTION_TYPE_LABEL } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import {
@@ -176,6 +167,10 @@ import {
   useQuestionList,
 } from './useQuestionList';
 import type { AdminQuestionDto, QuestionSource, QuestionType } from '@/api';
+import StatusTag from '@/components/StatusTag/index.vue';
+import { useRowAction } from '@/composables/useRowAction';
+import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { confirmAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
@@ -239,13 +234,15 @@ const handleOffline = async (question: AdminQuestionDto) => {
 };
 
 const handleRepublish = (question: AdminQuestionDto) =>
-  runRowAction(question.id, () => republish(question), '已重新上架');
+  runRowAction(question.id, () => republish(question), '已重新发布');
 
 const handleRemove = async (question: AdminQuestionDto) => {
   const message = question.type === 'MATERIAL' ? '删除该材料题及其全部小题？' : '删除该草稿题目？';
   if (!(await confirmAction(message, '删除题目'))) return;
   await runRowAction(question.id, () => remove(question), '已删除');
 };
+
+const handleSearch = () => search().catch(() => undefined);
 
 onMounted(() => {
   loadSubjects().catch(() => undefined);
@@ -254,7 +251,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-@use '../shared/content-page';
+@use '@/styles/page';
 
 .question-list__knowledge {
   width: 200px;

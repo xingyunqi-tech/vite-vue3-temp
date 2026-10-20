@@ -1,9 +1,9 @@
 import { ref, watch } from 'vue';
 import { ERRATA_POLL_INTERVAL, isErrataActive } from '../shared/errata';
-import { usePagedList } from '../shared/usePagedList';
-import { usePolling } from '../shared/usePolling';
 import { adminGetErrataList, adminRetryErrata } from '@/api';
 import type { AdminGetErrataListParams, Errata, ErrataStatus } from '@/api';
+import { usePagedList } from '@/composables/usePagedList';
+import { usePolling } from '@/composables/usePolling';
 
 export interface ErrataFilters {
   status: ErrataStatus | '';

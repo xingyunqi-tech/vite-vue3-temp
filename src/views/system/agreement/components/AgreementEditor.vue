@@ -33,7 +33,8 @@
             :disabled="disabled || !canRun(action)"
             @click="runAction(action)"
           >
-            <el-icon><component :is="action.icon" /></el-icon>
+            <SvgIcon v-if="typeof action.icon === 'string'" :name="action.icon" />
+            <el-icon v-else><component :is="action.icon" /></el-icon>
           </el-button>
         </el-tooltip>
       </template>
@@ -126,26 +127,11 @@ const glyph =
   () =>
     h('span', { class: ['agreement-editor__glyph', modifier] }, text);
 
-const strokeIcon =
-  (d: string): FunctionalComponent =>
-  () =>
-    h(
-      'svg',
-      {
-        viewBox: '0 0 24 24',
-        fill: 'none',
-        stroke: 'currentColor',
-        'stroke-width': 2,
-        'stroke-linecap': 'round',
-        'stroke-linejoin': 'round',
-      },
-      [h('path', { d })],
-    );
-
 interface ToolbarAction {
   key: string;
   label: string;
-  icon: Component;
+  /** 组件，或 src/assets/icons 下 SvgIcon 的名称 */
+  icon: Component | string;
   command?: (chain: ChainedCommands) => ChainedCommands;
   onClick?: () => void;
   active?: (editor: Editor) => boolean;
@@ -187,28 +173,28 @@ const ACTION_GROUPS: readonly (readonly ToolbarAction[])[] = [
     {
       key: 'orderedList',
       label: '有序列表',
-      icon: strokeIcon('M10 6h10M10 12h10M10 18h10M4 4h1v5M4 9h2M4 15a1 1 0 0 1 2 0c0 1.5-2 2-2 4h2'),
+      icon: 'editor-ordered-list',
       command: chain => chain.toggleOrderedList(),
       active: editor => editor.isActive('orderedList'),
     },
     {
       key: 'bulletList',
       label: '无序列表',
-      icon: strokeIcon('M10 6h10M10 12h10M10 18h10M5 6h.01M5 12h.01M5 18h.01'),
+      icon: 'editor-bullet-list',
       command: chain => chain.toggleBulletList(),
       active: editor => editor.isActive('bulletList'),
     },
     {
       key: 'blockquote',
       label: '引用',
-      icon: strokeIcon('M5 5v14M9 7h10M9 12h10M9 17h6'),
+      icon: 'editor-blockquote',
       command: chain => chain.toggleBlockquote(),
       active: editor => editor.isActive('blockquote'),
     },
     {
       key: 'horizontalRule',
       label: '分割线',
-      icon: strokeIcon('M4 12h16'),
+      icon: 'editor-horizontal-rule',
       command: chain => chain.setHorizontalRule(),
     },
   ],
@@ -216,21 +202,21 @@ const ACTION_GROUPS: readonly (readonly ToolbarAction[])[] = [
     {
       key: 'alignLeft',
       label: '左对齐',
-      icon: strokeIcon('M4 6h16M4 10h10M4 14h16M4 18h10'),
+      icon: 'editor-align-left',
       command: chain => chain.setTextAlign('left'),
       active: editor => editor.isActive({ textAlign: 'left' }),
     },
     {
       key: 'alignCenter',
       label: '居中',
-      icon: strokeIcon('M4 6h16M7 10h10M4 14h16M7 18h10'),
+      icon: 'editor-align-center',
       command: chain => chain.setTextAlign('center'),
       active: editor => editor.isActive({ textAlign: 'center' }),
     },
     {
       key: 'alignRight',
       label: '右对齐',
-      icon: strokeIcon('M4 6h16M10 10h10M4 14h16M10 18h10'),
+      icon: 'editor-align-right',
       command: chain => chain.setTextAlign('right'),
       active: editor => editor.isActive({ textAlign: 'right' }),
     },
@@ -246,7 +232,7 @@ const ACTION_GROUPS: readonly (readonly ToolbarAction[])[] = [
     {
       key: 'unlink',
       label: '取消链接',
-      icon: strokeIcon('M9 15l6-6M11 6l1-1a4 4 0 0 1 6 6l-1 1M13 18l-1 1a4 4 0 0 1-6-6l1-1M4 4l16 16'),
+      icon: 'editor-unlink',
       command: chain => chain.extendMarkRange('link').unsetLink(),
       enabled: editor => editor.isActive('link'),
     },
@@ -455,6 +441,8 @@ const promptLink = async () => {
 </script>
 
 <style scoped lang="scss">
+@use '../agreement-content' as content;
+
 .agreement-editor {
   overflow: hidden;
   border: 1px solid var(--aix-colorBorder);
@@ -519,79 +507,15 @@ const promptLink = async () => {
   }
 
   :deep(.agreement-editor__content) {
+    @include content.agreement-content;
+
     box-sizing: border-box;
     min-height: 100%;
     padding: 12px 16px;
     outline: none;
-    color: var(--aix-colorText);
-    font-size: 14px;
-    line-height: 1.7;
-    overflow-wrap: anywhere;
 
-    > :first-child {
-      margin-top: 0;
-    }
-
-    p {
-      margin: 0 0 8px;
-    }
-
-    h1,
-    h2,
-    h3,
-    h4 {
-      margin: 16px 0 8px;
-      color: var(--aix-colorTextHeading);
-      font-weight: 600;
-      line-height: 1.4;
-    }
-
-    h1 {
-      font-size: 22px;
-    }
-
-    h2 {
-      font-size: 19px;
-    }
-
-    h3 {
-      font-size: 17px;
-    }
-
-    h4 {
-      font-size: 15px;
-    }
-
-    ul,
-    ol {
-      margin: 0 0 8px;
-      padding-left: 24px;
-    }
-
-    li > p {
-      margin: 0;
-    }
-
-    blockquote {
-      margin: 8px 0;
-      padding-left: 12px;
-      border-left: 4px solid var(--aix-colorBorder);
-      color: var(--aix-colorTextSecondary);
-    }
-
-    hr {
-      margin: 12px 0;
-      border: none;
-      border-top: 1px solid var(--aix-colorSplit);
-
-      &.ProseMirror-selectednode {
-        border-top-color: var(--aix-colorPrimary);
-      }
-    }
-
-    a {
-      color: var(--aix-colorPrimary);
-      text-decoration: underline;
+    hr.ProseMirror-selectednode {
+      border-top-color: var(--aix-colorPrimary);
     }
 
     .tableWrapper {
@@ -601,27 +525,12 @@ const promptLink = async () => {
 
     table {
       table-layout: fixed;
-      border-collapse: collapse;
     }
 
     th,
     td {
       position: relative;
-      box-sizing: border-box;
       min-width: 80px;
-      padding: 4px 8px;
-      border: 1px solid var(--aix-colorBorder);
-      vertical-align: top;
-
-      > p {
-        margin: 0;
-      }
-    }
-
-    th {
-      background: var(--aix-colorFillTertiary);
-      font-weight: 600;
-      text-align: left;
     }
 
     .selectedCell::after {

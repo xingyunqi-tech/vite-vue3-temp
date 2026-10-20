@@ -17,14 +17,14 @@ describe('Date Utils', () => {
       expect(result).toBe('2024-01-15 13:45:30');
     });
 
-    it('空值应返回 -', () => {
-      expect(formatDate(null, 'YYYY-MM-DD')).toBe('-');
-      expect(formatDate(undefined, 'YYYY-MM-DD')).toBe('-');
-      expect(formatDate('', 'YYYY-MM-DD')).toBe('-');
+    it('空值应返回 —', () => {
+      expect(formatDate(null, 'YYYY-MM-DD')).toBe('—');
+      expect(formatDate(undefined, 'YYYY-MM-DD')).toBe('—');
+      expect(formatDate('', 'YYYY-MM-DD')).toBe('—');
     });
 
-    it('无效日期应返回 -', () => {
-      expect(formatDate('invalid-date', 'YYYY-MM-DD')).toBe('-');
+    it('无效日期应返回 —', () => {
+      expect(formatDate('invalid-date', 'YYYY-MM-DD')).toBe('—');
     });
   });
 
@@ -33,9 +33,9 @@ describe('Date Utils', () => {
       expect(formatDateShort('2025-01-15T10:30:00')).toBe('2025-01-15');
     });
 
-    it('空值应返回 -', () => {
-      expect(formatDateShort()).toBe('-');
-      expect(formatDateShort('')).toBe('-');
+    it('空值应返回 —', () => {
+      expect(formatDateShort()).toBe('—');
+      expect(formatDateShort('')).toBe('—');
     });
   });
 
@@ -44,8 +44,8 @@ describe('Date Utils', () => {
       expect(formatDateTime('2025-01-15T10:30:00')).toBe('2025-01-15 10:30');
     });
 
-    it('空值应返回 -', () => {
-      expect(formatDateTime()).toBe('-');
+    it('空值应返回 —', () => {
+      expect(formatDateTime()).toBe('—');
     });
   });
 
@@ -54,8 +54,8 @@ describe('Date Utils', () => {
       expect(formatDateTimeFull('2025-01-15T10:30:45')).toBe('2025-01-15 10:30:45');
     });
 
-    it('空值应返回 -', () => {
-      expect(formatDateTimeFull()).toBe('-');
+    it('空值应返回 —', () => {
+      expect(formatDateTimeFull()).toBe('—');
     });
   });
 
@@ -70,9 +70,9 @@ describe('Date Utils', () => {
       );
     });
 
-    it('缺少参数应返回 -', () => {
-      expect(formatDateRange()).toBe('-');
-      expect(formatDateRange('2025-01-15')).toBe('-');
+    it('缺少参数应返回 —', () => {
+      expect(formatDateRange()).toBe('—');
+      expect(formatDateRange('2025-01-15')).toBe('—');
     });
   });
 
@@ -85,9 +85,9 @@ describe('Date Utils', () => {
       expect(formatNameList([{ name: '张三' }, { name: '李四' }], ', ')).toBe('张三, 李四');
     });
 
-    it('空列表应返回 -', () => {
-      expect(formatNameList([])).toBe('-');
-      expect(formatNameList()).toBe('-');
+    it('空列表应返回 —', () => {
+      expect(formatNameList([])).toBe('—');
+      expect(formatNameList()).toBe('—');
     });
   });
 
@@ -101,9 +101,9 @@ describe('Date Utils', () => {
       expect(result.endsWith('前')).toBe(true);
     });
 
-    it('空值或无效值应返回 -', () => {
-      expect(formatRelativeTime()).toBe('-');
-      expect(formatRelativeTime('invalid-date')).toBe('-');
+    it('空值或无效值应返回 —', () => {
+      expect(formatRelativeTime()).toBe('—');
+      expect(formatRelativeTime('invalid-date')).toBe('—');
     });
   });
 
@@ -124,10 +124,10 @@ describe('Date Utils', () => {
       expect(formatFileSize(0)).toBe('0 B');
     });
 
-    it('缺失或非法值应返回 -', () => {
-      expect(formatFileSize()).toBe('-');
-      expect(formatFileSize(-1)).toBe('-');
-      expect(formatFileSize(NaN)).toBe('-');
+    it('缺失或非法值应返回 —', () => {
+      expect(formatFileSize()).toBe('—');
+      expect(formatFileSize(-1)).toBe('—');
+      expect(formatFileSize(NaN)).toBe('—');
     });
   });
 });
