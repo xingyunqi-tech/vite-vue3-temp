@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryHistory, createRouter } from 'vue-router';
+import { createMemoryHistory, createRouter, type RouteLocationNormalized } from 'vue-router';
 import { ROLES, type MenuItem } from '@/constants';
 import { DEFAULT_PAGE } from '@/constants/system';
 import { firstAccessibleMenuPath, resolveLandingPath } from '@/router/landing';
@@ -92,10 +92,15 @@ describe('根路径重定向', () => {
       .generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN])
       .forEach(route => router.addRoute(route));
     router.addRoute(fallbackRoute);
+    let landing: RouteLocationNormalized | undefined;
+    router.beforeEach(to => {
+      landing = to;
+      return false;
+    });
 
     await router.push('/');
 
-    expect(router.currentRoute.value.path).toBe('/content/questions');
-    expect(router.currentRoute.value.name).toBe('ContentQuestions');
+    expect(landing?.path).toBe('/content/questions');
+    expect(landing?.name).toBe('ContentQuestions');
   });
 });

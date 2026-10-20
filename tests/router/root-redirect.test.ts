@@ -13,6 +13,8 @@ const userStore = {
 };
 
 vi.mock('@/store/modules/user-info', () => ({ useUserInfoStore: () => userStore }));
+vi.mock('@/views/content/questions/index.vue', () => ({ default: { render: () => null } }));
+vi.mock('@/views/system/monitor/index.vue', () => ({ default: { render: () => null } }));
 
 beforeEach(() => {
   setActivePinia(createPinia());

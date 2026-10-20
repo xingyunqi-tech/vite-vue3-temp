@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 
 const scope = vi.hoisted(() => ({ setTag: vi.fn(), setContext: vi.fn() }));
@@ -18,6 +18,11 @@ const sdk = vi.hoisted(() => ({
 vi.mock('@sentry/vue', () => sdk);
 
 const createTestRouter = () => createRouter({ history: createMemoryHistory(), routes: [] });
+
+/** 首次编译依赖较慢，预先在钩子中完成，用例内重新 import 只需求值 */
+beforeAll(async () => {
+  await import('@/plugins/sentry');
+});
 
 beforeEach(() => {
   vi.resetModules();
