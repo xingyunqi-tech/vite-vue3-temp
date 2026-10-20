@@ -23,13 +23,31 @@
         <template #default="{ row }">
           <el-button link type="primary" @click="openKnowledge(row as Subject)">知识点</el-button>
           <el-button link type="primary" @click="openEditor(row as Subject)">编辑</el-button>
-          <el-button v-if="canPublish(row.status)" link type="success" @click="handlePublish(row as Subject)">
+          <el-button
+            v-if="canPublish(row.status)"
+            link
+            type="success"
+            :loading="isActing(row.id)"
+            @click="handlePublish(row as Subject)"
+          >
             上架
           </el-button>
-          <el-button v-if="canOffline(row.status)" link type="warning" @click="handleOffline(row as Subject)">
+          <el-button
+            v-if="canOffline(row.status)"
+            link
+            type="warning"
+            :disabled="isActing(row.id)"
+            @click="handleOffline(row as Subject)"
+          >
             下架
           </el-button>
-          <el-button v-if="canDelete(row.status)" link type="danger" @click="handleRemove(row as Subject)">
+          <el-button
+            v-if="canDelete(row.status)"
+            link
+            type="danger"
+            :disabled="isActing(row.id)"
+            @click="handleRemove(row as Subject)"
+          >
             删除
           </el-button>
         </template>
@@ -43,7 +61,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { confirmAction, runAction } from '../../shared/actions';
+import { confirmAction, runAction, useRowAction } from '../../shared/actions';
 import StatusTag from '../../shared/components/StatusTag.vue';
 import { CONTENT_STATUS_META } from '../../shared/constants';
 import { canDelete, canOffline, canPublish, useSubjectList } from '../useExamCatalog';
@@ -92,16 +110,18 @@ const handleSubmit = async (dto: Required<UpdateSubjectDto>) => {
   }
 };
 
-const handlePublish = (subject: Subject) => runAction(() => publish(subject), '已上架');
+const { isActing, run: runRowAction } = useRowAction();
+
+const handlePublish = (subject: Subject) => runRowAction(subject.id, () => publish(subject), '已上架');
 
 const handleOffline = async (subject: Subject) => {
   if (!(await confirmAction(`下架科目「${subject.name}」？用户将看不到该科目，历史记录保留`, '下架科目'))) return;
-  await runAction(() => offline(subject), '已下架');
+  await runRowAction(subject.id, () => offline(subject), '已下架');
 };
 
 const handleRemove = async (subject: Subject) => {
   if (!(await confirmAction(`删除科目「${subject.name}」？仅可删除无知识点的草稿科目`, '删除科目'))) return;
-  await runAction(() => remove(subject), '已删除');
+  await runRowAction(subject.id, () => remove(subject), '已删除');
 };
 </script>
 

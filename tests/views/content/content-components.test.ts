@@ -2,8 +2,10 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   adminGetDailyQuestionSets,
+  adminGetQuestion,
   adminGetSubjectKnowledgePoints,
   adminPreviewPaperRule,
+  type AdminQuestionDto,
   type KnowledgePointTreeNodeDto,
   type PaperRule,
 } from '@/api';
@@ -11,10 +13,12 @@ import DailyPage from '@/views/content/daily/index.vue';
 import PaperRuleDialog from '@/views/content/paper-rules/components/PaperRuleDialog.vue';
 import PaperRulePreviewDialog from '@/views/content/paper-rules/components/PaperRulePreviewDialog.vue';
 import KnowledgePointSelect from '@/views/content/shared/components/KnowledgePointSelect.vue';
+import QuestionPreviewDialog from '@/views/content/shared/components/QuestionPreviewDialog.vue';
 import { invalidateKnowledgeTree } from '@/views/content/shared/knowledge-tree-cache';
 
 vi.mock('@/api', () => ({
   adminGetDailyQuestionSets: vi.fn(),
+  adminGetQuestion: vi.fn(),
   adminGetSubjectKnowledgePoints: vi.fn(),
   adminPreviewPaperRule: vi.fn(),
   adminRegenerateDailyQuestionSet: vi.fn(),
@@ -111,6 +115,46 @@ describe('PaperRuleDialog', () => {
   });
 });
 
+describe('每日一练页切换科目', () => {
+  it('切换科目后需重新查询才能生成', async () => {
+    vi.mocked(adminGetDailyQuestionSets).mockResolvedValue([]);
+    const wrapper = mount(DailyPage);
+    await flushPromises();
+    const cascader = wrapper.findComponent({ name: 'SubjectCascader' });
+    cascader.vm.$emit('update:modelValue', 's1');
+    await flushPromises();
+    await wrapper.find('form').trigger('submit');
+    await flushPromises();
+    const regenerateButton = () => wrapper.find('.daily-page__regenerate');
+    expect(regenerateButton().attributes('disabled')).toBeUndefined();
+
+    cascader.vm.$emit('update:modelValue', 's2');
+    await flushPromises();
+
+    expect(regenerateButton().attributes('disabled')).toBeDefined();
+  });
+});
+
+describe('每日一练页查询中切换科目', () => {
+  it('查询返回前切换科目，返回后仍需重新查询才能生成', async () => {
+    const pending = deferred<never[]>();
+    vi.mocked(adminGetDailyQuestionSets).mockReturnValueOnce(pending.promise);
+    const wrapper = mount(DailyPage);
+    await flushPromises();
+    const cascader = wrapper.findComponent({ name: 'SubjectCascader' });
+    cascader.vm.$emit('update:modelValue', 's1');
+    await flushPromises();
+    await wrapper.find('form').trigger('submit');
+
+    cascader.vm.$emit('update:modelValue', 's2');
+    await flushPromises();
+    pending.resolve([]);
+    await flushPromises();
+
+    expect(wrapper.find('.daily-page__regenerate').attributes('disabled')).toBeDefined();
+  });
+});
+
 describe('PaperRulePreviewDialog', () => {
   it('重新生成时先清空旧结果', async () => {
     const rule = { id: 'r1', name: '规则', items: [] } as unknown as PaperRule;
@@ -177,5 +221,47 @@ describe('每日一练页', () => {
     expect(wrapper.text()).toContain('今日题目');
     expect(wrapper.text()).toContain('材料小题');
     vi.useRealTimers();
+  });
+});
+
+describe('QuestionPreviewDialog', () => {
+  it('切换题目后丢弃上一题晚到的响应', async () => {
+    const first = deferred<AdminQuestionDto>();
+    const second = deferred<AdminQuestionDto>();
+    vi.mocked(adminGetQuestion).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const preview = (id: string, stem: string) =>
+      ({
+        id,
+        type: 'SINGLE',
+        stem,
+        status: 'REVIEWING',
+        currentVersion: 1,
+        difficulty: 3,
+        source: 'ORIGINAL',
+        sourceNote: null,
+        options: [],
+        answer: null,
+        analysis: null,
+        fileUrls: {},
+      }) as unknown as AdminQuestionDto;
+    const wrapper = mount(QuestionPreviewDialog, {
+      props: { modelValue: false, questionId: 'a' },
+      attachTo: document.body,
+    });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+    await wrapper.setProps({ modelValue: false });
+    await flushPromises();
+    await wrapper.setProps({ modelValue: true, questionId: 'b' });
+    await flushPromises();
+
+    second.resolve(preview('b', '第二题题干'));
+    await flushPromises();
+    first.resolve(preview('a', '第一题题干'));
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('第二题题干');
+    expect(document.body.textContent).not.toContain('第一题题干');
+    wrapper.unmount();
   });
 });

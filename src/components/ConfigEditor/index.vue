@@ -10,7 +10,7 @@
 <template>
   <div class="config-editor">
     <div class="config-editor__toolbar">
-      <el-radio-group :model-value="mode" size="small" @change="onModeChange">
+      <el-radio-group :model-value="mode" size="small" :disabled="disabled" @change="onModeChange">
         <el-radio-button value="visual">可视化</el-radio-button>
         <el-radio-button value="code">代码</el-radio-button>
       </el-radio-group>
@@ -26,6 +26,7 @@
         :model-value="modelValue"
         :issues="issues"
         :uploader="uploader"
+        :disabled="disabled"
         @update:model-value="emit('update:modelValue', $event)"
       />
     </div>
@@ -38,6 +39,7 @@
           type="textarea"
           resize="none"
           :spellcheck="false"
+          :disabled="disabled"
           class="config-editor__textarea"
         />
       </div>
@@ -73,6 +75,7 @@ const props = defineProps<{
   issues?: IConfigIssue[];
   /** 文件上传器，透传给 SchemaField；不传则内联 base64 */
   uploader?: (file: File) => Promise<string>;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

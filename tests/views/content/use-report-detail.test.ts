@@ -94,4 +94,19 @@ describe('useReportDetail', () => {
     expect(adminUpdateQuestionReport).toHaveBeenLastCalledWith(7, { errataId: null });
     expect(detail.report.value?.errata).toBeNull();
   });
+
+  it('关联勘误时保留处理表单中未保存的状态与回复', async () => {
+    vi.mocked(adminUpdateQuestionReport).mockResolvedValue(
+      reportDetail({ status: 'resolved', errataId: 'e1', errata: errata({ status: 'DONE' }) }),
+    );
+    const detail = useReportDetail();
+    await detail.load(7);
+    detail.form.status = 'closed';
+    detail.form.reply = '已核实';
+
+    await detail.linkErrata('e1');
+
+    expect(detail.report.value?.errata?.id).toBe('e1');
+    expect(detail.form).toEqual({ status: 'closed', reply: '已核实' });
+  });
 });

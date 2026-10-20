@@ -49,6 +49,15 @@ export function normalizeEditorValue(value: AppProfileEditorValue): AppProfileEd
   );
 }
 
+/** schema 中不存在的分组或字段；保存时不提交，可以忽略 */
+export function isUnknownProfilePath(path: string): boolean {
+  if (!path) return false;
+  const [sectionKey, fieldKey, ...rest] = path.split('.');
+  if (!Object.hasOwn(appProfileSchema, sectionKey)) return true;
+  const section = appProfileSchema[sectionKey as AppProfileSectionKey];
+  return fieldKey !== undefined && rest.length === 0 && !Object.hasOwn(section.properties, fieldKey);
+}
+
 /** 按去除首尾空白后的值校验 */
 export function validateAppProfile(value: unknown): IConfigIssue[] {
   const input = isRecord(value) ? normalizeEditorValue(value as AppProfileEditorValue) : value;

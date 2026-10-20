@@ -80,6 +80,27 @@ describe('useImportJobs', () => {
     scope.stop();
   });
 
+  it('轮询刷新不显示加载状态', async () => {
+    vi.mocked(adminGetImports).mockResolvedValueOnce(page([job({ status: 'RUNNING' })]));
+    let resolvePoll!: (value: ReturnType<typeof page>) => void;
+    vi.mocked(adminGetImports).mockReturnValueOnce(
+      new Promise(resolve => {
+        resolvePoll = resolve;
+      }),
+    );
+    const scope = effectScope();
+    const jobs = scope.run(() => useImportJobs())!;
+
+    await jobs.load();
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(IMPORT_POLL_INTERVAL);
+
+    expect(adminGetImports).toHaveBeenCalledTimes(2);
+    expect(jobs.loading.value).toBe(false);
+    resolvePoll(page([job({ status: 'DONE' })]));
+    scope.stop();
+  });
+
   it('作用域销毁后停止轮询', async () => {
     vi.mocked(adminGetImports).mockResolvedValue(page([job({ status: 'PENDING' })]));
     const scope = effectScope();

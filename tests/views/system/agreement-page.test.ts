@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, onMounted } from 'vue';
 import { fetchRemoteConfig, saveRemoteConfig } from '@/api';
 import AgreementPage from '@/views/system/agreement/index.vue';
 
@@ -13,8 +13,13 @@ vi.mock('@/api', async () => {
 vi.mock('@/views/system/agreement/components/AgreementEditor.vue', () => ({
   default: defineComponent({
     props: { modelValue: { type: String, required: true } },
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'normalized'],
     setup(props, { emit }) {
+      onMounted(() => {
+        const html = props.modelValue.replace(/<div>(.*?)<\/div>/g, '<p>$1</p>');
+        emit('normalized', html);
+        if (html !== props.modelValue) emit('update:modelValue', html);
+      });
       return () =>
         h('textarea', {
           class: 'editor-stub',
@@ -214,6 +219,25 @@ describe('协议管理页', () => {
     expect(wrapper.find('.agreement-panel__version').text()).toBe('当前版本：1.0');
     expect(wrapper.find('.agreement-panel__updated').text()).toContain('2026-10-18');
     expect((wrapper.find('.editor-stub').element as HTMLTextAreaElement).value).toBe('<p>新条款</p>');
+    wrapper.unmount();
+  });
+
+  it('载入后经编辑器规范化的正文不算未保存修改，编辑后算', async () => {
+    vi.mocked(fetchRemoteConfig).mockImplementation(async key =>
+      key === 'agreement.userAgreement' ? stored(key, '<div>旧版正文</div>') : null,
+    );
+    const wrapper = await mountPage();
+    const beforeUnload = () => {
+      const event = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+
+    expect(beforeUnload()).toBe(false);
+
+    await wrapper.find('.editor-stub').setValue('<p>新正文</p>');
+
+    expect(beforeUnload()).toBe(true);
     wrapper.unmount();
   });
 });

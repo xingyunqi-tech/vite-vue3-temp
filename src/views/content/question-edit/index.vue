@@ -3,11 +3,11 @@
     <div class="content-page__header">
       <div class="content-page__actions">
         <el-button @click="router.push('/content/questions')">返回</el-button>
-        <h2 class="content-page__title">{{ question ? '编辑题目' : '新建题目' }}</h2>
+        <h2 class="content-page__title">{{ question || loadFailed ? '编辑题目' : '新建题目' }}</h2>
         <StatusTag v-if="question" :status="question.status" :meta-map="QUESTION_STATUS_META" />
         <span v-if="question?.currentVersion" class="content-page__muted">当前版本 v{{ question.currentVersion }}</span>
       </div>
-      <div class="content-page__actions">
+      <div v-if="!loadFailed" class="content-page__actions">
         <el-button v-if="question && question.currentVersion > 0" @click="versionsTarget = question.id">
           版本历史
         </el-button>
@@ -21,67 +21,74 @@
       </div>
     </div>
 
-    <el-alert
-      v-if="!editable"
-      type="warning"
-      :closable="false"
-      show-icon
-      title="题目审核中，不能编辑；如需修改请先由审核人驳回"
-      class="question-edit__notice"
-    />
-    <el-alert
-      v-else-if="answerLocked"
-      type="info"
-      :closable="false"
-      show-icon
-      title="题目已发布过：保存将生成新版本，不能修改题型、答案、选项数量与填空空数"
-      class="question-edit__notice"
-    />
+    <el-result v-if="loadFailed" icon="error" title="题目加载失败" sub-title="题目可能已被删除，或网络异常">
+      <template #extra>
+        <el-button type="primary" @click="reload">重新加载</el-button>
+      </template>
+    </el-result>
+    <template v-else>
+      <el-alert
+        v-if="!editable"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="题目审核中，不能编辑；如需修改请先由审核人驳回"
+        class="question-edit__notice"
+      />
+      <el-alert
+        v-else-if="answerLocked"
+        type="info"
+        :closable="false"
+        show-icon
+        title="题目已发布过：保存将生成新版本，不能修改题型、答案、选项数量与填空空数"
+        class="question-edit__notice"
+      />
 
-    <div class="question-edit__body">
-      <div class="question-edit__form">
-        <el-form label-width="88px">
-          <el-form-item label="科目" required>
-            <SubjectCascader v-model="subjectId" :disabled="!!question" :clearable="false" />
-          </el-form-item>
-        </el-form>
-        <QuestionFields
-          v-model:form="form"
-          :subject-id="subjectId"
-          :file-urls="fileUrls"
-          :answer-locked="answerLocked"
-          :editing-type="question?.type ?? null"
-          :disabled="!editable"
-          @uploaded="register"
-          @knowledge-loaded="setKnowledgeTree"
-        />
-        <el-alert v-if="errors.length" type="error" :closable="false" class="question-edit__notice">
-          <div v-for="error in errors" :key="error">{{ error }}</div>
-        </el-alert>
+      <div class="question-edit__body">
+        <div class="question-edit__form">
+          <el-form label-width="88px">
+            <el-form-item label="科目" required>
+              <SubjectCascader v-model="subjectId" :disabled="!!question" :clearable="false" />
+            </el-form-item>
+          </el-form>
+          <QuestionFields
+            v-model:form="form"
+            :subject-id="subjectId"
+            :file-urls="fileUrls"
+            :answer-locked="answerLocked"
+            :editing-type="question?.type ?? null"
+            :disabled="!editable"
+            @uploaded="register"
+            @knowledge-loaded="setKnowledgeTree"
+          />
+          <el-alert v-if="errors.length" type="error" :closable="false" class="question-edit__notice">
+            <div v-for="error in errors" :key="error">{{ error }}</div>
+          </el-alert>
 
-        <MaterialChildren
-          v-if="question?.type === 'MATERIAL'"
-          :material-id="question.id"
-          :subject-id="subjectId"
-          :children="children"
-          :can-add="question.status === 'DRAFT'"
-          :editable="editable"
-          :file-urls="fileUrls"
-          class="question-edit__children"
-          @uploaded="register"
-          @changed="reloadCurrent"
-          @remove="handleRemoveChild"
-          @versions="versionsTarget = $event.id"
-          @errata="router.push(errataCreateLocation($event.id))"
-        />
-        <p v-else-if="form.type === 'MATERIAL'" class="content-page__muted">保存材料后可添加小题</p>
+          <MaterialChildren
+            v-if="question?.type === 'MATERIAL'"
+            :material-id="question.id"
+            :subject-id="subjectId"
+            :children="children"
+            :can-add="question.status === 'DRAFT'"
+            :editable="editable"
+            :file-urls="fileUrls"
+            class="question-edit__children"
+            @uploaded="register"
+            @changed="reloadCurrent"
+            @remove="handleRemoveChild"
+            @versions="versionsTarget = $event.id"
+            @errata="router.push(errataCreateLocation($event.id))"
+          />
+          <p v-else-if="form.type === 'MATERIAL'" class="content-page__muted">保存材料后可添加小题</p>
+        </div>
+
+        <aside class="question-edit__preview">
+          <h3 class="question-edit__preview-title">预览</h3>
+          <QuestionPreview :question="previewQuestion" :file-urls="fileUrls" />
+        </aside>
       </div>
-
-      <aside class="question-edit__preview">
-        <h3 class="question-edit__preview-title">预览</h3>
-        <QuestionPreview :question="previewQuestion" :file-urls="fileUrls" />
-      </aside>
-    </div>
+    </template>
 
     <QuestionVersionDrawer v-model="versionsVisible" :question-id="versionsTarget" />
   </div>
@@ -90,7 +97,7 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
 import { computed, ref, watch } from 'vue';
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { confirmAction, runAction } from '../shared/actions';
 import QuestionPreview, { type PreviewQuestion } from '../shared/components/QuestionPreview.vue';
 import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vue';
@@ -103,6 +110,7 @@ import MaterialChildren from './components/MaterialChildren.vue';
 import QuestionFields from './components/QuestionFields.vue';
 import { QuestionValidationError, useQuestionEditor } from './useQuestionEditor';
 import type { AdminQuestionDto } from '@/api';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 
 const route = useRoute();
 const router = useRouter();
@@ -114,6 +122,7 @@ const {
   question,
   subjectId,
   loading,
+  loadFailed,
   saving,
   editable,
   children,
@@ -152,6 +161,11 @@ const previewQuestion = computed<PreviewQuestion>(() => ({
 
 const queryString = (value: unknown) => (typeof value === 'string' ? value : '');
 
+const reload = () => {
+  const id = route.params.id;
+  if (typeof id === 'string' && id) load(id).catch(() => undefined);
+};
+
 watch(
   () => route.params.id,
   id => {
@@ -167,10 +181,7 @@ watch(
   { immediate: true },
 );
 
-onBeforeRouteLeave(async () => {
-  if (leaveConfirmed || !hasUnsavedChanges.value) return true;
-  return confirmAction('有未保存的修改，确定离开？', '离开页面');
-});
+useLeaveGuard(() => !leaveConfirmed && hasUnsavedChanges.value, { guardParamsChange: true });
 
 const handleSave = async () => {
   errors.value = [];

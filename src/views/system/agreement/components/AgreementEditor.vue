@@ -1,7 +1,7 @@
 <template>
   <div class="agreement-editor">
     <div class="agreement-editor__toolbar" role="toolbar" aria-label="正文格式">
-      <el-dropdown trigger="click" :disabled="!editor" @command="setBlock">
+      <el-dropdown trigger="click" :disabled="!editor || disabled" @command="setBlock">
         <el-button text size="small" class="agreement-editor__dropdown" aria-label="段落格式">
           {{ blockLabel }}
           <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -30,7 +30,7 @@
             :class="{ 'is-active': isActionActive(action) }"
             :aria-label="action.label"
             :aria-pressed="action.active ? isActionActive(action) : undefined"
-            :disabled="!canRun(action)"
+            :disabled="disabled || !canRun(action)"
             @click="runAction(action)"
           >
             <el-icon><component :is="action.icon" /></el-icon>
@@ -39,7 +39,7 @@
       </template>
 
       <el-divider direction="vertical" />
-      <el-dropdown trigger="click" :disabled="!editor" @command="runTableCommand">
+      <el-dropdown trigger="click" :disabled="!editor || disabled" @command="runTableCommand">
         <el-button
           text
           size="small"
@@ -85,13 +85,16 @@ import { isAllowedLinkUrl, sanitizeAgreementHtml, toEditorHtml } from '../agreem
 interface Props {
   modelValue: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 interface Emits {
   (e: 'update:modelValue', value: string): void;
+  /** 外部写入的内容经编辑器规范化后的 HTML */
+  (e: 'normalized', value: string): void;
 }
 
-const props = withDefaults(defineProps<Props>(), { placeholder: '请输入协议正文' });
+const props = withDefaults(defineProps<Props>(), { placeholder: '请输入协议正文', disabled: false });
 const emit = defineEmits<Emits>();
 
 const IMAGE_UNSUPPORTED = '协议正文不支持图片';
@@ -284,6 +287,7 @@ const stateVersion = ref(0);
 
 const editor = useEditor({
   content: toEditorHtml(props.modelValue),
+  editable: !props.disabled,
   extensions: [
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4] },
@@ -329,6 +333,7 @@ const editor = useEditor({
   },
   onCreate: ({ editor: instance }) => {
     const html = readHtml(instance);
+    emit('normalized', html);
     if (!isSameContent(html, props.modelValue)) emit('update:modelValue', html);
   },
   onUpdate: ({ editor: instance }) => {
@@ -339,6 +344,11 @@ const editor = useEditor({
   },
 });
 
+watch(
+  () => props.disabled,
+  disabled => editor.value?.setEditable(!disabled, false),
+);
+
 /** 外部写入的内容不进撤销栈 */
 watch(
   () => props.modelValue,
@@ -347,6 +357,7 @@ watch(
     if (!instance || isSameContent(value, readHtml(instance))) return;
     instance.chain().setMeta('addToHistory', false).setContent(toEditorHtml(value), { emitUpdate: false }).run();
     const html = readHtml(instance);
+    emit('normalized', html);
     if (!isSameContent(html, value)) emit('update:modelValue', html);
   },
 );

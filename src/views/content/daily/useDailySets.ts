@@ -36,9 +36,9 @@ export function useDailySets() {
   const sets = ref<AdminDailyQuestionSetDto[]>([]);
   const loading = ref(false);
   let query: { subjectId: string; range: [string, string] } | null = null;
+  const queriedSubjectId = ref('');
 
   const load = async (subjectId: string, range: [string, string]) => {
-    query = { subjectId, range };
     loading.value = true;
     try {
       const result = await adminGetDailyQuestionSets(
@@ -47,17 +47,20 @@ export function useDailySets() {
         { disableDedup: true },
       );
       sets.value = [...(result ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+      query = { subjectId, range };
+      queriedSubjectId.value = subjectId;
     } finally {
       loading.value = false;
     }
   };
 
+  /** 生成成功后刷新列表，刷新失败不影响生成结果 */
   const regenerate = async (date: string): Promise<DailyQuestionSet | null> => {
     if (!query) return null;
     const result = await adminRegenerateDailyQuestionSet(query.subjectId, date);
-    await load(query.subjectId, query.range);
+    await load(query.subjectId, query.range).catch(() => undefined);
     return result;
   };
 
-  return { sets, loading, load, regenerate };
+  return { sets, loading, queriedSubjectId, load, regenerate };
 }

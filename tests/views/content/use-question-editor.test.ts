@@ -215,6 +215,34 @@ describe('useQuestionEditor', () => {
     expect(adminGetQuestion).toHaveBeenLastCalledWith('q1', { disableDedup: true });
   });
 
+  it('刷新小题时保留材料表单中未保存的修改', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(question({ type: 'MATERIAL', material: '材料' }));
+    const editor = useQuestionEditor();
+    await editor.load('q1');
+    editor.form.value.material = '改过的材料';
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(
+      question({ type: 'MATERIAL', material: '材料', children: [question({ id: 'c1', parentId: 'q1' })] }),
+    );
+
+    await editor.reloadCurrent();
+
+    expect(editor.children.value.map(child => child.id)).toEqual(['c1']);
+    expect(editor.form.value.material).toBe('改过的材料');
+    expect(editor.hasUnsavedChanges.value).toBe(true);
+  });
+
+  it('加载失败时标记失败并清空编辑中的题目', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(question());
+    const editor = useQuestionEditor();
+    await editor.load('q1');
+    vi.mocked(adminGetQuestion).mockRejectedValueOnce(new Error('not found'));
+
+    await expect(editor.load('q2')).rejects.toThrow('not found');
+
+    expect(editor.loadFailed.value).toBe(true);
+    expect(editor.question.value).toBeNull();
+  });
+
   it('审核中的题目不可编辑', async () => {
     vi.mocked(adminGetQuestion).mockResolvedValue(question({ status: 'REVIEWING' }));
     const editor = useQuestionEditor();

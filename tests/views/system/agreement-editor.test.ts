@@ -98,6 +98,16 @@ describe('AgreementEditor 内容同步', () => {
     expect(lastEmitted(wrapper)).toBe('<p>正文红字高亮</p><p>code</p>');
   });
 
+  it('载入与外部写入后发出规范化后的正文', async () => {
+    const { wrapper } = await mountEditor('<p>正文<mark>高亮</mark></p>');
+    expect(wrapper.emitted('normalized')?.at(-1)).toEqual(['<p>正文高亮</p>']);
+
+    await wrapper.setProps({ modelValue: '<p>新正文</p>' });
+    await flushPromises();
+
+    expect(wrapper.emitted('normalized')?.at(-1)).toEqual(['<p>新正文</p>']);
+  });
+
   it('输入后经 update:modelValue 回写 HTML，清空时回写空串', async () => {
     const { wrapper, editor } = await mountEditor();
 

@@ -1,6 +1,7 @@
-import { getCurrentScope, onScopeDispose, watch } from 'vue';
+import { watch } from 'vue';
 import { saveBlob } from '../shared/actions';
 import { usePagedList } from '../shared/usePagedList';
+import { usePolling } from '../shared/usePolling';
 import { adminCreateImport, adminDownloadImportErrors, adminGetImports, uploadContentFile } from '@/api';
 import type { ImportJob, ImportJobStatus } from '@/api';
 
@@ -28,43 +29,26 @@ export function isImportFile(fileName: string): boolean {
   return IMPORT_ACCEPT.split(',').includes(extension);
 }
 
-/** 导入任务列表；有排队或执行中的任务时定时刷新 */
+/** 导入任务列表；有排队或执行中的任务时定时静默刷新 */
 export function useImportJobs() {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let polling = false;
-  let stopped = false;
-
   const list = usePagedList<ImportFilters, ImportJob>({
     createFilters: () => ({ status: '' }),
-    fetchPage: (filters, page, limit) =>
+    fetchPage: (filters, page, limit, { silent }) =>
       adminGetImports(
         { page, limit, ...(filters.status ? { status: filters.status } : {}) },
-        { disableDedup: true, isIgnoreToast: polling },
+        { disableDedup: true, isIgnoreToast: silent },
       ),
   });
 
-  const stopPolling = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-  };
+  const polling = usePolling({
+    interval: IMPORT_POLL_INTERVAL,
+    active: () => list.list.value.some(isJobActive),
+    run: () => list.load({ silent: true }),
+  });
 
-  const schedulePolling = () => {
-    stopPolling();
-    if (stopped || !list.list.value.some(isJobActive)) return;
-    timer = setTimeout(async () => {
-      timer = null;
-      polling = true;
-      try {
-        await list.load();
-      } catch {
-        schedulePolling();
-      } finally {
-        polling = false;
-      }
-    }, IMPORT_POLL_INTERVAL);
-  };
-
-  watch(list.list, schedulePolling);
+  watch(list.list, () => {
+    if (!polling.polling()) polling.schedule();
+  });
 
   const create = async (file: File, publishOnImport: boolean): Promise<ImportJob> => {
     const uploaded = await uploadContentFile(file, 'import');
@@ -79,12 +63,5 @@ export function useImportJobs() {
     saveBlob(blob, `import-errors-${job.id}.xlsx`);
   };
 
-  const dispose = () => {
-    stopped = true;
-    stopPolling();
-  };
-
-  if (getCurrentScope()) onScopeDispose(dispose);
-
-  return { ...list, create, downloadErrors, dispose };
+  return { ...list, create, downloadErrors, dispose: polling.dispose };
 }

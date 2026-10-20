@@ -52,13 +52,31 @@
           <template #default="{ row }">
             <span @click.stop>
               <el-button link type="primary" @click="openEditor(row as Exam)">编辑</el-button>
-              <el-button v-if="canPublish(row.status)" link type="success" @click="handlePublish(row as Exam)">
+              <el-button
+                v-if="canPublish(row.status)"
+                link
+                type="success"
+                :loading="isActing(row.id)"
+                @click="handlePublish(row as Exam)"
+              >
                 上架
               </el-button>
-              <el-button v-if="canOffline(row.status)" link type="warning" @click="handleOffline(row as Exam)">
+              <el-button
+                v-if="canOffline(row.status)"
+                link
+                type="warning"
+                :disabled="isActing(row.id)"
+                @click="handleOffline(row as Exam)"
+              >
                 下架
               </el-button>
-              <el-button v-if="canDelete(row.status)" link type="danger" @click="handleRemove(row as Exam)">
+              <el-button
+                v-if="canDelete(row.status)"
+                link
+                type="danger"
+                :disabled="isActing(row.id)"
+                @click="handleRemove(row as Exam)"
+              >
                 删除
               </el-button>
             </span>
@@ -88,7 +106,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { confirmAction, runAction } from '../shared/actions';
+import { confirmAction, runAction, useRowAction } from '../shared/actions';
 import StatusTag from '../shared/components/StatusTag.vue';
 import { CONTENT_STATUS_META, EXAM_CATEGORY_LABEL, PAGE_SIZES, toOptions, toStatusOptions } from '../shared/constants';
 import ExamFormDialog from './components/ExamFormDialog.vue';
@@ -142,16 +160,18 @@ const handleSubmit = async (dto: CreateExamDto) => {
   }
 };
 
-const handlePublish = (exam: Exam) => runAction(() => publish(exam), '已上架');
+const { isActing, run: runRowAction } = useRowAction();
+
+const handlePublish = (exam: Exam) => runRowAction(exam.id, () => publish(exam), '已上架');
 
 const handleOffline = async (exam: Exam) => {
   if (!(await confirmAction(`下架考试「${exam.name}」？用户将看不到该考试，历史记录保留`, '下架考试'))) return;
-  await runAction(() => offline(exam), '已下架');
+  await runRowAction(exam.id, () => offline(exam), '已下架');
 };
 
 const handleRemove = async (exam: Exam) => {
   if (!(await confirmAction(`删除考试「${exam.name}」？仅可删除无科目的草稿考试`, '删除考试'))) return;
-  await runAction(() => remove(exam), '已删除');
+  await runRowAction(exam.id, () => remove(exam), '已删除');
 };
 
 onMounted(() => {

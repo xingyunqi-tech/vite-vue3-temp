@@ -149,7 +149,8 @@ const handleSubmit = async (form: PaperRuleForm) => {
 
 const handleStatus = async (rule: PaperRule, status: ContentStatus) => {
   const label = status === 'PUBLISHED' ? '发布' : '下架';
-  if (!(await confirmAction(`${label}规则「${rule.name}」？发布的规则用户可用于生成个人试卷`, `${label}规则`))) return;
+  const hint = status === 'PUBLISHED' ? '发布的规则用户可用于生成个人试卷' : '下架后用户不能再用该规则生成试卷';
+  if (!(await confirmAction(`${label}规则「${rule.name}」？${hint}`, `${label}规则`))) return;
   await runAction(() => setStatus(rule, status), `已${label}`);
 };
 

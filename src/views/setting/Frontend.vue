@@ -25,9 +25,9 @@
 <script setup lang="ts">
 import { ElMessageBox, ElMessage } from 'element-plus';
 import { cloneDeep, isEqual } from 'lodash-es';
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { ref, computed, watch } from 'vue';
 import ConfigEditor from '@/components/ConfigEditor/index.vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 import { useSiteConfig } from '@/composables/useSiteConfig';
 import { siteConfigSchema } from '@/constants/site-config';
 import type { ThemeStyleKey } from '@/interface/system';
@@ -171,27 +171,7 @@ watch(
   },
 );
 
-// 离开页面前确认，避免未保存的修改被静默丢弃
-onBeforeRouteLeave(async () => {
-  if (!isDirty.value) return true;
-  try {
-    await ElMessageBox.confirm('有未保存的修改，确定要离开吗？', '提示', {
-      confirmButtonText: '离开',
-      cancelButtonText: '留在本页',
-      type: 'warning',
-    });
-    return true;
-  } catch {
-    return false;
-  }
-});
-
-// 关闭/刷新标签页时的浏览器原生确认（文案由浏览器决定，无法自定义）
-function handleBeforeUnload(event: BeforeUnloadEvent): void {
-  if (isDirty.value) event.preventDefault();
-}
-onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload));
-onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnload));
+useLeaveGuard(() => isDirty.value);
 </script>
 
 <style lang="scss" scoped>

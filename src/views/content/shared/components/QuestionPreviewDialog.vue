@@ -50,12 +50,17 @@ defineSlots<{
 
 const question = ref<AdminQuestionDto | null>(null);
 const loading = ref(false);
+let requestSeq = 0;
 
 const load = async () => {
+  const seq = ++requestSeq;
   question.value = null;
+  loading.value = false;
   if (!props.questionId) return;
   loading.value = true;
-  question.value = await adminGetQuestion(props.questionId, { disableDedup: true }).catch(() => null);
+  const result = await adminGetQuestion(props.questionId, { disableDedup: true }).catch(() => null);
+  if (seq !== requestSeq) return;
+  question.value = result;
   loading.value = false;
 };
 </script>

@@ -107,6 +107,7 @@ export function useQuestionEditor() {
   const question = draft.source;
   const subjectId = ref('');
   const loading = ref(false);
+  const loadFailed = ref(false);
   const saving = ref(false);
 
   const editable = computed(() => question.value?.status !== 'REVIEWING');
@@ -114,17 +115,23 @@ export function useQuestionEditor() {
 
   const load = async (id: string) => {
     loading.value = true;
+    loadFailed.value = false;
     try {
       const result = await adminGetQuestion(id, { disableDedup: true });
       registerQuestion(result);
       draft.reset(result);
       subjectId.value = result.subjectId;
+    } catch (error) {
+      draft.reset(null);
+      loadFailed.value = true;
+      throw error;
     } finally {
       loading.value = false;
     }
   };
 
   const startCreate = (type: QuestionType, initialSubjectId = '') => {
+    loadFailed.value = false;
     draft.reset(null, type);
     subjectId.value = initialSubjectId;
   };
@@ -152,8 +159,12 @@ export function useQuestionEditor() {
     await load(question.value.id);
   };
 
+  /** 只刷新题目信息与小题，保留材料表单中未保存的修改 */
   const reloadCurrent = async () => {
-    if (question.value) await load(question.value.id);
+    if (!question.value) return;
+    const result = await adminGetQuestion(question.value.id, { disableDedup: true });
+    registerQuestion(result);
+    question.value = result;
   };
 
   const removeChild = async (child: AdminQuestionDto) => {
@@ -168,6 +179,7 @@ export function useQuestionEditor() {
     question,
     subjectId,
     loading,
+    loadFailed,
     saving,
     editable,
     children,

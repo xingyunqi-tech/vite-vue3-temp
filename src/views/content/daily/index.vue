@@ -33,6 +33,7 @@
         <el-button
           class="daily-page__regenerate"
           :disabled="!subjectId || !queried"
+          :loading="regenerating"
           @click="handleRegenerate(regenerateDate)"
         >
           生成 / 重新生成
@@ -69,7 +70,13 @@
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="canRegenerate(row.date)" link type="primary" @click="handleRegenerate(row.date)">
+          <el-button
+            v-if="canRegenerate(row.date)"
+            link
+            type="primary"
+            :disabled="regenerating"
+            @click="handleRegenerate(row.date)"
+          >
             重新生成
           </el-button>
           <span v-else class="content-page__muted">已过期</span>
@@ -81,7 +88,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { confirmAction, runAction } from '../shared/actions';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_TYPE_LABEL } from '../shared/constants';
@@ -92,13 +99,18 @@ import dayjs from '@/plugins/dayjs';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
-const { options: subjectOptions, load: loadSubjects } = useSubjectOptions();
-const { sets, loading, load, regenerate } = useDailySets();
+const { options: subjectOptions, load: loadSubjects, subjectLabel } = useSubjectOptions();
+const { sets, loading, queriedSubjectId, load, regenerate } = useDailySets();
 
 const subjectId = ref('');
 const range = ref<[string, string]>(defaultDateRange());
 const regenerateDate = ref(businessToday());
 const queried = ref(false);
+const regenerating = ref(false);
+
+watch(subjectId, () => {
+  queried.value = false;
+});
 
 const isPastDate = (date: Date) => !canRegenerate(dayjs(date).format('YYYY-MM-DD'));
 
@@ -109,19 +121,26 @@ const search = async () => {
     ElMessage.error(error);
     return;
   }
-  await load(subjectId.value, range.value)
+  const target = subjectId.value;
+  await load(target, range.value)
     .then(() => {
-      queried.value = true;
+      queried.value = subjectId.value === target;
     })
     .catch(() => undefined);
 };
 
 const handleRegenerate = async (date: string) => {
-  if (!(await confirmAction(`重新生成 ${date} 的题组？已有用户作答时无法重新生成`, '重新生成题组'))) return;
-  await runAction(async () => {
-    const result = await regenerate(date);
-    if (result) ElMessage.success(`已生成 ${result.questionIds.length} 道题`);
-  });
+  const message = `重新生成「${subjectLabel(queriedSubjectId.value)}」${date} 的题组？已有用户作答时无法重新生成`;
+  if (!(await confirmAction(message, '重新生成题组'))) return;
+  regenerating.value = true;
+  try {
+    await runAction(async () => {
+      const result = await regenerate(date);
+      if (result) ElMessage.success(`已生成 ${result.questionIds.length} 道题`);
+    });
+  } finally {
+    regenerating.value = false;
+  }
 };
 
 onMounted(() => {

@@ -34,6 +34,7 @@ beforeEach(() => {
   leaveGuards.length = 0;
   vi.spyOn(ElMessage, 'success').mockImplementation(() => ({ close: () => {} }) as never);
   vi.spyOn(ElMessage, 'error').mockImplementation(() => ({ close: () => {} }) as never);
+  vi.spyOn(ElMessage, 'warning').mockImplementation(() => ({ close: () => {} }) as never);
   vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
   vi.mocked(getAppProfile).mockResolvedValue({ ...EMPTY_PROFILE, appName: '备考刷题Pro', servicePhone: '400-100' });
   vi.mocked(adminUpdateAppProfile).mockImplementation(async dto => ({ ...EMPTY_PROFILE, ...dto }) as AppProfile);
@@ -151,7 +152,9 @@ describe('小程序配置页', () => {
 
     await clickSave(page);
 
-    expect(ElMessage.error).toHaveBeenCalledWith('存在不合法的配置项，请修正后再保存');
+    expect(ElMessage.error).toHaveBeenCalledWith(
+      '存在不合法的配置项，请修正后再保存：service.servicePhone、service.serviceEmail',
+    );
     expect(ElMessageBox.confirm).not.toHaveBeenCalled();
     expect(adminUpdateAppProfile).not.toHaveBeenCalled();
   });
@@ -169,6 +172,27 @@ describe('小程序配置页', () => {
 
     await input(page, '服务时间').setValue('工作日');
     expect(fieldError(page, '服务时间')).toBeUndefined();
+  });
+
+  it('JSON 模式下的未知字段不阻止保存，保存后提示已忽略', async () => {
+    const page = await mountPage();
+
+    page.findComponent(ConfigEditor).vm.requestMode('code');
+    await flushPromises();
+    const textarea = page.find('.config-editor__textarea textarea');
+    const value = JSON.parse((textarea.element as HTMLTextAreaElement).value);
+    value.basic.unknown = 'x';
+    value.basic.slogan = '新宣传语';
+    await textarea.setValue(JSON.stringify(value));
+    await clickSave(page);
+
+    expect(adminUpdateAppProfile).toHaveBeenCalledWith(expect.not.objectContaining({ unknown: 'x' }), {
+      isIgnoreToast: true,
+    });
+    expect(adminUpdateAppProfile).toHaveBeenCalledWith(expect.objectContaining({ slogan: '新宣传语' }), {
+      isIgnoreToast: true,
+    });
+    expect(ElMessage.warning).toHaveBeenCalledWith('配置已保存，已忽略未知配置项：basic.unknown');
   });
 
   it('JSON 模式下 422 字段错误汇总展示', async () => {

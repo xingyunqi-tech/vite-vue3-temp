@@ -14,7 +14,7 @@
         </div>
       </template>
 
-      <el-form label-position="top" :model="modelValue">
+      <el-form label-position="top" :model="modelValue" :disabled="disabled">
         <el-row :gutter="16">
           <el-col v-for="(field, fieldKey) in section.properties" :key="fieldKey" :span="field.span ?? 24">
             <el-form-item :error="issueOf(`${sectionKey}.${fieldKey}`)">
@@ -118,6 +118,7 @@ const props = defineProps<{
   issues?: IConfigIssue[];
   /** 文件上传器，透传给 SchemaField；不传则内联 base64 */
   uploader?: (file: File) => Promise<string>;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{

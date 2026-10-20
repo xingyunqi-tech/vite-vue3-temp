@@ -43,7 +43,7 @@
               :disabled="frozen"
               size="small"
               controls-position="right"
-              @update:model-value="emit('childScore', child, $event ?? PAPER_LIMITS.minScore)"
+              @update:model-value="handleChildScore(child, $event)"
             />
           </div>
         </template>
@@ -62,7 +62,7 @@
             :disabled="frozen"
             size="small"
             controls-position="right"
-            @update:model-value="emit('score', row as PaperItem, $event ?? PAPER_LIMITS.minScore)"
+            @update:model-value="handleScore(row as PaperItem, $event)"
           />
           <div v-if="isMaterialItem(row as PaperItem)" class="section-card__muted">
             每小题，合计 {{ itemScore(row as PaperItem) }}
@@ -117,6 +117,15 @@ const emit = defineEmits<{
 }>();
 
 const typeOptions = toOptions(QUESTION_TYPE_LABEL);
+/** 清空输入时不更新，失焦后输入框恢复原分值 */
+const handleScore = (item: PaperItem, score: number | null | undefined) => {
+  if (score != null) emit('score', item, score);
+};
+
+const handleChildScore = (child: PaperItemChild, score: number | null | undefined) => {
+  if (score != null) emit('childScore', child, score);
+};
+
 const sectionSummary = computed(() => computePaperScores(props.items));
 const questionCount = computed(() => sectionSummary.value.questionCount);
 const totalScore = computed(() => sectionSummary.value.totalScore);

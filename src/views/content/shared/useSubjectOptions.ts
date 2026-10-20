@@ -5,6 +5,7 @@ import type { Exam, Subject } from '@/api';
 export interface SubjectOption {
   value: string;
   label: string;
+  disabled?: boolean;
   children?: SubjectOption[];
 }
 
@@ -22,14 +23,16 @@ export function useSubjectOptions() {
     }
   };
 
+  /** 没有科目的考试置灰，避免被当作叶子选中 */
   const options = computed<SubjectOption[]>(() =>
-    exams.value.map(exam => ({
-      value: exam.id,
-      label: exam.name,
-      children: subjects.value
+    exams.value.map(exam => {
+      const children = subjects.value
         .filter(subject => subject.examId === exam.id)
-        .map(subject => ({ value: subject.id, label: subject.name })),
-    })),
+        .map(subject => ({ value: subject.id, label: subject.name }));
+      return children.length
+        ? { value: exam.id, label: exam.name, children }
+        : { value: exam.id, label: `${exam.name}（暂无科目）`, disabled: true };
+    }),
   );
 
   /** 「考试 / 科目」名称 */

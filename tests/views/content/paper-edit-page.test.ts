@@ -165,7 +165,24 @@ describe('试卷编辑页', () => {
     await wrapper.find('.section-card__title input').setValue('改过的分区');
     await router.push('/content/papers');
 
-    expect(confirm).toHaveBeenCalledWith('有未保存的修改，确定离开？', '离开页面', expect.anything());
+    expect(confirm).toHaveBeenCalledWith('有未保存的修改，确定要离开吗？', '提示', expect.anything());
+    expect(router.currentRoute.value.fullPath).toBe('/content/papers/p1');
+  });
+
+  it('有未保存修改时切换到另一张试卷需确认', async () => {
+    const confirm = vi.spyOn(ElMessageBox, 'confirm').mockRejectedValueOnce('cancel');
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/content/papers/:id', component: PaperEditPage }],
+    });
+    await router.push('/content/papers/p1');
+    const wrapper = mount({ template: '<router-view />' }, { global: { plugins: [router] } });
+    await flushPromises();
+
+    await wrapper.find('.section-card__title input').setValue('改过的分区');
+    await router.push('/content/papers/p2');
+
+    expect(confirm).toHaveBeenCalledWith('有未保存的修改，确定要离开吗？', '提示', expect.anything());
     expect(router.currentRoute.value.fullPath).toBe('/content/papers/p1');
   });
 });

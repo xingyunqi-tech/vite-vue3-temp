@@ -2,6 +2,7 @@ import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios';
 import { describe, it, expect } from 'vitest';
 import {
   APP_PROFILE_FIELD_SECTIONS,
+  isUnknownProfilePath,
   normalizeEditorValue,
   toAppProfilePayload,
   toEditorValue,
@@ -161,5 +162,15 @@ describe('后端字段错误映射', () => {
     expect(toFieldIssues(axiosError(500, { code: 500, data: { appName: 'x' } }))).toEqual([]);
     expect(toFieldIssues(axiosError(422, { code: 422, data: null }))).toEqual([]);
     expect(toFieldIssues(new Error('network'))).toEqual([]);
+  });
+});
+
+describe('未知配置路径', () => {
+  it('未知分组与未知字段可忽略，已知字段与分组本身的问题不可忽略', () => {
+    expect(isUnknownProfilePath('extra')).toBe(true);
+    expect(isUnknownProfilePath('basic.unknown')).toBe(true);
+    expect(isUnknownProfilePath('basic.appName')).toBe(false);
+    expect(isUnknownProfilePath('basic')).toBe(false);
+    expect(isUnknownProfilePath('')).toBe(false);
   });
 });

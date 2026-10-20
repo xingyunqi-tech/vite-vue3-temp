@@ -23,6 +23,7 @@
       :schema="appProfileSchema"
       :model-value="draft"
       :issues="issues"
+      :disabled="saving"
       @update:model-value="draft = $event"
     >
       <template #actions>
@@ -44,9 +45,9 @@
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { cloneDeep, get, isEqual } from 'lodash-es';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
 import {
+  isUnknownProfilePath,
   normalizeEditorValue,
   toAppProfilePayload,
   toEditorValue,
@@ -58,6 +59,7 @@ import { appProfileSchema } from './schema';
 import { adminUpdateAppProfile, getAppProfile, type AppProfile } from '@/api';
 import { requestErrorMessage } from '@/api/core/error';
 import ConfigEditor from '@/components/ConfigEditor/index.vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 import type { IConfigIssue } from '@/plugins/site-config';
 
 const configEditorRef = ref<InstanceType<typeof ConfigEditor>>();
@@ -98,6 +100,11 @@ const isDirty = computed(() => {
 
 const canSave = computed(() => current.value.ok && isDirty.value);
 
+function formatIssues(list: IConfigIssue[]): string {
+  const paths = list.slice(0, 3).map(issue => issue.path || '(根节点)');
+  return `${paths.join('、')}${list.length > 3 ? ' 等' : ''}`;
+}
+
 function setDraft(next: AppProfileEditorValue): void {
   draft.value = next;
   configEditorRef.value?.reload(next);
@@ -128,10 +135,13 @@ async function handleSave(): Promise<void> {
     ElMessage.error('JSON 存在语法错误，请修正后再保存');
     return;
   }
-  if (validateAppProfile(snapshot.value).length > 0) {
-    ElMessage.error('存在不合法的配置项，请修正后再保存');
+  const localIssues = validateAppProfile(snapshot.value);
+  const blocking = localIssues.filter(issue => !isUnknownProfilePath(issue.path));
+  if (blocking.length > 0) {
+    ElMessage.error(`存在不合法的配置项，请修正后再保存：${formatIssues(blocking)}`);
     return;
   }
+  const ignored = localIssues.filter(issue => isUnknownProfilePath(issue.path));
 
   try {
     await ElMessageBox.confirm('保存后小程序将展示新的站点信息，留空的字段使用小程序默认值。', '保存小程序配置', {
@@ -161,32 +171,13 @@ async function handleSave(): Promise<void> {
   }
 
   applyProfile(profile);
-  ElMessage.success('配置已保存');
+  if (ignored.length > 0) ElMessage.warning(`配置已保存，已忽略未知配置项：${formatIssues(ignored)}`);
+  else ElMessage.success('配置已保存');
 }
 
-onBeforeRouteLeave(async () => {
-  if (!isDirty.value) return true;
-  try {
-    await ElMessageBox.confirm('有未保存的修改，确定要离开吗？', '提示', {
-      confirmButtonText: '离开',
-      cancelButtonText: '留在本页',
-      type: 'warning',
-    });
-    return true;
-  } catch {
-    return false;
-  }
-});
+useLeaveGuard(() => isDirty.value);
 
-function handleBeforeUnload(event: BeforeUnloadEvent): void {
-  if (isDirty.value) event.preventDefault();
-}
-
-onMounted(() => {
-  window.addEventListener('beforeunload', handleBeforeUnload);
-  load();
-});
-onBeforeUnmount(() => window.removeEventListener('beforeunload', handleBeforeUnload));
+onMounted(load);
 </script>
 
 <style lang="scss" scoped>

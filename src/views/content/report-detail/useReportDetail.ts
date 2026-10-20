@@ -79,7 +79,15 @@ export function useReportDetail() {
     return true;
   };
 
-  const linkErrata = (errataId: string | null) => update({ errataId });
+  /** 保留处理表单中未保存的状态与回复 */
+  const linkErrata = async (errataId: string | null) => {
+    if (!report.value) return;
+    const edited: Partial<ReportHandleForm> = {};
+    if (form.status !== report.value.status) edited.status = form.status;
+    if (form.reply !== (report.value.reply ?? '')) edited.reply = form.reply;
+    apply(await adminUpdateQuestionReport(report.value.id, { errataId }));
+    Object.assign(form, edited);
+  };
 
   return { report, question, errataOptions, form, loading, load, save, linkErrata, loadErrataOptions };
 }

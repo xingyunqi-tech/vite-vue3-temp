@@ -78,6 +78,17 @@ describe('useDailySets', () => {
     expect(adminGetDailyQuestionSets).toHaveBeenCalledTimes(2);
   });
 
+  it('重新生成成功但刷新失败时仍返回生成结果', async () => {
+    vi.mocked(adminGetDailyQuestionSets).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('network'));
+    vi.mocked(adminRegenerateDailyQuestionSet).mockResolvedValue(set('2026-10-18', ['q3']));
+    const daily = useDailySets();
+    await daily.load('s1', ['2026-10-11', '2026-10-18']);
+
+    const result = await daily.regenerate('2026-10-18');
+
+    expect(result?.questionIds).toEqual(['q3']);
+  });
+
   it('未查询前不能重新生成', async () => {
     expect(await useDailySets().regenerate('2026-10-18')).toBeNull();
     expect(adminRegenerateDailyQuestionSet).not.toHaveBeenCalled();

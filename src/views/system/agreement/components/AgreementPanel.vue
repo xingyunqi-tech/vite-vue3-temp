@@ -25,7 +25,7 @@
         class="agreement-panel__notice agreement-panel__unconfigured"
       />
 
-      <AgreementEditor v-model="draft" />
+      <AgreementEditor v-model="draft" :disabled="saving" @normalized="baseline = $event" />
 
       <div class="agreement-panel__actions">
         <el-button class="agreement-panel__preview" @click="previewVisible = true">预览</el-button>
@@ -42,7 +42,7 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import {
   checkAgreementContent,
   sanitizeAgreementHtml,
@@ -52,6 +52,7 @@ import {
 import { AgreementVersionSaveError, useAgreement } from '../useAgreement';
 import AgreementEditor from './AgreementEditor.vue';
 import AgreementPreview from './AgreementPreview.vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 import type { AgreementDocument } from '@/constants/agreement';
 import { formatDateTimeFull } from '@/utils/datetime';
 
@@ -68,9 +69,17 @@ const { content, version, updatedAt, configured, loading, loadFailed, saving, lo
 const draft = ref('');
 const previewVisible = ref(false);
 
+/** 已保存正文经编辑器规范化后的 HTML，作为判断未保存修改的基准 */
+const baseline = ref('');
+
 watch(content, value => {
   draft.value = value;
+  baseline.value = value;
 });
+
+const isDirty = computed(() => sanitizeAgreementHtml(draft.value) !== sanitizeAgreementHtml(baseline.value));
+
+useLeaveGuard(() => isDirty.value);
 
 const confirmSave = (message: string, title: string): Promise<boolean> =>
   ElMessageBox.confirm(message, title, { type: 'warning' })

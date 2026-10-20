@@ -23,11 +23,10 @@ export function toErrataQuery(filters: ErrataFilters, page: number, limit: numbe
 /** 勘误任务列表；有排队或执行中的任务时定时刷新 */
 export function useErrataList() {
   const now = ref(Date.now());
-  let silent = false;
 
   const list = usePagedList<ErrataFilters, Errata>({
     createFilters: createErrataFilters,
-    fetchPage: async (filters, page, limit) => {
+    fetchPage: async (filters, page, limit, { silent }) => {
       const result = await adminGetErrataList(toErrataQuery(filters, page, limit), {
         disableDedup: true,
         isIgnoreToast: silent,
@@ -40,14 +39,7 @@ export function useErrataList() {
   const polling = usePolling({
     interval: ERRATA_POLL_INTERVAL,
     active: () => list.list.value.some(isErrataActive),
-    run: async () => {
-      silent = true;
-      try {
-        await list.load({ silent: true });
-      } finally {
-        silent = false;
-      }
-    },
+    run: () => list.load({ silent: true }),
   });
 
   watch(list.list, () => {

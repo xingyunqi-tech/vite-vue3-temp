@@ -8,7 +8,7 @@ export interface PageData<T> {
 
 export interface PagedListOptions<F extends object, T> {
   createFilters: () => F;
-  fetchPage: (filters: F, page: number, limit: number) => Promise<PageData<T>>;
+  fetchPage: (filters: F, page: number, limit: number, context: { silent: boolean }) => Promise<PageData<T>>;
   pageSize?: number;
 }
 
@@ -25,12 +25,12 @@ export function usePagedList<F extends object, T>(options: PagedListOptions<F, T
   let requestSeq = 0;
   let loadScheduled = false;
 
-  /** silent 为真时不改动 loading */
+  /** silent 为真时不改动 loading，并透传给 fetchPage */
   const load = async ({ silent = false }: { silent?: boolean } = {}) => {
     const seq = ++requestSeq;
     if (!silent) loading.value = true;
     try {
-      const res = await options.fetchPage(applied, page.value, limit.value);
+      const res = await options.fetchPage(applied, page.value, limit.value, { silent });
       if (seq !== requestSeq) return;
       list.value = (res?.list ?? []) as UnwrapRef<T>[];
       total.value = res?.total ?? 0;

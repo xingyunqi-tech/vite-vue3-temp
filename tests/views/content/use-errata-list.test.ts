@@ -30,6 +30,30 @@ describe('useErrataList', () => {
     });
   });
 
+  it('轮询请求进行中手动查询仍提示错误', async () => {
+    let resolvePoll!: (value: Awaited<ReturnType<typeof adminGetErrataList>>) => void;
+    vi.mocked(adminGetErrataList)
+      .mockResolvedValueOnce(page([errata({ status: 'RUNNING' })]))
+      .mockReturnValueOnce(
+        new Promise(resolve => {
+          resolvePoll = resolve;
+        }),
+      )
+      .mockResolvedValueOnce(page([errata({ status: 'DONE' })]));
+    const scope = effectScope();
+    const list = scope.run(() => useErrataList())!;
+    await list.search();
+    await nextTick();
+    await vi.advanceTimersByTimeAsync(ERRATA_POLL_INTERVAL);
+
+    await list.search();
+    resolvePoll(page([errata({ status: 'RUNNING' })]));
+
+    expect(vi.mocked(adminGetErrataList).mock.calls[1][1]).toEqual({ disableDedup: true, isIgnoreToast: true });
+    expect(vi.mocked(adminGetErrataList).mock.calls[2][1]).toEqual({ disableDedup: true, isIgnoreToast: false });
+    scope.stop();
+  });
+
   it('有排队或执行中的任务时静默刷新，全部结束后停止', async () => {
     vi.mocked(adminGetErrataList)
       .mockResolvedValueOnce(page([errata({ status: 'RUNNING' }), errata({ id: 'e2', status: 'DONE' })]))

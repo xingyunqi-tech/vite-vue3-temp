@@ -96,6 +96,7 @@
             v-if="canSubmitQuestion(row as AdminQuestionDto)"
             link
             type="success"
+            :loading="isActing(row.id)"
             @click="handleSubmit(row as AdminQuestionDto)"
           >
             提交审核
@@ -104,6 +105,7 @@
             v-if="canOfflineQuestion(row as AdminQuestionDto)"
             link
             type="warning"
+            :disabled="isActing(row.id)"
             @click="handleOffline(row as AdminQuestionDto)"
           >
             下架
@@ -112,6 +114,7 @@
             v-if="canRepublishQuestion(row as AdminQuestionDto)"
             link
             type="success"
+            :loading="isActing(row.id)"
             @click="handleRepublish(row as AdminQuestionDto)"
           >
             重新上架
@@ -120,6 +123,7 @@
             v-if="canDeleteQuestion(row as AdminQuestionDto)"
             link
             type="danger"
+            :disabled="isActing(row.id)"
             @click="handleRemove(row as AdminQuestionDto)"
           >
             删除
@@ -147,7 +151,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { confirmAction, runAction } from '../shared/actions';
+import { confirmAction, useRowAction } from '../shared/actions';
 import KnowledgePointSelect from '../shared/components/KnowledgePointSelect.vue';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
 import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vue';
@@ -209,6 +213,7 @@ const knowledgePointModel = computed({
 const previewVisible = ref(false);
 const versionsVisible = ref(false);
 const activeId = ref('');
+const { isActing, run: runRowAction } = useRowAction();
 
 const onSubjectChange = () => {
   filters.knowledgePointId = '';
@@ -226,19 +231,20 @@ const openVersions = (question: AdminQuestionDto) => {
   versionsVisible.value = true;
 };
 
-const handleSubmit = (question: AdminQuestionDto) => runAction(() => submit(question), '已提交审核');
+const handleSubmit = (question: AdminQuestionDto) => runRowAction(question.id, () => submit(question), '已提交审核');
 
 const handleOffline = async (question: AdminQuestionDto) => {
   if (!(await confirmAction('下架后不再被抽入新练习，已在进行中的练习不受影响', '下架题目'))) return;
-  await runAction(() => offline(question), '已下架');
+  await runRowAction(question.id, () => offline(question), '已下架');
 };
 
-const handleRepublish = (question: AdminQuestionDto) => runAction(() => republish(question), '已重新上架');
+const handleRepublish = (question: AdminQuestionDto) =>
+  runRowAction(question.id, () => republish(question), '已重新上架');
 
 const handleRemove = async (question: AdminQuestionDto) => {
   const message = question.type === 'MATERIAL' ? '删除该材料题及其全部小题？' : '删除该草稿题目？';
   if (!(await confirmAction(message, '删除题目'))) return;
-  await runAction(() => remove(question), '已删除');
+  await runRowAction(question.id, () => remove(question), '已删除');
 };
 
 onMounted(() => {

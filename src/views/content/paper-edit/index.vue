@@ -7,11 +7,45 @@
         <StatusTag v-if="paper" :status="paper.status" :meta-map="CONTENT_STATUS_META" />
       </div>
       <div v-if="paper" class="content-page__actions">
-        <el-button type="primary" :loading="saving" :disabled="!dirty" @click="handleSave">保存</el-button>
-        <el-button v-if="paper.status !== 'PUBLISHED'" type="success" @click="handlePublish">发布</el-button>
-        <el-button v-else type="warning" @click="handleOffline">下架</el-button>
-        <el-button v-if="paper.type !== 'GENERATED'" @click="handleCopy">复制为新试卷</el-button>
-        <el-button v-if="paper.status === 'DRAFT'" type="danger" plain @click="handleRemove">删除</el-button>
+        <el-button type="primary" :loading="saving && !acting" :disabled="!dirty || busy" @click="handleSave">
+          保存
+        </el-button>
+        <el-button
+          v-if="paper.status !== 'PUBLISHED'"
+          type="success"
+          :loading="acting === 'publish'"
+          :disabled="busy && acting !== 'publish'"
+          @click="handlePublish"
+        >
+          发布
+        </el-button>
+        <el-button
+          v-else
+          type="warning"
+          :loading="acting === 'offline'"
+          :disabled="busy && acting !== 'offline'"
+          @click="handleOffline"
+        >
+          下架
+        </el-button>
+        <el-button
+          v-if="paper.type !== 'GENERATED'"
+          :loading="acting === 'copy'"
+          :disabled="busy && acting !== 'copy'"
+          @click="handleCopy"
+        >
+          复制为新试卷
+        </el-button>
+        <el-button
+          v-if="paper.status === 'DRAFT'"
+          type="danger"
+          plain
+          :loading="acting === 'remove'"
+          :disabled="busy && acting !== 'remove'"
+          @click="handleRemove"
+        >
+          删除
+        </el-button>
       </div>
     </div>
 
@@ -83,8 +117,8 @@
 
 <script setup lang="ts">
 import { ElMessage, type FormInstance } from 'element-plus';
-import { ref, watch } from 'vue';
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { confirmAction, runAction } from '../shared/actions';
 import StatusTag from '../shared/components/StatusTag.vue';
 import { CONTENT_STATUS_META } from '../shared/constants';
@@ -96,6 +130,7 @@ import { paperBasicRules } from './paper-basic';
 import { setMaterialScore, type PaperItem, type PaperItemChild } from './paper-items';
 import { PaperValidationError, usePaperEditor } from './usePaperEditor';
 import type { AdminQuestionDto, QuestionType } from '@/api';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 
 const route = useRoute();
 const router = useRouter();
@@ -143,10 +178,7 @@ watch(
 );
 loadSubjects().catch(() => undefined);
 
-onBeforeRouteLeave(async () => {
-  if (leaveConfirmed || !dirty.value) return true;
-  return confirmAction('有未保存的修改，确定离开？', '离开页面');
-});
+useLeaveGuard(() => !leaveConfirmed && dirty.value, { guardParamsChange: true });
 
 const openPicker = (sectionIndex: number) => {
   pickerSection.value = sectionIndex;
@@ -189,31 +221,49 @@ const runWithErrors = async (task: () => Promise<unknown>, message: string) => {
   }
 };
 
-const handleSave = () => runWithErrors(save, '已保存');
+type PaperAction = 'publish' | 'offline' | 'copy' | 'remove';
+const acting = ref<PaperAction | null>(null);
+const busy = computed(() => saving.value || acting.value !== null);
+
+const withActing = async <T,>(action: PaperAction, task: () => Promise<T>): Promise<T> => {
+  acting.value = action;
+  try {
+    return await task();
+  } finally {
+    acting.value = null;
+  }
+};
+
+const handleSave = () => {
+  if (busy.value) return;
+  return runWithErrors(save, '已保存');
+};
 
 const handlePublish = async () => {
-  if (!(await confirmAction('发布后题目、顺序与分值冻结，确认发布？', '发布试卷'))) return;
-  await runWithErrors(publish, '已发布');
+  if (busy.value || !(await confirmAction('发布后题目、顺序与分值冻结，确认发布？', '发布试卷'))) return;
+  await withActing('publish', () => runWithErrors(publish, '已发布'));
 };
 
 const handleOffline = async () => {
-  if (!(await confirmAction('下架后用户将看不到该试卷，确认下架？', '下架试卷'))) return;
-  await runAction(offline, '已下架');
+  if (busy.value || !(await confirmAction('下架后用户将看不到该试卷，确认下架？', '下架试卷'))) return;
+  await withActing('offline', () => runAction(offline, '已下架'));
 };
 
 const handleCopy = async () => {
-  if (!(await confirmAction('复制为新的草稿试卷？未保存的修改不会被复制', '复制试卷'))) return;
-  await runAction(async () => {
-    const copied = await copy();
-    if (!copied) return;
-    leaveConfirmed = true;
-    await router.push(`/content/papers/${copied.id}`);
-  });
+  if (busy.value || !(await confirmAction('复制为新的草稿试卷？未保存的修改不会被复制', '复制试卷'))) return;
+  await withActing('copy', () =>
+    runAction(async () => {
+      const copied = await copy();
+      if (!copied) return;
+      leaveConfirmed = true;
+      await router.push(`/content/papers/${copied.id}`);
+    }),
+  );
 };
 
 const handleRemove = async () => {
-  if (!(await confirmAction('删除该草稿试卷？', '删除试卷'))) return;
-  if (!(await runAction(remove, '已删除'))) return;
+  if (busy.value || !(await confirmAction('删除该草稿试卷？', '删除试卷'))) return;
+  if (!(await withActing('remove', () => runAction(remove, '已删除')))) return;
   leaveConfirmed = true;
   await router.push('/content/papers');
 };
