@@ -176,8 +176,7 @@ describe('useExamList / useSubjectList', () => {
 });
 
 describe('useReviewList', () => {
-  it('批量发布选中题目后清空选择并刷新', async () => {
-    vi.mocked(adminGetQuestions).mockResolvedValue(emptyPage);
+  it('批量发布选中题目并返回发布数，不刷新列表', async () => {
     const review = useReviewList();
     review.selectedIds.value = ['q1', 'm1'];
 
@@ -185,6 +184,16 @@ describe('useReviewList', () => {
 
     expect(adminBatchPublishQuestions).toHaveBeenCalledWith({ ids: ['q1', 'm1'] });
     expect(count).toBe(6);
+    expect(adminGetQuestions).not.toHaveBeenCalled();
+  });
+
+  it('操作后刷新时清空选择并重新拉取当前页', async () => {
+    vi.mocked(adminGetQuestions).mockResolvedValue(emptyPage);
+    const review = useReviewList();
+    review.selectedIds.value = ['q1', 'm1'];
+
+    await review.refreshAfterChange();
+
     expect(review.selectedIds.value).toEqual([]);
     expect(adminGetQuestions).toHaveBeenCalledTimes(1);
   });

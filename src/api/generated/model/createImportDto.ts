@@ -11,6 +11,6 @@
 export interface CreateImportDto {
   /** 已上传的导入包（purpose=import），与 file 二选一 */
   fileId?: string;
-  /** 导入成功的内容直接发布，需 content:review */
+  /** 导入成功的内容直接发布，仅管理员可用 */
   publishOnImport?: boolean;
 }

@@ -32,7 +32,7 @@
       class="data-table"
       @selection-change="selectedIds = ($event as AdminQuestionDto[]).map(item => item.id)"
     >
-      <el-table-column type="selection" width="48" />
+      <el-table-column type="selection" width="48" :selectable="row => !isSelfSubmitted(row as AdminQuestionDto)" />
       <el-table-column label="题干" min-width="300">
         <template #default="{ row }">
           <span class="page__stem">
@@ -49,14 +49,41 @@
       <el-table-column label="版本" width="70">
         <template #default="{ row }">{{ row.currentVersion ? `v${row.currentVersion}` : '新题' }}</template>
       </el-table-column>
+      <el-table-column label="提交人" min-width="120">
+        <template #default="{ row }">{{ row.submitter?.name ?? EMPTY_TEXT }}</template>
+      </el-table-column>
       <el-table-column label="提交时间" width="170">
-        <template #default="{ row }">{{ formatDateTimeFull(row.updatedAt) }}</template>
+        <template #default="{ row }">{{ formatDateTimeFull(row.submittedAt ?? undefined) }}</template>
       </el-table-column>
       <el-table-column label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openPreview(row as AdminQuestionDto)">预览</el-button>
-          <el-button link type="warning" @click="handleReject(row as AdminQuestionDto)">驳回</el-button>
-          <el-button link type="success" @click="handlePublish(row as AdminQuestionDto)">发布</el-button>
+          <div class="page__actions">
+            <el-button link type="primary" @click="openPreview(row as AdminQuestionDto)">预览</el-button>
+            <el-tooltip
+              :disabled="!isSelfSubmitted(row as AdminQuestionDto)"
+              :content="SELF_REVIEW_TIP"
+              placement="top"
+            >
+              <span class="page__actions">
+                <el-button
+                  link
+                  type="warning"
+                  :disabled="isSelfSubmitted(row as AdminQuestionDto)"
+                  @click="handleReject(row as AdminQuestionDto)"
+                >
+                  驳回
+                </el-button>
+                <el-button
+                  link
+                  type="success"
+                  :disabled="isSelfSubmitted(row as AdminQuestionDto)"
+                  @click="handlePublish(row as AdminQuestionDto)"
+                >
+                  发布
+                </el-button>
+              </span>
+            </el-tooltip>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -74,13 +101,28 @@
 
     <QuestionPreviewDialog v-model="previewVisible" :question-id="previewId">
       <template #footer="{ question }">
-        <el-button @click="previewVisible = false">关闭</el-button>
-        <template v-if="question.status === 'REVIEWING'">
-          <el-button type="warning" @click="handleReject(question, true)">驳回</el-button>
-          <el-button type="success" @click="handlePublish(question, true)">发布</el-button>
-        </template>
+        <div class="page__actions page__actions--end">
+          <el-button @click="previewVisible = false">关闭</el-button>
+          <el-tooltip
+            v-if="question.status === 'REVIEWING'"
+            :disabled="!isSelfSubmitted(question)"
+            :content="SELF_REVIEW_TIP"
+            placement="top"
+          >
+            <span class="page__actions">
+              <el-button type="warning" :disabled="isSelfSubmitted(question)" @click="handleReject(question, true)">
+                驳回
+              </el-button>
+              <el-button type="success" :disabled="isSelfSubmitted(question)" @click="handlePublish(question, true)">
+                发布
+              </el-button>
+            </span>
+          </el-tooltip>
+        </div>
       </template>
     </QuestionPreviewDialog>
+
+    <RejectReasonDialog ref="rejectDialog" />
   </div>
 </template>
 
@@ -88,17 +130,22 @@
 import { ElMessage } from 'element-plus';
 import { onMounted, ref } from 'vue';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
+import RejectReasonDialog from '../shared/components/RejectReasonDialog.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_TYPE_LABEL } from '../shared/constants';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
 import { useReviewList } from './useReviewList';
 import type { AdminQuestionDto, QuestionType } from '@/api';
-import { PAGE_SIZES, toOptions } from '@/constants';
+import { EMPTY_TEXT, PAGE_SIZES, toOptions } from '@/constants';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
+const SELF_REVIEW_TIP = '不能审核自己提交的题';
+
 const typeOptions = toOptions(QUESTION_TYPE_LABEL);
+const userStore = useUserInfoStore();
 const { options: subjectOptions, load: loadSubjects, subjectLabel } = useSubjectOptions();
 const {
   filters,
@@ -116,11 +163,19 @@ const {
   publish,
   reject,
   batchPublish,
+  refreshAfterChange,
 } = useReviewList();
 
 const previewVisible = ref(false);
 const previewId = ref('');
 const batching = ref(false);
+const rejectDialog = ref<InstanceType<typeof RejectReasonDialog>>();
+
+const isSelfSubmitted = (question: AdminQuestionDto) =>
+  !userStore.isAdmin &&
+  userStore.info.id !== undefined &&
+  !!question.submitter &&
+  question.submitter.id === userStore.info.id;
 
 const openPreview = (question: AdminQuestionDto) => {
   previewId.value = question.id;
@@ -129,24 +184,34 @@ const openPreview = (question: AdminQuestionDto) => {
 
 const materialHint = (question: AdminQuestionDto) => (question.type === 'MATERIAL' ? '，材料及其全部小题一起处理' : '');
 
+const refreshList = () => refreshAfterChange().catch(() => undefined);
+
 const handlePublish = async (question: AdminQuestionDto, fromPreview = false) => {
   if (!(await confirmAction(`发布该题目${materialHint(question)}？`, '发布题目'))) return;
-  if ((await runAction(() => publish(question), '已发布')) && fromPreview) previewVisible.value = false;
+  if (!(await runAction(() => publish(question), '已发布'))) return;
+  if (fromPreview) previewVisible.value = false;
+  await refreshList();
 };
 
 const handleReject = async (question: AdminQuestionDto, fromPreview = false) => {
-  if (!(await confirmAction(`驳回为草稿${materialHint(question)}？`, '驳回题目'))) return;
-  if ((await runAction(() => reject(question), '已驳回')) && fromPreview) previewVisible.value = false;
+  const done = await rejectDialog.value?.open({
+    description: `驳回为草稿${materialHint(question)}`,
+    submit: reason => runAction(() => reject(question, reason), '已驳回'),
+  });
+  if (!done) return;
+  if (fromPreview) previewVisible.value = false;
+  await refreshList();
 };
 
 const handleBatchPublish = async () => {
   if (!(await confirmAction(`发布选中的 ${selectedIds.value.length} 道题目？材料题按整组发布`, '批量发布'))) return;
   batching.value = true;
-  await runAction(async () => {
+  const done = await runAction(async () => {
     const count = await batchPublish();
     ElMessage.success(`已发布 ${count} 道题目`);
   });
   batching.value = false;
+  if (done) await refreshList();
 };
 
 const handleSearch = () => search().catch(() => undefined);
@@ -160,4 +225,14 @@ onMounted(() => {
 
 <style scoped lang="scss">
 @use '@/styles/page';
+
+.page__actions {
+  &--end {
+    justify-content: flex-end;
+  }
+
+  :deep(.el-button + .el-button) {
+    margin-left: 0;
+  }
+}
 </style>

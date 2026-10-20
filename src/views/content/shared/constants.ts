@@ -93,3 +93,5 @@ export const DIFFICULTY_MAX = 5;
 
 /** 考试、科目、知识点排序值上限 */
 export const MAX_SORT = 100000;
+
+export const REJECT_REASON_MAX_LENGTH = 500;

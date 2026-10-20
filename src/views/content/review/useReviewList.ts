@@ -27,28 +27,26 @@ export function useReviewList() {
   });
   const selectedIds = ref<string[]>([]);
 
-  const afterChange = async () => {
+  /** 审核操作成功后清空勾选并刷新当前页 */
+  const refreshAfterChange = () => {
     selectedIds.value = [];
-    await list.refresh();
+    return list.refresh();
   };
 
   const publish = async (question: AdminQuestionDto) => {
     await adminPublishQuestion(question.id);
-    await afterChange();
   };
 
-  const reject = async (question: AdminQuestionDto) => {
-    await adminRejectQuestion(question.id);
-    await afterChange();
+  const reject = async (question: AdminQuestionDto, reason: string) => {
+    await adminRejectQuestion(question.id, { reason });
   };
 
   /** 返回变为已发布的题目数（含材料小题） */
   const batchPublish = async (): Promise<number> => {
     if (selectedIds.value.length === 0) return 0;
     const result = await adminBatchPublishQuestions({ ids: [...selectedIds.value] });
-    await afterChange();
     return result.count;
   };
 
-  return { ...list, selectedIds, publish, reject, batchPublish };
+  return { ...list, selectedIds, publish, reject, batchPublish, refreshAfterChange };
 }

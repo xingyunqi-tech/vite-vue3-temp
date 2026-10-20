@@ -59,6 +59,7 @@ import type {
   PaperDraftDto,
   PaperRule,
   QueuesOverviewDto,
+  RejectQuestionDto,
   SetPaperQuestionsDto,
   Subject,
   UpdateAppProfileDto,
@@ -330,6 +331,7 @@ export const adminCreateQuestion = (
   );
 };
 /**
+ * 非 admin 发布自己提交的题目时整批返回 403（selfReviewForbidden），响应 data.questionIds 为命中的题目 id；传入小题时返回其所属材料的 id
  * @summary 批量发布待审题目
  */
 export const adminBatchPublishQuestions = (
@@ -401,10 +403,22 @@ export const adminPublishQuestion = (id: string, options?: SecondParameter<typeo
   return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/publish`, method: 'POST' }, options);
 };
 /**
- * @summary 驳回为草稿
+ * @summary 驳回为草稿，须填写原因
  */
-export const adminRejectQuestion = (id: string, options?: SecondParameter<typeof customMutator<AdminQuestionDto>>) => {
-  return customMutator<AdminQuestionDto>({ url: `/api/v1/admin/questions/${id}/reject`, method: 'POST' }, options);
+export const adminRejectQuestion = (
+  id: string,
+  rejectQuestionDto: RejectQuestionDto,
+  options?: SecondParameter<typeof customMutator<AdminQuestionDto>>,
+) => {
+  return customMutator<AdminQuestionDto>(
+    {
+      url: `/api/v1/admin/questions/${id}/reject`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: rejectQuestionDto,
+    },
+    options,
+  );
 };
 /**
  * @summary 下架题目

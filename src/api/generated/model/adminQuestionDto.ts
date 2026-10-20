@@ -10,6 +10,7 @@
 import type { AdminQuestionDtoAnswer } from './adminQuestionDtoAnswer';
 import type { AdminQuestionDtoFileUrls } from './adminQuestionDtoFileUrls';
 import type { AdminQuestionDtoOptionsItem } from './adminQuestionDtoOptionsItem';
+import type { QuestionOperatorDto } from './questionOperatorDto';
 import type { QuestionSource } from './questionSource';
 import type { QuestionStatus } from './questionStatus';
 import type { QuestionType } from './questionType';
@@ -55,6 +56,24 @@ export interface AdminQuestionDto {
   contentHash: string;
   statAnswered: number;
   statCorrect: number;
+  /** @nullable */
+  createdBy: number | null;
+  /** @nullable */
+  submittedBy: number | null;
+  /** @nullable */
+  submittedAt: string | null;
+  /**
+   * 最近一次发布、驳回或下架的操作人
+   * @nullable
+   */
+  reviewedBy: number | null;
+  /** @nullable */
+  reviewedAt: string | null;
+  /**
+   * 最近一次驳回的原因，再次提交审核时清空
+   * @nullable
+   */
+  rejectReason: string | null;
   createdAt: string;
   updatedAt: string;
   /**
@@ -64,6 +83,21 @@ export interface AdminQuestionDto {
   audioUrl: string | null;
   /** 内容中 file:{id} 引用与音频的访问地址，键为小写文件 id；文件不存在或无权访问时不含该键 */
   fileUrls: AdminQuestionDtoFileUrls;
+  /**
+   * 创建人
+   * @nullable
+   */
+  creator: QuestionOperatorDto | null;
+  /**
+   * 最近一次提交审核的人
+   * @nullable
+   */
+  submitter: QuestionOperatorDto | null;
+  /**
+   * 最近一次发布、驳回或下架的人
+   * @nullable
+   */
+  reviewer: QuestionOperatorDto | null;
   /** 材料题的小题，按顺序 */
   children?: AdminQuestionDto[];
 }

@@ -7,11 +7,13 @@ import {
   adminCreateQuestion,
   adminGetQuestion,
   adminGetSubjectKnowledgePoints,
+  adminSubmitQuestion,
   adminUpdateQuestion,
   fetchAllExams,
   fetchAllSubjects,
   type AdminQuestionDto,
 } from '@/api';
+import { EMPTY_TEXT } from '@/constants';
 import { useUserInfoStore } from '@/store/modules/user-info';
 import QuestionEditPage from '@/views/content/question-edit/index.vue';
 import { invalidateKnowledgeTree } from '@/views/content/shared/knowledge-tree-cache';
@@ -52,6 +54,15 @@ const question = (overrides: Partial<AdminQuestionDto> = {}): AdminQuestionDto =
     contentHash: 'h',
     statAnswered: 0,
     statCorrect: 0,
+    createdBy: null,
+    submittedBy: null,
+    submittedAt: null,
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectReason: null,
+    creator: null,
+    submitter: null,
+    reviewer: null,
     createdAt: '',
     updatedAt: '',
     ...overrides,
@@ -195,6 +206,115 @@ describe('题目编辑页', () => {
     const childButtons = material.wrapper.find('.material-children').findAll('button');
     expect(childButtons.length).toBeGreaterThan(0);
     expect(childButtons.map(button => button.text())).not.toContain('勘误');
+  });
+
+  it('展示创建人、提交人与审核人及对应时间，缺失时显示占位', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({
+        creator: { id: 1, name: '张编辑' },
+        submitter: { id: 1, name: '张编辑' },
+        submittedAt: '2026-10-17T02:30:00',
+        reviewer: null,
+        reviewedAt: null,
+      }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    const items = wrapper.findAll('.audit-info__item').map(item => item.text());
+    expect(items).toEqual(['创建人张编辑', '提交人张编辑（2026-10-17 02:30:00）', `审核人${EMPTY_TEXT}`]);
+  });
+
+  it('有操作人无时间时只显示人名', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({ status: 'DRAFT', submitter: { id: 1, name: '张编辑' }, submittedAt: null }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    const items = wrapper.findAll('.audit-info__item').map(item => item.text());
+    expect(items).toEqual([`创建人${EMPTY_TEXT}`, '提交人张编辑', `审核人${EMPTY_TEXT}`]);
+  });
+
+  it('保存后重新拉取题目并刷新人员信息', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(question({ status: 'DRAFT', currentVersion: 0 }));
+    vi.mocked(adminUpdateQuestion).mockResolvedValue(question({ status: 'DRAFT', currentVersion: 0 }));
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(
+      question({ status: 'DRAFT', currentVersion: 0, stem: '新题干', creator: { id: 3, name: '王编辑' } }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    await wrapper.find('textarea').setValue('新题干');
+    await clickButton(wrapper, '保存');
+
+    expect(adminGetQuestion).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('.audit-info').text()).toContain('王编辑');
+  });
+
+  it('提交审核后刷新提交人与提交时间', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(question({ status: 'DRAFT', currentVersion: 0 }));
+    vi.mocked(adminGetQuestion).mockResolvedValueOnce(
+      question({
+        status: 'REVIEWING',
+        currentVersion: 0,
+        submitter: { id: 1, name: '张编辑' },
+        submittedAt: '2026-10-19T10:00:00',
+      }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    await clickButton(wrapper, '提交审核');
+
+    expect(adminSubmitQuestion).toHaveBeenCalledWith('q1');
+    expect(wrapper.find('.audit-info').text()).toContain('张编辑（2026-10-19 10:00:00）');
+  });
+
+  it('审核中的题目审核人为空时显示占位', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({
+        status: 'REVIEWING',
+        submitter: { id: 1, name: '张编辑' },
+        submittedAt: '2026-10-19T10:00:00',
+        reviewer: null,
+        reviewedAt: null,
+        rejectReason: null,
+      }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    expect(wrapper.findAll('.audit-info__item')[2].text()).toBe(`审核人${EMPTY_TEXT}`);
+    expect(wrapper.text()).not.toContain('已被驳回');
+  });
+
+  it('新建题目不展示人员信息', async () => {
+    const { wrapper } = await mountAt('/content/questions/create?type=JUDGE&subjectId=s1');
+
+    expect(wrapper.find('.audit-info').exists()).toBe(false);
+  });
+
+  it('被驳回的草稿在顶部提示驳回原因与审核人', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({
+        status: 'DRAFT',
+        rejectReason: '答案解析有误',
+        reviewer: { id: 2, name: '李审核' },
+        reviewedAt: '2026-10-18T09:00:00',
+      }),
+    );
+    const { wrapper } = await mountAt('/content/questions/q1');
+
+    const alert = wrapper.find('.el-alert--warning');
+    expect(alert.text()).toContain('已被驳回：答案解析有误');
+    expect(alert.text()).toContain('审核人：李审核');
+    expect(wrapper.find('.audit-info').text()).toContain('李审核（2026-10-18 09:00:00）');
+  });
+
+  it('非草稿或没有驳回原因时不提示驳回', async () => {
+    vi.mocked(adminGetQuestion).mockResolvedValue(question({ status: 'PUBLISHED', rejectReason: '旧原因' }));
+    const published = await mountAt('/content/questions/q1');
+    expect(published.wrapper.text()).not.toContain('已被驳回');
+
+    vi.mocked(adminGetQuestion).mockResolvedValue(question({ status: 'DRAFT', rejectReason: null }));
+    const draft = await mountAt('/content/questions/q1');
+    expect(draft.wrapper.text()).not.toContain('已被驳回');
   });
 
   it('审核中的题目不可保存', async () => {

@@ -47,7 +47,7 @@
 
 M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参数。
 
-**当前进度**：批次 0（M0）解析阶段已完成，构造样本上的结果见 `nestjs-template/scripts/poc/m0/`；提取阶段待配置 `LLM_API_KEY` 后实测。批次 1（角色）已完成，未提交。
+**当前进度**：批次 0（M0）解析阶段已完成，构造样本上的结果见 `nestjs-template/scripts/poc/m0/`；提取阶段待配置 `LLM_API_KEY` 后实测。批次 1（角色）已完成。批次 2（审计字段与驳回原因）已完成，未提交。
 
 ## 3. M0 技术验证
 
@@ -119,28 +119,51 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 | AI 运营（M3） | ADMIN / EDITOR |
 | AI 用量、系统、设置 | ADMIN |
 
-- 发布和下架一律需要 `content:review`，覆盖题目、试卷、考试、科目、组卷规则，以及导入时的 `publishOnImport`。后端在对应接口上加 `@RequirePermissions(Permission.CONTENT_REVIEW)`；组卷规则通过通用更新接口改状态，所以在请求带 `status`、或规则不是草稿时校验该权限（已上线规则的内容修改同样需要审核权限）；组卷规则只能删除草稿。
-- 前端的发布、驳回、下架、勘误按钮，以及「导入即发布」开关，按 `canReview` 用 `v-if` 控制显示。
+- 发布和下架一律需要 `content:review`，覆盖题目、试卷、考试、科目、组卷规则。导入时的 `publishOnImport` 仅 admin 可用（见 4.2）。后端在对应接口上加 `@RequirePermissions(Permission.CONTENT_REVIEW)`；组卷规则通过通用更新接口改状态，所以在请求带 `status`、或规则不是草稿时校验该权限（已上线规则的内容修改同样需要审核权限）；组卷规则只能删除草稿。
+- 前端的发布、驳回、下架、勘误按钮按 `canReview` 用 `v-if` 控制显示；「导入即发布」开关按 `isAdmin` 控制。
 
 ### 4.2 审计字段
 
-迁移：`question` 表新增以下字段：
+迁移 `AddQuestionAuditFields`：`question` 表新增以下字段，`*By` 外键指向 `user`，用户删除后置空：
 
 - `createdBy`
 - `submittedBy`、`submittedAt`
-- `reviewedBy`、`reviewedAt`
-- `rejectReason`
+- `reviewedBy`、`reviewedAt`：最近一次发布、驳回或下架
+- `rejectReason`：`varchar(500)`
 
-规则：
+写入时机：
 
-- 驳回接口改为必须填写 `reason`。
-- **禁止审核自己提交的题**：发布或驳回时，如果 `submittedBy === 当前用户` 且当前用户不是 admin，返回 403。`batch-publish` 同样逐题校验，命中的题使整批返回 403 并列出题目 ID（保持其整批失败语义）。
-- 题目、试卷、导入、AI 运营的写接口都加上 `@Auditable()`。
+| 动作 | 写入 |
+| --- | --- |
+| 新建题目（含导入） | `createdBy` 为操作人；导入时取导入任务的创建人 |
+| 提交审核 | `submittedBy`、`submittedAt`，并清空 `reviewedBy`、`reviewedAt`、`rejectReason` |
+| 驳回 | `reviewedBy`、`reviewedAt`、`rejectReason` |
+| 发布、下架 | `reviewedBy`、`reviewedAt` |
+
+材料与小题整组流转，整组写入相同的值。重新提交审核的题在审核中不带上一轮的审核人与驳回原因。导入即发布时依次走提交和发布，提交人、审核人都是导入任务的创建人。存量题目这些字段为空。
+
+接口：
+
+- `AdminQuestionDto`（列表、详情、`children`）返回上述字段，以及 `creator`、`submitter`、`reviewer`：`{ id, name } | null`。`name` 依次取昵称、邮箱，都为空时为「用户{id}」，不显示手机号。
+- `POST /v1/admin/questions/:id/reject` 必须带 `{ reason }`，去除首尾空白后 1–500 字，否则返回 422（`rejectReasonLength`）。
+- **禁止审核自己提交的题**：非 admin 发布或驳回 `submittedBy === 当前用户` 且状态为 REVIEWING 的题，返回 403 `selfReviewForbidden`。`batch-publish` 逐题校验，任一命中则整批 403，响应体 `errors.questionIds` 列出命中的 id（请求中的题目 id，或小题所属材料的 id）。从 OFFLINE 重新发布不受此限制。
+- `publishOnImport` 仅 admin 可用，其他角色返回 403 `importPublishForbidden`。
+
+操作审计：
+
+- `@Auditable()` 覆盖题目、试卷、组卷规则、考试、科目、知识点、导入、勘误、纠错、每日一练重新生成的全部写接口（组卷规则的 `preview` 只读，不记录）。AI 运营的接口在 M3 中补上。
+- 动作类型在增删改之外新增 `SUBMIT`、`PUBLISH`、`OFFLINE`、`REJECT`、`COPY`、`MOVE`；勘误的实体类型记为 `Errata`。
+- 新建类操作的实体 id 取自响应。
+- 请求体：题目新建、编辑与导入不记录完整请求体；试卷保存题目只记录摘要；勘误不记录长文本字段。
+- 防漏标测试自动扫描所有管理端控制器，未标注 `@Auditable()` 的写接口会使测试失败。
+- 后续事项：审计日志暂无清理机制，建议增加定时任务，保留 180 天。
 
 前端：
 
-- 驳回改成弹窗，必须填原因。
-- 题目编辑页和审核列表展示创建人、提交人、审核人、驳回原因。
+- 驳回入口（审核发布页的行内驳回、预览弹窗内驳回）统一使用 `content/shared/components/RejectReasonDialog.vue`：原因必填，按去除首尾空白后的字数计数与校验（1–500 字），输入框不限制原始长度；提交中不能关闭弹窗；取消不发请求；请求失败时弹窗保留已填内容。
+- 审核发布页增加「提交人」「提交时间」列。非 admin 用户自己提交的行：行内与预览弹窗中的「发布」「驳回」禁用，悬停提示「不能审核自己提交的题」；表格多选不可勾选。批量发布仍收到 403 时由请求层统一提示。
+- 题目编辑页（编辑已有题目时）展示创建人、提交人与提交时间、审核人与审核时间，缺失时显示「—」；草稿且有驳回原因时，在顶部用警告提示「已被驳回：{原因}」及审核人。
+- 「导入即发布」开关仅 admin 可见；其他角色提示「题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入」。
 
 ### 4.3 题目批量操作
 

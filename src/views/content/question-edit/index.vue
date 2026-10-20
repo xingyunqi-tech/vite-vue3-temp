@@ -30,6 +30,16 @@
       </template>
     </el-result>
     <template v-else>
+      <QuestionAuditInfo v-if="question" :question="question" />
+      <el-alert
+        v-if="rejectReason"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`已被驳回：${rejectReason}`"
+        :description="`审核人：${question?.reviewer?.name ?? EMPTY_TEXT}`"
+        class="question-edit__notice"
+      />
       <el-alert
         v-if="!editable"
         type="warning"
@@ -108,11 +118,13 @@ import { QUESTION_STATUS_META } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import { isQuestionType, toAnswer } from '../shared/question-form';
 import MaterialChildren from './components/MaterialChildren.vue';
+import QuestionAuditInfo from './components/QuestionAuditInfo.vue';
 import QuestionFields from './components/QuestionFields.vue';
 import { QuestionValidationError, useQuestionEditor } from './useQuestionEditor';
 import type { AdminQuestionDto } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { EMPTY_TEXT } from '@/constants';
 import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
@@ -152,6 +164,8 @@ const versionsVisible = computed({
     if (!visible) versionsTarget.value = '';
   },
 });
+
+const rejectReason = computed(() => (question.value?.status === 'DRAFT' ? question.value.rejectReason : null));
 
 const previewQuestion = computed<PreviewQuestion>(() => ({
   type: form.value.type,

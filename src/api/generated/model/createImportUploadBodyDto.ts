@@ -11,6 +11,6 @@
 export interface CreateImportUploadBodyDto {
   /** 导入包（zip / xlsx / json） */
   file: Blob | File;
-  /** 导入成功的内容直接发布，需 content:review */
+  /** 导入成功的内容直接发布，仅管理员可用 */
   publishOnImport?: boolean;
 }

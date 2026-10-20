@@ -19,7 +19,7 @@
       </el-upload>
     </div>
     <div class="import-card__row">
-      <template v-if="userStore.canReview">
+      <template v-if="userStore.isAdmin">
         <el-switch v-model="publishOnImport" active-text="导入即发布" />
         <span class="import-card__tip">
           不勾选时题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入，或勾选导入即发布
