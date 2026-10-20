@@ -107,10 +107,10 @@ describe('配置了 DSN', () => {
     expect(sdk.setUser).toHaveBeenLastCalledWith(null);
 
     const userStore = useUserInfoStore();
-    userStore.setUserInfo({ id: 7, username: 'teacher', role: 'TEACHER' });
+    userStore.setUserInfo({ id: 7, username: 'editor', role: 'EDITOR' });
     await Promise.resolve();
-    expect(sdk.setUser).toHaveBeenLastCalledWith({ id: '7', username: 'teacher' });
-    expect(sdk.setTag).toHaveBeenLastCalledWith('user.role', 'TEACHER');
+    expect(sdk.setUser).toHaveBeenLastCalledWith({ id: '7', username: 'editor' });
+    expect(sdk.setTag).toHaveBeenLastCalledWith('user.role', 'EDITOR');
 
     userStore.resetUserInfo();
     await Promise.resolve();

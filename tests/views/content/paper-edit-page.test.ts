@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import {
@@ -11,6 +12,7 @@ import {
   fetchAllSubjects,
   type AdminPaperDto,
 } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import PaperEditPage from '@/views/content/paper-edit/index.vue';
 
 vi.mock('@/api', () => ({
@@ -94,6 +96,8 @@ async function mountPage() {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia());
+  useUserInfoStore().setUserInfo({ role: 'ADMIN' });
   vi.clearAllMocks();
   vi.spyOn(ElMessage, 'success').mockImplementation(() => ({ close: () => {} }) as never);
   vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
@@ -111,6 +115,23 @@ describe('试卷编辑页', () => {
     expect(wrapper.text()).toContain('共 2 题 · 总分 5 · 客观题 2');
     expect(wrapper.find('.section-card').text()).toContain('根据材料回答');
     expect(wrapper.find('.section-card').text()).toContain('每小题，合计 5');
+  });
+
+  it('发布与下架按钮只对可审核的角色显示', async () => {
+    const admin = (await mountPage()).wrapper;
+    expect(admin.findAll('button').some(button => button.text() === '发布')).toBe(true);
+
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    const editorDraft = (await mountPage()).wrapper;
+    expect(editorDraft.findAll('button').some(button => button.text() === '发布')).toBe(false);
+
+    vi.mocked(adminGetPaper).mockResolvedValue(paper({ status: 'PUBLISHED' }));
+    const editorPublished = (await mountPage()).wrapper;
+    expect(editorPublished.findAll('button').some(button => button.text() === '下架')).toBe(false);
+
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
+    const reviewerPublished = (await mountPage()).wrapper;
+    expect(reviewerPublished.findAll('button').some(button => button.text() === '下架')).toBe(true);
   });
 
   it('修改小题分值后保存整体题目设置', async () => {

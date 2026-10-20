@@ -107,7 +107,7 @@ src/router/
   redirect: '/路径/子路径',
   meta: {
     title: '模块标题',
-    roles: [ROLES.ADMIN, ROLES.TEACHER], // 角色权限
+    roles: [ROLES.ADMIN, ROLES.EDITOR], // 角色权限
   },
   children: [
     {
@@ -207,7 +207,7 @@ export const routes2 = [
   component: () => import('@/views/content/questions/index.vue'),
   meta: {
     title: '功能名称',                    // 页面标题(必需)
-    roles: [ROLES.ADMIN, ROLES.STUDENT],   // 允许访问的角色(可选)
+    roles: [...BACKOFFICE_ROLES],          // 允许访问的角色(可选)
     requiresAuth: true,                    // 是否需要登录(可选)
     icon: House,                           // 菜单图标(可选)——是 Vue 组件，不是字符串
     hidden: false,                         // 是否在菜单中隐藏(可选)
@@ -275,9 +275,17 @@ import type { RoleType } from '@/constants';
 
 // 值是【大写】：
 //   ROLES.ADMIN === 'ADMIN'
-//   ROLES.TEACHER === 'TEACHER'
-//   ROLES.STUDENT === 'STUDENT'
+//   ROLES.EDITOR === 'EDITOR'
+//   ROLES.REVIEWER === 'REVIEWER'
+
+// 常用分组（readonly，用在 meta.roles 时展开成新数组）：
+//   BACKOFFICE_ROLES = [ADMIN, EDITOR, REVIEWER]  可登录后台的角色
+//   REVIEW_ROLES     = [ADMIN, REVIEWER]          可审核发布、处理纠错与勘误的角色
+import { BACKOFFICE_ROLES, REVIEW_ROLES } from '@/constants';
+// meta: { roles: [...REVIEW_ROLES] }
 ```
+
+页面内按钮按是否可审核显示时，用 `useUserInfoStore().canReview` 配合 `v-if`。
 
 ⚠️ 常见错误：写成小写 `roles: ['admin']`。角色比对是严格相等，大小写不匹配会让权限判断
 **恒为假**——路由被过滤掉、菜单不显示，且不会有任何报错，极难排查。一律用 `ROLES.XXX` 常量。
@@ -527,14 +535,14 @@ export const staticRoutes: RouteRecordRaw[] = [
 export const asyncRoutes: RouteRecordRaw[] = [
   // ... 其他路由
 
-  // ✅ 新增:实验室管理页面(仅管理员和教师)
+  // ✅ 新增:实验室管理页面(仅管理员和编辑)
   {
     path: '/lab',
     component: Layout,
     redirect: '/lab/management',
     meta: {
       title: '实验室管理',
-      roles: [ROLES.ADMIN, ROLES.TEACHER],
+      roles: [ROLES.ADMIN, ROLES.EDITOR],
     },
     children: [
       {
@@ -543,7 +551,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/lab-management/index.vue'),
         meta: {
           title: '实验室管理',
-          roles: [ROLES.ADMIN, ROLES.TEACHER],
+          roles: [ROLES.ADMIN, ROLES.EDITOR],
         },
       },
     ],

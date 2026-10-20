@@ -11,7 +11,10 @@
         <el-button v-if="question && question.currentVersion > 0" @click="versionsTarget = question.id">
           版本历史
         </el-button>
-        <el-button v-if="question && canStartErrata(question)" @click="router.push(errataCreateLocation(question.id))">
+        <el-button
+          v-if="question && userStore.canReview && canStartErrata(question)"
+          @click="router.push(errataCreateLocation(question.id))"
+        >
           勘误
         </el-button>
         <el-button type="primary" :loading="saving" :disabled="!editable" @click="handleSave">保存</el-button>
@@ -110,10 +113,12 @@ import { QuestionValidationError, useQuestionEditor } from './useQuestionEditor'
 import type { AdminQuestionDto } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserInfoStore();
 
 const {
   form,

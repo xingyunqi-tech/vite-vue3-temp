@@ -19,10 +19,13 @@
       </el-upload>
     </div>
     <div class="import-card__row">
-      <el-switch v-model="publishOnImport" active-text="导入即发布" />
-      <span class="import-card__tip">
-        不勾选时题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入，或勾选导入即发布
-      </span>
+      <template v-if="userStore.canReview">
+        <el-switch v-model="publishOnImport" active-text="导入即发布" />
+        <span class="import-card__tip">
+          不勾选时题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入，或勾选导入即发布
+        </span>
+      </template>
+      <span v-else class="import-card__tip">题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入</span>
     </div>
     <div class="import-card__row">
       <el-button type="primary" :disabled="fileList.length === 0" :loading="submitting" @click="submit">
@@ -37,6 +40,7 @@
 import { ElMessage, type UploadFile, type UploadUserFile } from 'element-plus';
 import { ref } from 'vue';
 import { IMPORT_ACCEPT, IMPORT_TEMPLATE_URL, isImportFile } from '../useImportJobs';
+import { useUserInfoStore } from '@/store/modules/user-info';
 
 interface Props {
   submitting?: boolean;
@@ -47,6 +51,8 @@ withDefaults(defineProps<Props>(), { submitting: false });
 const emit = defineEmits<{
   submit: [file: File, publishOnImport: boolean];
 }>();
+
+const userStore = useUserInfoStore();
 
 const fileList = ref<UploadUserFile[]>([]);
 const publishOnImport = ref(false);

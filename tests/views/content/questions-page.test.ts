@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import {
@@ -10,6 +11,7 @@ import {
   fetchAllSubjects,
   type AdminQuestionDto,
 } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import QuestionsPage from '@/views/content/questions/index.vue';
 
 vi.mock('@/api', () => ({
@@ -79,6 +81,8 @@ function rowButtons(wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper'], i
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia());
+  useUserInfoStore().setUserInfo({ role: 'ADMIN' });
   vi.clearAllMocks();
   vi.spyOn(ElMessage, 'success').mockImplementation(() => ({ close: () => {} }) as never);
   vi.mocked(fetchAllExams).mockResolvedValue([{ id: 'e1', name: '国考' } as never]);
@@ -104,6 +108,24 @@ describe('题目列表页', () => {
 
     expect(rowButtons(wrapper, 0)).toEqual(['预览', '编辑', '提交审核', '删除']);
     expect(rowButtons(wrapper, 1)).toEqual(['预览', '编辑', '版本', '下架']);
+  });
+
+  it('编辑看不到下架、重新发布与勘误', async () => {
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    vi.mocked(adminGetQuestions).mockResolvedValue({
+      list: [
+        question({ id: 'single', status: 'PUBLISHED', currentVersion: 1 }),
+        question({ id: 'offline', status: 'OFFLINE', currentVersion: 1 }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    const { wrapper } = await mountPage();
+
+    expect(rowButtons(wrapper, 0)).toEqual(['预览', '编辑', '版本']);
+    expect(rowButtons(wrapper, 1)).toEqual(['预览', '编辑', '版本']);
   });
 
   it('发布过的非材料题可发起勘误', async () => {

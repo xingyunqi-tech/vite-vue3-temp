@@ -61,10 +61,12 @@ src/store/
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getUserInfo, login, logout, type LoginParams } from '@/api/modules/auth';
-import { ROLES } from '@/constants';
+import { BACKOFFICE_ROLES, REVIEW_ROLES, ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 import { removePersistedStore } from '@/store/plugins/persist';
-import { getToken, jumpToLogout, setToken } from '@/utils/auth';
+import { getToken, jumpToLogout, setRefreshToken, setToken } from '@/utils/auth';
+
+export const NO_BACKOFFICE_ACCESS_MESSAGE = '当前账号无运营后台访问权限';
 
 export interface UserInfo {
   id: number | undefined;
@@ -94,8 +96,7 @@ export const useUserInfoStore = defineStore(
 
     const isLoggedIn = computed(() => !!token.value);
     const isAdmin = computed(() => info.value.role === ROLES.ADMIN);
-    const isTeacher = computed(() => info.value.role === ROLES.TEACHER || info.value.role === ROLES.ADMIN);
-    const isStudent = computed(() => info.value.role === ROLES.STUDENT);
+    const canReview = computed(() => info.value.role !== '' && REVIEW_ROLES.includes(info.value.role));
 
     /** 本页加载用户信息时的 token，换账号检测的基准；不持久化 */
     let loadedToken = '';
@@ -105,11 +106,16 @@ export const useUserInfoStore = defineStore(
       loadedToken = '';
     };
 
-    /** 账号密码登录：写入 token 并同步镜像 */
+    /** 账号密码登录：只允许 BACKOFFICE_ROLES，其余角色注销本次会话并抛出 NO_BACKOFFICE_ACCESS_MESSAGE */
     const loginAction = async (params: LoginParams) => {
-      const newToken = (await login(params))?.token;
-      if (!newToken) throw new Error('登录失败：未获取到登录凭证');
-      setToken(newToken);
+      const result = await login(params);
+      if (!result?.token) throw new Error('登录失败：未获取到登录凭证');
+      if (result.user.role === '' || !BACKOFFICE_ROLES.includes(result.user.role)) {
+        await logout(result.token).catch(error => console.warn('注销非后台角色会话失败:', error));
+        throw new Error(NO_BACKOFFICE_ACCESS_MESSAGE);
+      }
+      setToken(result.token);
+      setRefreshToken(result.refreshToken);
       refreshToken();
     };
 
@@ -136,7 +142,7 @@ export const useUserInfoStore = defineStore(
     };
 
     return {
-      info, token, isLoggedIn, refreshToken, isAdmin, isTeacher, isStudent,
+      info, token, isLoggedIn, refreshToken, isAdmin, canReview,
       setUserInfo, resetUserInfo, loginAction, getInfoAction, isAccountSwitched, logoutAction,
     };
   },

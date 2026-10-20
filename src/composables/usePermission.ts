@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { ROLES } from '@/constants';
+import { BACKOFFICE_ROLES, REVIEW_ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 import { useUserInfoStore } from '@/store/modules/user-info';
 
@@ -25,20 +25,16 @@ export interface ResourcePermissionConfig {
  * 默认资源权限配置
  *
  * 默认规则：
- * - view: 所有登录用户（所有角色）
- * - create: 管理员和教师
- * - edit: 管理员和教师
- * - delete: 管理员和教师
- * - export: 管理员和教师
- * - audit: 管理员和教师
+ * - view / create / edit / delete / export: BACKOFFICE_ROLES（管理员、编辑、审核员）
+ * - audit: REVIEW_ROLES（管理员、审核员）
  */
 const DEFAULT_RESOURCE_CONFIG: ResourcePermissionConfig = {
-  view: [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT],
-  create: [ROLES.ADMIN, ROLES.TEACHER],
-  edit: [ROLES.ADMIN, ROLES.TEACHER],
-  delete: [ROLES.ADMIN, ROLES.TEACHER],
-  export: [ROLES.ADMIN, ROLES.TEACHER],
-  audit: [ROLES.ADMIN, ROLES.TEACHER],
+  view: [...BACKOFFICE_ROLES],
+  create: [...BACKOFFICE_ROLES],
+  edit: [...BACKOFFICE_ROLES],
+  delete: [...BACKOFFICE_ROLES],
+  export: [...BACKOFFICE_ROLES],
+  audit: [...REVIEW_ROLES],
 };
 
 /**
@@ -57,7 +53,7 @@ const DEFAULT_RESOURCE_CONFIG: ResourcePermissionConfig = {
  * const { hasRole, isAdmin } = usePermission();
  *
  * // 组件内定义业务权限
- * const canManage = hasRole([ROLES.ADMIN, ROLES.TEACHER]);
+ * const canManage = hasRole([ROLES.ADMIN, ROLES.REVIEWER]);
  * </script>
  * ```
  *
@@ -66,7 +62,7 @@ const DEFAULT_RESOURCE_CONFIG: ResourcePermissionConfig = {
  * <script setup>
  * import { usePermission } from '@/composables/usePermission';
  *
- * // 使用默认配置（管理员和教师可以 CRUD + 审核）
+ * // 使用默认配置（后台角色可以 CRUD，管理员和审核员可以审核）
  * const { canCreate, canEdit, canDelete, canAudit } = usePermission();
  * </script>
  * ```
@@ -93,10 +89,9 @@ export function usePermission(config?: ResourcePermissionConfig) {
    */
   const currentRole = computed(() => role.value);
 
-  // 角色判断复用 user-info store 的口径（isTeacher 含 ADMIN），保持单一真实来源
+  // 角色判断复用 user-info store 的口径（canReview 含 ADMIN），保持单一真实来源
   const isAdmin = computed(() => userStore.isAdmin);
-  const isTeacher = computed(() => userStore.isTeacher);
-  const isStudent = computed(() => userStore.isStudent);
+  const canReview = computed(() => userStore.canReview);
 
   /**
    * 检查是否有指定角色（单个或多个）
@@ -104,7 +99,7 @@ export function usePermission(config?: ResourcePermissionConfig) {
    * @returns 响应式布尔值
    *
    * @example
-   * const canEdit = hasRole([ROLES.ADMIN, ROLES.TEACHER]);
+   * const canEdit = hasRole([ROLES.ADMIN, ROLES.EDITOR]);
    * const canDelete = hasRole(ROLES.ADMIN);
    */
   const hasRole = (roles: RoleType | RoleType[]) => {
@@ -121,7 +116,7 @@ export function usePermission(config?: ResourcePermissionConfig) {
    * @returns 响应式布尔值
    *
    * @example
-   * const canManage = hasAnyRole([ROLES.ADMIN, ROLES.TEACHER]);
+   * const canManage = hasAnyRole([ROLES.ADMIN, ROLES.REVIEWER]);
    */
   const hasAnyRole = (roles: RoleType[]) => {
     return hasRole(roles);
@@ -149,8 +144,7 @@ export function usePermission(config?: ResourcePermissionConfig) {
 
     // 角色判断
     isAdmin,
-    isTeacher,
-    isStudent,
+    canReview,
 
     // 通用权限方法
     hasRole,

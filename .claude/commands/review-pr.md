@@ -119,7 +119,7 @@ description: 快速提醒 PR 审查清单，确保代码质量和项目规范
 #### 上下文一致性
 - [ ] **轮子检测**: 是否重复实现了项目已有的工具函数？
   - 日期格式化 → `@/utils` (`formatDateShort`, `formatDateTime`, `formatRelativeTime`)
-  - 角色/权限检查 → `@/composables/usePermission`（`hasRole`/`isTeacher`/`isStudent`/`canEdit`/`canDelete`）、模板内显隐用 `v-role` 指令
+  - 角色/权限检查 → `@/composables/usePermission`（`hasRole`/`canReview`/`canEdit`/`canDelete`）、模板内显隐用 `v-role` 指令
   - 骨架屏 loading → `@/composables/useSkeleton`（含防闪烁），不要另写一份 `useLoading`
   - 状态持久化 → Pinia Store `persist` 选项（参见 `src/store/plugins/persist.ts`）；清理时用 `removePersistedStore(storeId)`
   - Token 读写 → `@/utils/auth` 的 `getToken()` / `setToken()` / `removeToken()`（Cookie），**不要**写进 `localStorage`

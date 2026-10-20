@@ -345,7 +345,7 @@ import { computed } from 'vue';
 
 const userStore = useUserInfoStore();
 
-// 获取响应式状态（真实导出：info / token / isLoggedIn / isAdmin / isTeacher / isStudent）
+// 获取响应式状态（真实导出：info / token / isLoggedIn / isAdmin / canReview）
 const userInfo = computed(() => userStore.info);
 const isLoggedIn = computed(() => userStore.isLoggedIn);
 

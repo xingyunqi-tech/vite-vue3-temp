@@ -206,7 +206,7 @@ pnpm lint && pnpm type-check
 ## 与其他 Skills 配合
 
 ```bash
-/component-generator UserManagement --type page --with-router --roles admin,teacher
+/component-generator UserManagement --type page --with-router --roles admin,editor
 /store-generator UserStore --smart
 /page-assembler src/views/user-management/index.vue
 /code-optimizer src/views/user-management/ --full

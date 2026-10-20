@@ -85,7 +85,7 @@
             版本
           </el-button>
           <el-button
-            v-if="canStartErrata(row as AdminQuestionDto)"
+            v-if="userStore.canReview && canStartErrata(row as AdminQuestionDto)"
             link
             type="warning"
             @click="router.push(errataCreateLocation(row.id))"
@@ -102,7 +102,7 @@
             提交审核
           </el-button>
           <el-button
-            v-if="canOfflineQuestion(row as AdminQuestionDto)"
+            v-if="userStore.canReview && canOfflineQuestion(row as AdminQuestionDto)"
             link
             type="warning"
             :disabled="isActing(row.id)"
@@ -111,7 +111,7 @@
             下架
           </el-button>
           <el-button
-            v-if="canRepublishQuestion(row as AdminQuestionDto)"
+            v-if="userStore.canReview && canRepublishQuestion(row as AdminQuestionDto)"
             link
             type="success"
             :loading="isActing(row.id)"
@@ -170,11 +170,13 @@ import type { AdminQuestionDto, QuestionSource, QuestionType } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useRowAction } from '@/composables/useRowAction';
 import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
 const router = useRouter();
+const userStore = useUserInfoStore();
 const typeOptions = toOptions(QUESTION_TYPE_LABEL);
 const statusOptions = toStatusOptions(QUESTION_STATUS_META);
 const sourceOptions = toOptions(QUESTION_SOURCE_LABEL);

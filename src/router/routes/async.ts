@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
-import { ROLES } from '@/constants';
+import { BACKOFFICE_ROLES, REVIEW_ROLES, ROLES } from '@/constants';
 import { AppLayout } from '@/layout/constants';
 
 /** 设置页壳路由的名字：壳内导航列出它的直接子页面 */
@@ -11,67 +11,67 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/content',
     component: AppLayout,
     redirect: '/content/exams',
-    meta: { title: '内容管理', roles: [ROLES.ADMIN] },
+    meta: { title: '内容管理', roles: [...BACKOFFICE_ROLES] },
     children: [
       {
         path: 'exams',
         name: 'ContentExams',
         component: () => import('@/views/content/exams/index.vue'),
-        meta: { title: '考试与科目', roles: [ROLES.ADMIN] },
+        meta: { title: '考试与科目', roles: [...BACKOFFICE_ROLES] },
       },
       {
         path: 'questions',
         name: 'ContentQuestions',
         component: () => import('@/views/content/questions/index.vue'),
-        meta: { title: '题目', roles: [ROLES.ADMIN] },
+        meta: { title: '题目', roles: [...BACKOFFICE_ROLES] },
       },
       {
         path: 'questions/create',
         name: 'ContentQuestionCreate',
         component: () => import('@/views/content/question-edit/index.vue'),
-        meta: { title: '新建题目', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/content/questions' },
+        meta: { title: '新建题目', roles: [...BACKOFFICE_ROLES], hidden: true, activeMenu: '/content/questions' },
       },
       {
         path: 'questions/:id',
         name: 'ContentQuestionEdit',
         component: () => import('@/views/content/question-edit/index.vue'),
-        meta: { title: '编辑题目', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/content/questions' },
+        meta: { title: '编辑题目', roles: [...BACKOFFICE_ROLES], hidden: true, activeMenu: '/content/questions' },
       },
       {
         path: 'review',
         name: 'ContentReview',
         component: () => import('@/views/content/review/index.vue'),
-        meta: { title: '审核发布', roles: [ROLES.ADMIN] },
+        meta: { title: '审核发布', roles: [...REVIEW_ROLES] },
       },
       {
         path: 'papers',
         name: 'ContentPapers',
         component: () => import('@/views/content/papers/index.vue'),
-        meta: { title: '试卷', roles: [ROLES.ADMIN] },
+        meta: { title: '试卷', roles: [...BACKOFFICE_ROLES] },
       },
       {
         path: 'papers/:id',
         name: 'ContentPaperEdit',
         component: () => import('@/views/content/paper-edit/index.vue'),
-        meta: { title: '编辑试卷', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/content/papers' },
+        meta: { title: '编辑试卷', roles: [...BACKOFFICE_ROLES], hidden: true, activeMenu: '/content/papers' },
       },
       {
         path: 'paper-rules',
         name: 'ContentPaperRules',
         component: () => import('@/views/content/paper-rules/index.vue'),
-        meta: { title: '组卷规则', roles: [ROLES.ADMIN] },
+        meta: { title: '组卷规则', roles: [...BACKOFFICE_ROLES] },
       },
       {
         path: 'daily',
         name: 'ContentDaily',
         component: () => import('@/views/content/daily/index.vue'),
-        meta: { title: '每日一练', roles: [ROLES.ADMIN] },
+        meta: { title: '每日一练', roles: [...BACKOFFICE_ROLES] },
       },
       {
         path: 'imports',
         name: 'ContentImports',
         component: () => import('@/views/content/imports/index.vue'),
-        meta: { title: '批量导入', roles: [ROLES.ADMIN] },
+        meta: { title: '批量导入', roles: [...BACKOFFICE_ROLES] },
       },
     ],
   },
@@ -79,37 +79,37 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/feedback',
     component: AppLayout,
     redirect: '/feedback/reports',
-    meta: { title: '纠错与勘误', roles: [ROLES.ADMIN] },
+    meta: { title: '纠错与勘误', roles: [...REVIEW_ROLES] },
     children: [
       {
         path: 'reports',
         name: 'FeedbackReports',
         component: () => import('@/views/content/report-list/index.vue'),
-        meta: { title: '纠错与举报', roles: [ROLES.ADMIN] },
+        meta: { title: '纠错与举报', roles: [...REVIEW_ROLES] },
       },
       {
         path: 'reports/:id',
         name: 'FeedbackReportDetail',
         component: () => import('@/views/content/report-detail/index.vue'),
-        meta: { title: '纠错单详情', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/reports' },
+        meta: { title: '纠错单详情', roles: [...REVIEW_ROLES], hidden: true, activeMenu: '/feedback/reports' },
       },
       {
         path: 'errata',
         name: 'FeedbackErrata',
         component: () => import('@/views/content/errata/index.vue'),
-        meta: { title: '勘误', roles: [ROLES.ADMIN] },
+        meta: { title: '勘误', roles: [...REVIEW_ROLES] },
       },
       {
         path: 'errata/create',
         name: 'FeedbackErrataCreate',
         component: () => import('@/views/content/errata-create/index.vue'),
-        meta: { title: '题目勘误', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/errata' },
+        meta: { title: '题目勘误', roles: [...REVIEW_ROLES], hidden: true, activeMenu: '/feedback/errata' },
       },
       {
         path: 'errata/:id',
         name: 'FeedbackErrataDetail',
         component: () => import('@/views/content/errata-detail/index.vue'),
-        meta: { title: '勘误进度', roles: [ROLES.ADMIN], hidden: true, activeMenu: '/feedback/errata' },
+        meta: { title: '勘误进度', roles: [...REVIEW_ROLES], hidden: true, activeMenu: '/feedback/errata' },
       },
     ],
   },
@@ -160,7 +160,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
     meta: {
       title: '设置',
       hidden: true,
-      roles: [ROLES.TEACHER, ROLES.ADMIN],
+      roles: [ROLES.ADMIN],
       layout: {
         layoutVisible: {
           nav: false,
@@ -181,7 +181,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
             component: () => import('@/views/setting/Frontend.vue'),
             meta: {
               title: '前端配置',
-              roles: [ROLES.TEACHER, ROLES.ADMIN],
+              roles: [ROLES.ADMIN],
             },
           },
           {

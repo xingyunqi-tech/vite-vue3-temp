@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getUserInfo, login, logout } from '@/api/modules/auth';
-import { NOT_ADMIN_MESSAGE, useUserInfoStore } from '@/store/modules/user-info';
+import { NO_BACKOFFICE_ACCESS_MESSAGE, useUserInfoStore } from '@/store/modules/user-info';
 import { removePersistedStore } from '@/store/plugins/persist';
 import { getRefreshToken, getToken, jumpToLogout, removeToken, setToken } from '@/utils/auth';
 
@@ -10,12 +10,12 @@ vi.mock('@/api/modules/auth', () => ({
   logout: vi.fn(async () => undefined),
   getUserInfo: vi.fn(async () => ({
     id: 1,
-    username: 'teacher',
-    realName: '张老师',
+    username: 'reviewer',
+    realName: '审核员',
     avatar: '',
     email: '',
     phone: '',
-    role: 'TEACHER',
+    role: 'REVIEWER',
   })),
 }));
 vi.mock('@/store/plugins/persist', () => ({ removePersistedStore: vi.fn(async () => {}) }));
@@ -49,7 +49,7 @@ describe('登录', () => {
     expect(store.isLoggedIn).toBe(true);
   });
 
-  it('非管理员登录时注销本次会话、不写入 token 并提示无权限', async () => {
+  it('非后台角色登录时注销本次会话、不写入 token 并提示无权限', async () => {
     vi.mocked(login).mockResolvedValueOnce({
       token: 'token-u',
       refreshToken: 'refresh-u',
@@ -57,12 +57,38 @@ describe('登录', () => {
     } as never);
     const store = useUserInfoStore();
 
-    await expect(store.loginAction({ email: 'user@example.com', password: 'p' })).rejects.toThrow(NOT_ADMIN_MESSAGE);
+    await expect(store.loginAction({ email: 'user@example.com', password: 'p' })).rejects.toThrow(
+      NO_BACKOFFICE_ACCESS_MESSAGE,
+    );
 
     expect(logout).toHaveBeenCalledWith('token-u');
     expect(getToken()).toBe('');
     expect(getRefreshToken()).toBe('');
     expect(store.isLoggedIn).toBe(false);
+  });
+});
+
+describe('后台角色', () => {
+  it.each(['EDITOR', 'REVIEWER'])('%s 角色可以登录', async role => {
+    vi.mocked(login).mockResolvedValueOnce({ token: 'token-r', refreshToken: 'refresh-r', user: { role } } as never);
+    const store = useUserInfoStore();
+
+    await store.loginAction({ email: 'staff@example.com', password: 'p' });
+
+    expect(logout).not.toHaveBeenCalled();
+    expect(getToken()).toBe('token-r');
+  });
+
+  it.each([
+    ['ADMIN', true],
+    ['REVIEWER', true],
+    ['EDITOR', false],
+    ['', false],
+  ] as const)('%s 角色的 canReview 为 %s', (role, expected) => {
+    const store = useUserInfoStore();
+    store.setUserInfo({ role });
+
+    expect(store.canReview).toBe(expected);
   });
 });
 
@@ -84,9 +110,9 @@ describe('用户信息', () => {
     await store.getInfoAction();
 
     expect(getUserInfo).toHaveBeenCalledTimes(1);
-    expect(store.info.realName).toBe('张老师');
-    expect(store.info.role).toBe('TEACHER');
-    expect(store.isTeacher).toBe(true);
+    expect(store.info.realName).toBe('审核员');
+    expect(store.info.role).toBe('REVIEWER');
+    expect(store.canReview).toBe(true);
   });
 
   it('接口返回未定义的角色时角色留空', async () => {
@@ -97,7 +123,7 @@ describe('用户信息', () => {
       avatar: '',
       email: '',
       phone: '',
-      role: 'teacher',
+      role: 'editor',
     } as never);
     const store = useUserInfoStore();
 

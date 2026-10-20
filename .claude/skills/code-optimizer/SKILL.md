@@ -274,8 +274,8 @@ Glob: src/store/modules/*.ts
 
 | 能力 | 已有实现 | 关键接口 |
 |------|---------|---------|
-| 角色 / 资源权限 | `src/composables/usePermission.ts` | `usePermission(config?)` → `currentRole` / `isAdmin` / `isTeacher` / `isStudent` / `hasRole(roles)` / `hasAnyRole` / `isRole` / `canView` / `canCreate` / `canEdit` / `canDelete` / `canExport` / `canAudit` |
-| 模板内按角色显隐 | `src/directives/role.ts` | `v-role="ROLES.ADMIN"` / `v-role="[ROLES.ADMIN, ROLES.TEACHER]"`，跟随 `info.role` 响应式更新 |
+| 角色 / 资源权限 | `src/composables/usePermission.ts` | `usePermission(config?)` → `currentRole` / `isAdmin` / `canReview` / `hasRole(roles)` / `hasAnyRole` / `isRole` / `canView` / `canCreate` / `canEdit` / `canDelete` / `canExport` / `canAudit` |
+| 模板内按角色显隐 | `src/directives/role.ts` | `v-role="ROLES.ADMIN"` / `v-role="[ROLES.ADMIN, ROLES.EDITOR]"`，跟随 `info.role` 响应式更新 |
 | 加载态 / 骨架屏 | `src/composables/useSkeleton.ts` | `useSkeleton({ delay, minDuration })` → `loading` / `visible` / `withLoading` / `cleanup`，**已含防闪烁，不要另写 `useLoading`** |
 | 站点配置 | `src/composables/useSiteConfig.ts` | — |
 | 主题切换动画 | `src/composables/useThemeTransition.ts` | `useThemeTransition()` → `toggleThemeWithTransition` |
@@ -287,7 +287,7 @@ import { usePermission } from '@/composables/usePermission';
 import { ROLES } from '@/constants';
 
 const { hasRole, canDelete } = usePermission({ delete: [ROLES.ADMIN] });
-const canManage = hasRole([ROLES.ADMIN, ROLES.TEACHER]);
+const canManage = hasRole([ROLES.ADMIN, ROLES.EDITOR]);
 
 // ✅ 复用：带防闪烁的加载态
 import { useSkeleton } from '@/composables/useSkeleton';

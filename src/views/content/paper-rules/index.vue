@@ -44,17 +44,28 @@
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openPreview(row as PaperRule)">试生成</el-button>
-          <el-button link type="primary" @click="openEditor(row as PaperRule)">编辑</el-button>
           <el-button
-            v-if="row.status !== 'PUBLISHED'"
+            v-if="userStore.canReview || row.status === 'DRAFT'"
             link
-            type="success"
-            @click="handleStatus(row as PaperRule, 'PUBLISHED')"
+            type="primary"
+            @click="openEditor(row as PaperRule)"
           >
-            发布
+            编辑
           </el-button>
-          <el-button v-else link type="warning" @click="handleStatus(row as PaperRule, 'OFFLINE')">下架</el-button>
-          <el-button link type="danger" @click="handleRemove(row as PaperRule)">删除</el-button>
+          <template v-if="userStore.canReview">
+            <el-button
+              v-if="row.status !== 'PUBLISHED'"
+              link
+              type="success"
+              @click="handleStatus(row as PaperRule, 'PUBLISHED')"
+            >
+              发布
+            </el-button>
+            <el-button v-else link type="warning" @click="handleStatus(row as PaperRule, 'OFFLINE')">下架</el-button>
+          </template>
+          <el-button v-if="row.status === 'DRAFT'" link type="danger" @click="handleRemove(row as PaperRule)">
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -94,8 +105,10 @@ import { usePaperRules } from './usePaperRules';
 import type { ContentStatus, PaperRule } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { PAGE_SIZES, toStatusOptions } from '@/constants';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
+const userStore = useUserInfoStore();
 const statusOptions = toStatusOptions(CONTENT_STATUS_META);
 const { options: subjectOptions, load: loadSubjects, subjectLabel } = useSubjectOptions();
 const {

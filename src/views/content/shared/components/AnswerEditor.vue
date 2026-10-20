@@ -106,7 +106,7 @@
       </template>
     </div>
 
-    <span v-if="locked" class="answer-editor__hint">已发布过的题目不能修改答案，答案错误请走勘误</span>
+    <span v-if="locked" class="answer-editor__hint">已发布过的题目不能修改答案，答案错误需由审核员发起勘误</span>
   </div>
 </template>
 

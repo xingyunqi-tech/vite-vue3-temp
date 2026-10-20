@@ -1,7 +1,7 @@
 # API 模块使用指南
 
 > 下文的 `getUserList` 等 Orval 生成函数名仅作示意。`src/api/generated/` 纳入版本管理、运行时被依赖；后端接口变更后启动后端（开启 SWAGGER_ENABLED）运行 `pnpm orval` 重新生成并一起提交。
-> 当前仓库的手写接口在 `src/api/modules/`：`auth.ts`（管理员登录、退出、当前用户）、`remote-config.ts`（远程配置读写）。
+> 当前仓库的手写接口在 `src/api/modules/`：`auth.ts`（后台登录、退出、当前用户）、`remote-config.ts`（远程配置读写）。
 
 ## 概述
 

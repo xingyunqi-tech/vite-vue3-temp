@@ -116,7 +116,7 @@ src/
   ☐ pnpm orval 同步 API（先确认 orval.config.ts 的 input.target 已配）
   ☐ /store-generator XxxStore --smart
 阶段 2 页面与路由
-  ☐ /component-generator XxxManagement --type page --smart --with-router --roles admin,teacher
+  ☐ /component-generator XxxManagement --type page --smart --with-router --roles admin,editor
 阶段 3 业务组件
   ☐ /component-generator XxxTable --type business
   ☐ /component-generator XxxForm --type business --with-form

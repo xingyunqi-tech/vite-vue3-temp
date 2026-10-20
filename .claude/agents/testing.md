@@ -142,7 +142,7 @@ import { getToken, jumpToLogout, removeToken } from '@/utils/auth';
 vi.mock('@/api/modules/auth', () => ({
   login: vi.fn(async () => ({ token: 'token-a' })),
   logout: vi.fn(async () => undefined),
-  getUserInfo: vi.fn(async () => ({ id: 1, username: 'teacher', realName: '张老师', avatar: '', email: '', phone: '', role: 'TEACHER' })),
+  getUserInfo: vi.fn(async () => ({ id: 1, username: 'editor', realName: '编辑', avatar: '', email: '', phone: '', role: 'EDITOR' })),
 }));
 vi.mock('@/store/plugins/persist', () => ({ removePersistedStore: vi.fn(async () => {}) }));
 vi.mock('@/utils/auth', async importOriginal => ({
@@ -195,7 +195,7 @@ import UserCard from '@/components/UserCard/index.vue';
 
 describe('UserCard', () => {
   it('应该渲染传入的用户名', () => {
-    const wrapper = mount(UserCard, { props: { name: '张三', role: 'TEACHER' } });
+    const wrapper = mount(UserCard, { props: { name: '张三', role: 'EDITOR' } });
     expect(wrapper.text()).toContain('张三');
   });
 

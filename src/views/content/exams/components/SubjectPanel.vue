@@ -24,7 +24,7 @@
           <el-button link type="primary" @click="openKnowledge(row as Subject)">知识点</el-button>
           <el-button link type="primary" @click="openEditor(row as Subject)">编辑</el-button>
           <el-button
-            v-if="canPublish(row.status)"
+            v-if="userStore.canReview && canPublish(row.status)"
             link
             type="success"
             :loading="isActing(row.id)"
@@ -33,7 +33,7 @@
             发布
           </el-button>
           <el-button
-            v-if="canOffline(row.status)"
+            v-if="userStore.canReview && canOffline(row.status)"
             link
             type="warning"
             :disabled="isActing(row.id)"
@@ -68,6 +68,7 @@ import SubjectFormDialog from './SubjectFormDialog.vue';
 import type { Exam, Subject, UpdateSubjectDto } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useRowAction } from '@/composables/useRowAction';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
 interface Props {
@@ -75,6 +76,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const userStore = useUserInfoStore();
 
 const { subjects, loading, load, save, publish, offline, remove } = useSubjectList();
 

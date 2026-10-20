@@ -1,14 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getUserInfo, login, logout, type LoginParams } from '@/api/modules/auth';
-import { ROLES } from '@/constants';
+import { BACKOFFICE_ROLES, REVIEW_ROLES, ROLES } from '@/constants';
 import type { RoleType } from '@/constants';
 import { removePersistedStore } from '@/store/plugins/persist';
 import { getToken, getTokenSession, jumpToLogout, setRefreshToken, setToken } from '@/utils/auth';
 
-export type UserType = 'teacher' | 'student';
-
-export const NOT_ADMIN_MESSAGE = '当前账号无运营后台访问权限';
+export const NO_BACKOFFICE_ACCESS_MESSAGE = '当前账号无运营后台访问权限';
 
 export interface UserInfo {
   id: number | undefined;
@@ -19,10 +17,6 @@ export interface UserInfo {
   phone: string;
   /** 系统角色，统一使用 @/constants 的 ROLES（来自 getUserInfo 接口） */
   role: RoleType | '';
-  userType: UserType | '';
-  studentNo: string;
-  major: string;
-  department: string;
   status: number;
 }
 
@@ -36,10 +30,6 @@ const createInitialState = (): UserInfo => ({
   email: '',
   phone: '',
   role: '',
-  userType: '',
-  studentNo: '',
-  major: '',
-  department: '',
   status: 1,
 });
 
@@ -64,8 +54,7 @@ export const useUserInfoStore = defineStore(
     // 计算属性
     const isLoggedIn = computed(() => !!token.value);
     const isAdmin = computed(() => info.value.role === ROLES.ADMIN);
-    const isTeacher = computed(() => info.value.role === ROLES.TEACHER || info.value.role === ROLES.ADMIN);
-    const isStudent = computed(() => info.value.role === ROLES.STUDENT);
+    const canReview = computed(() => info.value.role !== '' && REVIEW_ROLES.includes(info.value.role));
 
     const setUserInfo = (partial: Partial<UserInfo>) => {
       Object.assign(info.value, partial);
@@ -79,13 +68,13 @@ export const useUserInfoStore = defineStore(
       loadedSession = '';
     };
 
-    /** 账号密码登录，仅允许管理员 */
+    /** 账号密码登录，仅允许 BACKOFFICE_ROLES */
     const loginAction = async (params: LoginParams) => {
       const result = await login(params);
       if (!result?.token) throw new Error('登录失败：未获取到登录凭证');
-      if (result.user.role !== ROLES.ADMIN) {
-        await logout(result.token).catch(error => console.warn('注销非管理员会话失败:', error));
-        throw new Error(NOT_ADMIN_MESSAGE);
+      if (result.user.role === '' || !BACKOFFICE_ROLES.includes(result.user.role)) {
+        await logout(result.token).catch(error => console.warn('注销非后台角色会话失败:', error));
+        throw new Error(NO_BACKOFFICE_ACCESS_MESSAGE);
       }
       setToken(result.token);
       setRefreshToken(result.refreshToken);
@@ -129,8 +118,7 @@ export const useUserInfoStore = defineStore(
       isLoggedIn,
       refreshToken,
       isAdmin,
-      isTeacher,
-      isStudent,
+      canReview,
       setUserInfo,
       resetUserInfo,
       loginAction,

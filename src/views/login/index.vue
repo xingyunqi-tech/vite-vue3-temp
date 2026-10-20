@@ -6,7 +6,7 @@
     </div>
 
     <div class="login-card">
-      <h2 class="login-card__title">管理员登录</h2>
+      <h2 class="login-card__title">运营后台登录</h2>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="large" @keyup.enter="handleLogin">
         <el-form-item label="邮箱" prop="email">
           <el-input v-model="form.email" placeholder="请输入邮箱" autocomplete="username" clearable />

@@ -57,7 +57,7 @@ function toggle(el: HTMLElement, state: RoleState, allowed: boolean): void {
  * 需要按「资源 + 操作」做更细粒度判断（canCreate / canEdit 等）时同样用 `usePermission()`。
  *
  * @example <div v-role="ROLES.ADMIN">删除</div>
- * @example <div v-role="[ROLES.ADMIN, ROLES.TEACHER]">编辑</div>
+ * @example <div v-role="[ROLES.ADMIN, ROLES.REVIEWER]">发布</div>
  */
 export const role: Directive<HTMLElement, RoleValue> = {
   mounted(el, binding) {

@@ -22,7 +22,7 @@ vi.mock('@/store/modules/user-info', () => ({ useUserInfoStore: () => userStore 
 vi.mock('@/router/routes', () => {
   const Page = { render: () => null };
   return {
-    resolveDeclaredRoutes: () => [{ path: '/declared', component: Page, meta: { roles: ['TEACHER'] } }],
+    resolveDeclaredRoutes: () => [{ path: '/declared', component: Page, meta: { roles: ['EDITOR'] } }],
     fallbackRoute: {
       path: '/:pathMatch(.*)*',
       name: 'Fallback',
@@ -37,7 +37,7 @@ function createGuardedRouter() {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/home', component: View, meta: { roles: ['TEACHER', 'STUDENT'] } },
+      { path: '/home', component: View, meta: { roles: ['EDITOR', 'REVIEWER'] } },
       { path: '/admin-only', component: View, meta: { roles: ['ADMIN'] } },
     ],
   });
@@ -51,7 +51,7 @@ describe('路由守卫的角色校验', () => {
   });
 
   it('角色不满足直接注册路由的 meta.roles 时落到布局内异常页，地址保留', async () => {
-    userStore.info.role = 'STUDENT';
+    userStore.info.role = 'REVIEWER';
     const router = createGuardedRouter();
 
     await router.push('/admin-only?tab=1');
@@ -71,7 +71,7 @@ describe('路由守卫的角色校验', () => {
   });
 
   it('角色满足时正常进入', async () => {
-    userStore.info.role = 'STUDENT';
+    userStore.info.role = 'REVIEWER';
     const router = createGuardedRouter();
 
     await router.push('/home');
@@ -81,7 +81,7 @@ describe('路由守卫的角色校验', () => {
   });
 
   it('首次导航经过 redirect 时，路由生成后按角色重新判定落点', async () => {
-    userStore.info.role = 'STUDENT';
+    userStore.info.role = 'REVIEWER';
     const router = createGuardedRouter();
     router.addRoute({
       path: '/',
@@ -129,7 +129,7 @@ describe('路由守卫的登录态', () => {
   });
 
   it('已登录访问登录页时回到它带的目标页', async () => {
-    userStore.info.role = 'STUDENT';
+    userStore.info.role = 'REVIEWER';
     const router = createGuardedRouter();
     router.addRoute({ path: LOGIN_PATH, component: View });
 
@@ -167,7 +167,7 @@ describe('路由守卫的账号检查', () => {
   });
 
   it('路由已生成后检测到换了账号时取消导航', async () => {
-    userStore.info.role = 'STUDENT';
+    userStore.info.role = 'REVIEWER';
     const router = createGuardedRouter();
     await router.push('/home');
 
@@ -191,16 +191,16 @@ describe('canAccess', () => {
         {
           path: '/edu',
           component: View,
-          meta: { roles: ['TEACHER', 'ADMIN'] },
+          meta: { roles: ['EDITOR', 'ADMIN'] },
           children: [{ path: 'audit', component: View, meta: { roles: ['ADMIN'] } }],
         },
         fallbackRoute,
       ],
     });
 
-    expect(canAccess(router, '/open', ['STUDENT'])).toBe(true);
-    expect(canAccess(router, '/edu', ['TEACHER'])).toBe(true);
-    expect(canAccess(router, '/edu/audit', ['TEACHER'])).toBe(false);
+    expect(canAccess(router, '/open', ['REVIEWER'])).toBe(true);
+    expect(canAccess(router, '/edu', ['EDITOR'])).toBe(true);
+    expect(canAccess(router, '/edu/audit', ['EDITOR'])).toBe(false);
     expect(canAccess(router, '/edu/audit', ['ADMIN'])).toBe(true);
     expect(canAccess(router, '/not-exist', ['ADMIN'])).toBe(false);
   });

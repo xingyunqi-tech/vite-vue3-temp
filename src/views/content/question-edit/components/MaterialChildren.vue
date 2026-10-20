@@ -30,7 +30,7 @@
             版本
           </el-button>
           <el-button
-            v-if="canStartErrata(row as AdminQuestionDto)"
+            v-if="userStore.canReview && canStartErrata(row as AdminQuestionDto)"
             link
             type="warning"
             @click="emit('errata', row as AdminQuestionDto)"
@@ -68,6 +68,7 @@ import { QUESTION_TYPE_LABEL } from '../../shared/constants';
 import { canStartErrata } from '../../shared/errata';
 import SubQuestionDialog from './SubQuestionDialog.vue';
 import type { AdminQuestionDto, FileType, QuestionType } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { markdownSummary } from '@/utils/markdown';
 
 interface Props {
@@ -88,6 +89,8 @@ const emit = defineEmits<{
   versions: [child: AdminQuestionDto];
   errata: [child: AdminQuestionDto];
 }>();
+
+const userStore = useUserInfoStore();
 
 const editorVisible = ref(false);
 const editing = ref<AdminQuestionDto | null>(null);

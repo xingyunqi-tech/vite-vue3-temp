@@ -58,24 +58,16 @@ describe('后台路由与菜单', () => {
     ].forEach(path => expect(store.hasAccessibleRoute(path)).toBe(true));
   });
 
-  it('非管理员角色无法访问纠错与勘误', () => {
+  it('非后台角色无法访问内容管理', () => {
     const store = usePermissionStore();
-    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
-
-    expect(store.hasAccessibleRoute('/feedback/reports')).toBe(false);
-    expect(store.hasAccessibleRoute('/feedback/errata')).toBe(false);
-  });
-
-  it('非管理员角色无法访问内容管理', () => {
-    const store = usePermissionStore();
-    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+    store.generateRoutes(resolveDeclaredRoutes(), ['USER']);
 
     expect(store.hasAccessibleRoute('/content/questions')).toBe(false);
   });
 
-  it('非管理员角色无法访问系统页面', () => {
+  it('编辑与审核员无法访问系统页面', () => {
     const store = usePermissionStore();
-    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.EDITOR, ROLES.REVIEWER]);
 
     expect(store.hasAccessibleRoute('/system/config')).toBe(false);
     expect(store.hasAccessibleRoute('/system/monitor')).toBe(false);
@@ -87,7 +79,7 @@ describe('后台路由与菜单', () => {
     store.generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN]);
     expect(store.hasAccessibleRoute('/ai/usage')).toBe(true);
 
-    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.EDITOR, ROLES.REVIEWER]);
     expect(store.hasAccessibleRoute('/ai/usage')).toBe(false);
   });
 
@@ -119,7 +111,7 @@ describe('后台路由与菜单', () => {
     expect(ai.some(child => child.disabled)).toBe(false);
   });
 
-  it('小程序配置页仅管理员可访问，教师仍可访问前端配置', () => {
+  it('设置页仅管理员可访问', () => {
     const store = usePermissionStore();
     const route = store
       .generateRoutes(resolveDeclaredRoutes(), [ROLES.ADMIN])
@@ -128,12 +120,52 @@ describe('后台路由与菜单', () => {
     expect(route?.meta?.title).toBe('小程序配置');
     expect(store.hasAccessibleRoute('/setting/mini-program')).toBe(true);
 
-    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.TEACHER]);
-    expect(store.hasAccessibleRoute('/setting/mini-program')).toBe(false);
     expect(store.hasAccessibleRoute('/setting/frontend')).toBe(true);
+
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.EDITOR, ROLES.REVIEWER]);
+    expect(store.hasAccessibleRoute('/setting/mini-program')).toBe(false);
+    expect(store.hasAccessibleRoute('/setting/frontend')).toBe(false);
   });
 
-  it('非管理员看不到任何业务菜单', () => {
-    expect(menusFor(ROLES.STUDENT)).toEqual([]);
+  it('编辑可访问内容管理，不能访问审核发布、纠错与勘误、AI 用量与系统', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.EDITOR]);
+
+    [
+      '/content/exams',
+      '/content/questions',
+      '/content/questions/create',
+      '/content/papers',
+      '/content/imports',
+    ].forEach(path => expect(store.hasAccessibleRoute(path)).toBe(true));
+    ['/content/review', '/feedback/reports', '/feedback/errata', '/ai/usage', '/system/config'].forEach(path =>
+      expect(store.hasAccessibleRoute(path)).toBe(false),
+    );
+  });
+
+  it('审核员可访问内容管理、审核发布、纠错与勘误，不能访问 AI 用量与系统', () => {
+    const store = usePermissionStore();
+    store.generateRoutes(resolveDeclaredRoutes(), [ROLES.REVIEWER]);
+
+    ['/content/questions', '/content/review', '/feedback/reports', '/feedback/errata/create'].forEach(path =>
+      expect(store.hasAccessibleRoute(path)).toBe(true),
+    );
+    ['/ai/usage', '/system/config', '/setting/mini-program'].forEach(path =>
+      expect(store.hasAccessibleRoute(path)).toBe(false),
+    );
+  });
+
+  it('编辑与审核员的菜单分组', () => {
+    expect(menusFor(ROLES.EDITOR).map(menu => menu.title)).toEqual(['内容管理']);
+    expect(
+      menusFor(ROLES.EDITOR)
+        .find(menu => menu.path === '/content')
+        ?.children?.map(child => child.path),
+    ).not.toContain('/content/review');
+    expect(menusFor(ROLES.REVIEWER).map(menu => menu.title)).toEqual(['内容管理', '纠错与勘误']);
+  });
+
+  it('没有后台角色时看不到任何业务菜单', () => {
+    expect(menusFor('')).toEqual([]);
   });
 });

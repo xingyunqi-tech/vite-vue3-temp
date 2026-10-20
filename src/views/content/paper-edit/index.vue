@@ -10,24 +10,26 @@
         <el-button type="primary" :loading="saving && !acting" :disabled="!dirty || busy" @click="handleSave">
           保存
         </el-button>
-        <el-button
-          v-if="paper.status !== 'PUBLISHED'"
-          type="success"
-          :loading="acting === 'publish'"
-          :disabled="busy && acting !== 'publish'"
-          @click="handlePublish"
-        >
-          发布
-        </el-button>
-        <el-button
-          v-else
-          type="warning"
-          :loading="acting === 'offline'"
-          :disabled="busy && acting !== 'offline'"
-          @click="handleOffline"
-        >
-          下架
-        </el-button>
+        <template v-if="userStore.canReview">
+          <el-button
+            v-if="paper.status !== 'PUBLISHED'"
+            type="success"
+            :loading="acting === 'publish'"
+            :disabled="busy && acting !== 'publish'"
+            @click="handlePublish"
+          >
+            发布
+          </el-button>
+          <el-button
+            v-else
+            type="warning"
+            :loading="acting === 'offline'"
+            :disabled="busy && acting !== 'offline'"
+            @click="handleOffline"
+          >
+            下架
+          </el-button>
+        </template>
         <el-button
           v-if="paper.type !== 'GENERATED'"
           :loading="acting === 'copy'"
@@ -130,10 +132,12 @@ import { PaperValidationError, usePaperEditor } from './usePaperEditor';
 import type { AdminQuestionDto, QuestionType } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserInfoStore();
 
 const { load: loadSubjects, subjectLabel } = useSubjectOptions();
 const {

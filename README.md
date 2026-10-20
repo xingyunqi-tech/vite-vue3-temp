@@ -171,7 +171,7 @@ pnpm analyzer     # 构建并输出包体分析
 - **token**：存在 Cookie（键名 `TOKEN_KEY`），读写用 `src/utils/auth.ts` 的 `getToken / setToken / removeToken`；请求层把它放进 `Authorization` 头
 - **路由守卫**（`src/router/guards.ts`）：`/login`、`/403` 免登录；未登录跳 `/login?redirect=<原地址>`；首次导航调用 `useUserInfoStore().getInfoAction()` 拉取用户资料与角色，按角色注册异步路由；角色为空或拉取失败落到 `/403`；其他标签页换了账号时整页刷新
 - **401**：业务码或 HTTP 状态为 401 时清除 token 并整页跳转登录页（并发只跳一次），登录后回到原页面
-- **角色**：`ROLES`（`ADMIN` / `TEACHER` / `STUDENT`），路由用 `meta.roles` 声明，页面内用 `usePermission` 或 `v-role` 指令判断
+- **角色**：`ROLES`（`ADMIN` 管理员 / `EDITOR` 内容编辑 / `REVIEWER` 内容审核），对应后端角色 ID 1 / 3 / 4，其余角色不能登录后台。路由用 `meta.roles` 声明（`BACKOFFICE_ROLES` / `REVIEW_ROLES`），页面内用 `useUserInfoStore().canReview`、`usePermission` 或 `v-role` 指令判断
 
 ### 主题
 

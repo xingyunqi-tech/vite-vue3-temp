@@ -624,12 +624,12 @@ import { usePermission } from '@/composables/usePermission';
 import { ROLES } from '@/constants';
 
 // ✅ 细粒度资源权限：默认配置见 usePermission 内的 DEFAULT_RESOURCE_CONFIG，可按资源覆盖
-const { isAdmin, isTeacher, isStudent, hasRole, canCreate, canEdit, canDelete } = usePermission({
+const { isAdmin, canReview, hasRole, canCreate, canEdit, canDelete } = usePermission({
   delete: [ROLES.ADMIN], // 只有管理员可以删除
 });
 
 // hasRole 返回的是 computed，直接用在模板里
-const canManage = hasRole([ROLES.ADMIN, ROLES.TEACHER]);
+const canManage = hasRole([ROLES.ADMIN, ROLES.EDITOR]);
 ```
 
 **路由级权限不要在组件里重写**——`src/router/guards.ts` 已统一处理：未登录时跳 `/login?redirect=<目标>`，

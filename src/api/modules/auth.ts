@@ -1,5 +1,5 @@
 /**
- * 管理员登录与当前用户接口
+ * 后台登录与当前用户接口
  */
 
 import { isAxiosError } from 'axios';
@@ -23,9 +23,15 @@ export interface CurrentUser {
   avatar: string;
   email: string;
   phone: string;
-  /** 后端角色为管理员时为 ROLES.ADMIN，其余角色为空 */
+  /** 后端角色为管理员、编辑、审核员时为对应的 ROLES 值，其余角色为空 */
   role: RoleType | '';
 }
+
+const ROLE_BY_BACKEND_ID = new Map<number, RoleType>([
+  [BACKEND_ROLE_ID.ADMIN, ROLES.ADMIN],
+  [BACKEND_ROLE_ID.EDITOR, ROLES.EDITOR],
+  [BACKEND_ROLE_ID.REVIEWER, ROLES.REVIEWER],
+]);
 
 export interface LoginResult {
   token: string;
@@ -44,7 +50,7 @@ export function toCurrentUser(user: User | null | undefined): CurrentUser {
     avatar: user?.photo?.path ?? '',
     email,
     phone,
-    role: user?.role?.id === BACKEND_ROLE_ID.ADMIN ? ROLES.ADMIN : '',
+    role: ROLE_BY_BACKEND_ID.get(user?.role?.id ?? 0) ?? '',
   };
 }
 

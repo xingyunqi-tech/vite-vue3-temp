@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { adminGetImports, adminDownloadImportErrors, type ImportJob } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import ImportsPage from '@/views/content/imports/index.vue';
 
 vi.mock('@/api', () => ({
@@ -30,6 +32,8 @@ const job = (overrides: Partial<ImportJob>): ImportJob => ({
 });
 
 beforeEach(() => {
+  setActivePinia(createPinia());
+  useUserInfoStore().setUserInfo({ role: 'ADMIN' });
   vi.clearAllMocks();
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
   vi.mocked(adminGetImports).mockResolvedValue({
@@ -49,6 +53,20 @@ describe('批量导入页', () => {
     expect(wrapper.find('a[href$="templates/content-import-template.zip"]').exists()).toBe(true);
     const start = wrapper.findAll('button').find(button => button.text() === '开始导入')!;
     expect(start.attributes('disabled')).toBeDefined();
+  });
+
+  it('只有可审核的角色能勾选导入即发布', async () => {
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
+    const reviewer = mount(ImportsPage);
+    await flushPromises();
+    expect(reviewer.find('.import-card .el-switch').exists()).toBe(true);
+    expect(reviewer.find('.import-card').text()).toContain('勾选导入即发布');
+
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    const editor = mount(ImportsPage);
+    await flushPromises();
+    expect(editor.find('.import-card .el-switch').exists()).toBe(false);
+    expect(editor.find('.import-card').text()).not.toContain('导入即发布');
   });
 
   it('展示任务状态、统计与失败原因', async () => {

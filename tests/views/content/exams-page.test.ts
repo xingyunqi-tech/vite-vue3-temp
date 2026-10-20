@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   adminGetExams,
@@ -10,6 +11,7 @@ import {
   type Exam,
   type KnowledgePointTreeNodeDto,
 } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import ExamsPage from '@/views/content/exams/index.vue';
 
 vi.mock('@/api', () => ({
@@ -61,6 +63,8 @@ const kp = (id: string, children: KnowledgePointTreeNodeDto[] = [], questionCoun
 });
 
 beforeEach(() => {
+  setActivePinia(createPinia());
+  useUserInfoStore().setUserInfo({ role: 'ADMIN' });
   vi.clearAllMocks();
   vi.spyOn(ElMessage, 'success').mockImplementation(() => ({ close: () => {} }) as never);
   vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never);
@@ -88,6 +92,35 @@ describe('考试与科目页', () => {
     const [draft, published] = examRows(wrapper);
     expect(draft.findAll('button').map(button => button.text())).toEqual(['编辑', '发布', '删除']);
     expect(published.findAll('button').map(button => button.text())).toEqual(['编辑', '下架']);
+  });
+
+  it('编辑看不到考试的发布与下架', async () => {
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    const wrapper = mount(ExamsPage);
+    await flushPromises();
+
+    const [draft, published] = examRows(wrapper);
+    expect(draft.findAll('button').map(button => button.text())).toEqual(['编辑', '删除']);
+    expect(published.findAll('button').map(button => button.text())).toEqual(['编辑']);
+  });
+
+  it('科目的发布与下架只对可审核的角色显示', async () => {
+    const subjectButtons = async () => {
+      const wrapper = mount(ExamsPage);
+      await flushPromises();
+      await examRows(wrapper)[1].trigger('click');
+      await flushPromises();
+      const row = wrapper.findAll('.el-table')[1].find('.el-table__body tr.el-table__row');
+      return row.findAll('button').map(button => button.text());
+    };
+
+    expect(await subjectButtons()).toContain('下架');
+
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    const editorButtons = await subjectButtons();
+    expect(editorButtons).toContain('知识点');
+    expect(editorButtons).not.toContain('下架');
+    expect(editorButtons).not.toContain('发布');
   });
 
   it('下架考试需确认，完成后刷新', async () => {

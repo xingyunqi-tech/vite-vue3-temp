@@ -61,7 +61,7 @@ describe('登录页', () => {
     expect(loginAction).not.toHaveBeenCalled();
   });
 
-  it('非管理员登录失败时提示无权限并停留在登录页', async () => {
+  it('非后台角色登录失败时提示无权限并停留在登录页', async () => {
     loginAction.mockRejectedValueOnce(new Error('当前账号无运营后台访问权限'));
     const { wrapper, router } = await mountLogin('/login');
     await fillAndSubmit(wrapper, 'user@example.com');

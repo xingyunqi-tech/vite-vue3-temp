@@ -92,7 +92,7 @@ model: inherit
   meta: {
     title: '功能名称',
     requiresAuth: true,
-    roles: [ROLES.ADMIN, ROLES.TEACHER],  // 用 @/constants 的常量，值为大写；不要写 ['admin']
+    roles: [ROLES.ADMIN, ROLES.EDITOR],  // 用 @/constants 的常量，值为大写；不要写 ['admin']
   }
 }
 

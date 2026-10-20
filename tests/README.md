@@ -133,7 +133,7 @@ import { getUserInfo, login } from '@/api/modules/auth';
 vi.mock('@/api/modules/auth', () => ({
   login: vi.fn(async () => ({ token: 'token-a' })),
   logout: vi.fn(async () => undefined),
-  getUserInfo: vi.fn(async () => ({ id: 1, username: 'teacher', role: 'TEACHER' })),
+  getUserInfo: vi.fn(async () => ({ id: 1, username: 'editor', role: 'EDITOR' })),
 }));
 
 vi.mocked(getUserInfo).mockResolvedValueOnce({ id: 2, username: 'u', role: '' } as never);

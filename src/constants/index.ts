@@ -23,7 +23,7 @@ export const DEFAULT_LOCALE = DEFAULT_LOCALE_VALUE;
 export const DEFAULT_THEME_STYLE = DEFAULT_THEME_STYLE_VALUE;
 
 export { LOCALE_TYPE, LOGIN_PATH, REFRESH_TOKEN_KEY, TOKEN_KEY } from './system';
-export { BACKEND_ROLE_ID } from './roles';
+export { BACKEND_ROLE_ID, BACKOFFICE_ROLES, REVIEW_ROLES } from './roles';
 export type { RoleType } from './roles';
 export type { MenuItem } from './menu';
 export { DEFAULT_PAGE_SIZE, EMPTY_TEXT, PAGE_SIZES, statusMeta, toOptions, toStatusOptions } from './table';

@@ -55,10 +55,12 @@
           <el-button link type="primary" @click="router.push(`/content/papers/${row.id}`)">
             {{ row.status === 'DRAFT' ? '编辑' : '查看' }}
           </el-button>
-          <el-button v-if="row.status !== 'PUBLISHED'" link type="success" @click="handlePublish(row as Paper)">
-            发布
-          </el-button>
-          <el-button v-else link type="warning" @click="handleOffline(row as Paper)">下架</el-button>
+          <template v-if="userStore.canReview">
+            <el-button v-if="row.status !== 'PUBLISHED'" link type="success" @click="handlePublish(row as Paper)">
+              发布
+            </el-button>
+            <el-button v-else link type="warning" @click="handleOffline(row as Paper)">下架</el-button>
+          </template>
           <el-button v-if="row.type !== 'GENERATED'" link type="primary" @click="handleCopy(row as Paper)">
             复制
           </el-button>
@@ -101,9 +103,11 @@ import { usePaperList } from './usePaperList';
 import type { CreatePaperDto, Paper, PaperType } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 
 const router = useRouter();
+const userStore = useUserInfoStore();
 const typeOptions = toOptions(PAPER_TYPE_LABEL);
 const statusOptions = toStatusOptions(CONTENT_STATUS_META);
 

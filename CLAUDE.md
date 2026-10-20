@@ -52,7 +52,7 @@
 - **路由**: Vue Router 5（静态 + 异步权限路由两层体系）
 - **UI**: Element Plus + UnoCSS + SCSS
 - **HTTP**: axios（`src/api/core/request.ts`）+ Orval（OpenAPI → 类型安全 API 自动生成）
-- **登录**: 本地登录页 `/login`（邮箱 + 密码，仅后端 admin 角色可进入），token 存 Cookie、刷新 token 存 localStorage，角色以 `getUserInfo` 接口为准
+- **登录**: 本地登录页 `/login`（邮箱 + 密码，仅后端 admin / editor / reviewer 角色可进入，分别对应 `ROLES.ADMIN / EDITOR / REVIEWER`），token 存 Cookie、刷新 token 存 localStorage，角色以 `getUserInfo` 接口为准
 - **监控**: Sentry（`VITE_SENTRY_DSN` 非空才加载）
 - **测试**: Vitest + Vue Test Utils；`vitest.config.ts` **未设覆盖率阈值**，`test:coverage` 只出报告不会失败（需要门禁时自行加 `coverage.thresholds`，注意必须扁平写）
 

@@ -53,7 +53,7 @@
             <span @click.stop>
               <el-button link type="primary" @click="openEditor(row as Exam)">编辑</el-button>
               <el-button
-                v-if="canPublish(row.status)"
+                v-if="userStore.canReview && canPublish(row.status)"
                 link
                 type="success"
                 :loading="isActing(row.id)"
@@ -62,7 +62,7 @@
                 发布
               </el-button>
               <el-button
-                v-if="canOffline(row.status)"
+                v-if="userStore.canReview && canOffline(row.status)"
                 link
                 type="warning"
                 :disabled="isActing(row.id)"
@@ -114,9 +114,11 @@ import type { CreateExamDto, Exam, ExamCategory } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useRowAction } from '@/composables/useRowAction';
 import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 
+const userStore = useUserInfoStore();
 const categoryOptions = toOptions(EXAM_CATEGORY_LABEL);
 const statusOptions = toStatusOptions(CONTENT_STATUS_META);
 

@@ -43,13 +43,13 @@ describe('v-role 指令', () => {
   });
 
   it('角色不匹配时元素隐藏', () => {
-    useUserInfoStore().setUserInfo({ role: 'STUDENT' });
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
     expect(mountWithRole('ADMIN').find('button').isVisible()).toBe(false);
   });
 
   it('数组取值命中任一角色即可', () => {
-    useUserInfoStore().setUserInfo({ role: 'TEACHER' });
-    expect(mountWithRole(['ADMIN', 'TEACHER']).find('button').isVisible()).toBe(true);
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    expect(mountWithRole(['ADMIN', 'EDITOR']).find('button').isVisible()).toBe(true);
   });
 
   it('没有角色时一律拒绝', () => {
@@ -63,7 +63,7 @@ describe('v-role 指令', () => {
   });
 
   it('隐藏期间元素仍留在兄弟节点之间', () => {
-    useUserInfoStore().setUserInfo({ role: 'STUDENT' });
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
     const wrapper = mountWithRole('ADMIN');
 
     const tags = Array.from(wrapper.element.children as HTMLCollection).map(
@@ -74,7 +74,7 @@ describe('v-role 指令', () => {
 
   it('角色变化后元素恢复显示', async () => {
     const store = useUserInfoStore();
-    store.setUserInfo({ role: 'STUDENT' });
+    store.setUserInfo({ role: 'REVIEWER' });
     const wrapper = mountWithRole('ADMIN');
     expect(wrapper.find('button').isVisible()).toBe(false);
 
@@ -90,25 +90,25 @@ describe('v-role 指令', () => {
     const wrapper = mountWithRole('ADMIN');
     expect(wrapper.find('button').isVisible()).toBe(true);
 
-    store.setUserInfo({ role: 'STUDENT' });
+    store.setUserInfo({ role: 'REVIEWER' });
     await nextTick();
 
     expect(wrapper.find('button').isVisible()).toBe(false);
   });
 
   it('指令取值变化时重新判定', async () => {
-    useUserInfoStore().setUserInfo({ role: 'TEACHER' });
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
     const wrapper = mountWithRole('ADMIN');
     expect(wrapper.find('button').isVisible()).toBe(false);
 
-    await wrapper.setProps({ value: 'TEACHER' });
+    await wrapper.setProps({ value: 'EDITOR' });
 
     expect(wrapper.find('button').isVisible()).toBe(true);
   });
 
   it('恢复显示时还原元素自带的行内 display', async () => {
     const store = useUserInfoStore();
-    store.setUserInfo({ role: 'STUDENT' });
+    store.setUserInfo({ role: 'REVIEWER' });
     const wrapper = mountWithRole('ADMIN', 'display: inline-flex');
 
     store.setUserInfo({ role: 'ADMIN' });
@@ -121,7 +121,7 @@ describe('v-role 指令', () => {
     ['v-show 在前', `<button v-show="show" v-role="'ADMIN'">操作</button>`],
     ['v-show 在后', `<button v-role="'ADMIN'" v-show="show">操作</button>`],
   ])('角色不匹配时 v-show 切换不会让元素显示（%s）', async (_, template) => {
-    useUserInfoStore().setUserInfo({ role: 'STUDENT' });
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
     const show = ref(false);
     const wrapper = mount(
       { setup: () => ({ show }), template },
@@ -151,7 +151,7 @@ describe('v-role 指令', () => {
   });
 
   it('角色不匹配时动态 style 变化不会让元素显示', async () => {
-    useUserInfoStore().setUserInfo({ role: 'STUDENT' });
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
     const sty = ref('color: red');
     const wrapper = mount(
       { setup: () => ({ sty }), template: `<button :style="sty" v-role="'ADMIN'">操作</button>` },
@@ -177,14 +177,14 @@ describe('v-role 指令', () => {
 
     display.value = 'grid';
     await nextTick();
-    store.setUserInfo({ role: 'STUDENT' });
+    store.setUserInfo({ role: 'REVIEWER' });
     store.setUserInfo({ role: 'ADMIN' });
 
     expect(wrapper.find('button').element.style.display).toBe('grid');
   });
 
   it('v-for 列表重排时元素随之移动', async () => {
-    useUserInfoStore().setUserInfo({ role: 'STUDENT' });
+    useUserInfoStore().setUserInfo({ role: 'REVIEWER' });
     const list = ref([1, 2, 3]);
     const wrapper = mount(
       {

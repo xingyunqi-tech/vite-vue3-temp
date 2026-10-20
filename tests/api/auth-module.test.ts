@@ -46,7 +46,12 @@ describe('toCurrentUser', () => {
     });
   });
 
-  it('非管理员角色映射为空', () => {
+  it('后端编辑与审核员角色分别映射为 EDITOR 与 REVIEWER', () => {
+    expect(toCurrentUser(backendUser({ role: { id: 3, name: 'Editor' } })).role).toBe('EDITOR');
+    expect(toCurrentUser(backendUser({ role: { id: 4, name: 'Reviewer' } })).role).toBe('REVIEWER');
+  });
+
+  it('非后台角色映射为空', () => {
     expect(toCurrentUser(backendUser({ role: { id: 2, name: 'User' } })).role).toBe('');
     expect(toCurrentUser(backendUser({ role: null as never })).role).toBe('');
   });

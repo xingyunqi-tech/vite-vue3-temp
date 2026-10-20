@@ -57,10 +57,9 @@ const themeLabel = computed(() => (currentTheme.value === 'dark' ? '深色' : '�
 /**
  * 「系统设置」是否可见
  *
- * 判定口径与 /setting 路由的 meta.roles（TEACHER / ADMIN）保持一致——菜单项能看见就一定点得进去。
- * userStore.isTeacher 已含 ADMIN，是角色判断的单一真实来源（见 store/modules/user-info.ts）。
+ * 判定口径与 /setting 路由的 meta.roles（ADMIN）保持一致——菜单项能看见就一定点得进去。
  */
-const canAccessSetting = computed(() => headerVisible.setting && userStore.isTeacher);
+const canAccessSetting = computed(() => headerVisible.setting && userStore.isAdmin);
 
 const { currentLocale } = toRefs(globalStore);
 

@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createMemoryHistory, createRouter } from 'vue-router';
 import {
@@ -11,6 +12,7 @@ import {
   fetchAllSubjects,
   type AdminQuestionDto,
 } from '@/api';
+import { useUserInfoStore } from '@/store/modules/user-info';
 import QuestionEditPage from '@/views/content/question-edit/index.vue';
 import { invalidateKnowledgeTree } from '@/views/content/shared/knowledge-tree-cache';
 
@@ -80,6 +82,8 @@ const clickButton = async (wrapper: ReturnType<typeof mount>, text: string) => {
 };
 
 beforeEach(() => {
+  setActivePinia(createPinia());
+  useUserInfoStore().setUserInfo({ role: 'ADMIN' });
   vi.clearAllMocks();
   invalidateKnowledgeTree();
   vi.spyOn(ElMessage, 'success').mockImplementation(() => ({ close: () => {} }) as never);
@@ -163,6 +167,34 @@ describe('题目编辑页', () => {
       .trigger('click');
     await flushPromises();
     expect(material.router.currentRoute.value.fullPath).toBe('/feedback/errata/create?questionId=c1');
+  });
+
+  it('编辑看不到题目与材料小题的勘误入口', async () => {
+    useUserInfoStore().setUserInfo({ role: 'EDITOR' });
+    vi.mocked(adminGetQuestion).mockResolvedValue(question());
+    const single = await mountAt('/content/questions/q1');
+    expect(
+      single.wrapper
+        .find('.page__header')
+        .findAll('button')
+        .map(button => button.text()),
+    ).not.toContain('勘误');
+
+    vi.mocked(adminGetQuestion).mockResolvedValue(
+      question({
+        id: 'm1',
+        type: 'MATERIAL',
+        currentVersion: 1,
+        stem: '根据以下材料回答问题。',
+        answer: null,
+        material: '材料正文',
+        children: [question({ id: 'c1', parentId: 'm1', stem: '小题一', currentVersion: 1 })],
+      }),
+    );
+    const material = await mountAt('/content/questions/m1');
+    const childButtons = material.wrapper.find('.material-children').findAll('button');
+    expect(childButtons.length).toBeGreaterThan(0);
+    expect(childButtons.map(button => button.text())).not.toContain('勘误');
   });
 
   it('审核中的题目不可保存', async () => {
