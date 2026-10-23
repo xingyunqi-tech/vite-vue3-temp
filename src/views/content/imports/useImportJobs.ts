@@ -1,6 +1,6 @@
 import { watch } from 'vue';
-import { adminCreateImport, adminDownloadImportErrors, adminGetImports, uploadContentFile } from '@/api';
-import type { ImportJob, ImportJobStatus } from '@/api';
+import { adminCreateImport, adminDownloadImportErrors, adminGetImportErrors, adminGetImports } from '@/api';
+import type { ImportJob, ImportJobStatus, ImportRowErrorDto, ImportRowErrorDtoSheet } from '@/api';
 import { usePagedList } from '@/composables/usePagedList';
 import { usePolling } from '@/composables/usePolling';
 import { saveBlob } from '@/utils/actions';
@@ -12,6 +12,22 @@ export const IMPORT_TEMPLATE_URL = `${import.meta.env.BASE_URL}templates/content
 export interface ImportFilters {
   status: ImportJobStatus | '';
 }
+
+export type ImportSheetFilter = ImportRowErrorDtoSheet | '';
+
+export interface ImportErrorFilters {
+  sheet: ImportSheetFilter;
+}
+
+export const IMPORT_SHEET_LABEL: Record<ImportRowErrorDtoSheet, string> = {
+  knowledge_points: '知识点',
+  materials: '材料',
+  questions: '题目',
+  papers: '试卷',
+  paper_questions: '试卷题目',
+};
+
+export const sheetText = (sheet: ImportRowErrorDtoSheet) => `${IMPORT_SHEET_LABEL[sheet] ?? sheet}（${sheet}）`;
 
 export const isJobActive = (job: ImportJob) => job.status === 'PENDING' || job.status === 'RUNNING';
 
@@ -50,9 +66,8 @@ export function useImportJobs() {
     if (!polling.polling()) polling.schedule();
   });
 
-  const create = async (file: File, publishOnImport: boolean): Promise<ImportJob> => {
-    const uploaded = await uploadContentFile(file, 'import');
-    const job = await adminCreateImport({ fileId: uploaded.id, publishOnImport });
+  const create = async (fileId: string, publishOnImport: boolean): Promise<ImportJob> => {
+    const job = await adminCreateImport({ fileId, publishOnImport });
     list.filters.status = '';
     await list.search();
     return job;
@@ -64,4 +79,17 @@ export function useImportJobs() {
   };
 
   return { ...list, create, downloadErrors, dispose: polling.dispose };
+}
+
+/** 导入任务的错误行明细，按工作表筛选 */
+export function useImportErrors(jobId: () => string) {
+  return usePagedList<ImportErrorFilters, ImportRowErrorDto>({
+    createFilters: () => ({ sheet: '' }),
+    fetchPage: (filters, page, limit) =>
+      adminGetImportErrors(
+        jobId(),
+        { page, limit, ...(filters.sheet ? { sheet: filters.sheet } : {}) },
+        { disableDedup: true },
+      ),
+  });
 }

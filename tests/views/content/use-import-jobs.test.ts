@@ -4,16 +4,23 @@ import {
   adminCreateImport,
   adminGetImports,
   adminDownloadImportErrors,
-  uploadContentFile,
+  adminGetImportErrors,
   type ImportJob,
 } from '@/api';
-import { IMPORT_POLL_INTERVAL, isImportFile, jobProgress, useImportJobs } from '@/views/content/imports/useImportJobs';
+import {
+  IMPORT_POLL_INTERVAL,
+  hasErrorReport,
+  isImportFile,
+  jobProgress,
+  useImportErrors,
+  useImportJobs,
+} from '@/views/content/imports/useImportJobs';
 
 vi.mock('@/api', () => ({
   adminCreateImport: vi.fn(),
   adminGetImports: vi.fn(),
   adminDownloadImportErrors: vi.fn(async () => new Blob(['x'])),
-  uploadContentFile: vi.fn(async () => ({ id: 'f1', path: '/f1' })),
+  adminGetImportErrors: vi.fn(async () => ({ list: [], total: 0, page: 1, limit: 20, totalPages: 0 })),
 }));
 
 const job = (overrides: Partial<ImportJob> = {}): ImportJob => ({
@@ -51,6 +58,11 @@ describe('导入任务工具', () => {
     expect(jobProgress(job({ status: 'RUNNING', succeeded: 3, failed: 1, skipped: 1 }))).toBe(50);
     expect(jobProgress(job({ status: 'PENDING', total: 0, succeeded: 0, failed: 0, skipped: 0 }))).toBe(0);
     expect(jobProgress(job({ status: 'DONE', total: 0 }))).toBe(100);
+  });
+
+  it('生成了错误报告的任务可查看错误明细', () => {
+    expect(hasErrorReport(job({ failed: 2, errorReportFileId: 'r1' }))).toBe(true);
+    expect(hasErrorReport(job({ status: 'RUNNING', failed: 2, errorReportFileId: null }))).toBe(false);
   });
 
   it('只接受 zip、xlsx、json', () => {
@@ -129,18 +141,15 @@ describe('useImportJobs', () => {
     scope.stop();
   });
 
-  it('上传导入包后以文件 ID 创建任务，清空状态筛选回到第一页并开始轮询', async () => {
+  it('以已上传的文件 ID 创建任务，清空状态筛选回到第一页并开始轮询', async () => {
     vi.mocked(adminGetImports).mockResolvedValue(page([job({ id: 'j2', status: 'PENDING' })]));
     vi.mocked(adminCreateImport).mockResolvedValue(job({ id: 'j2', status: 'PENDING' }));
     const scope = effectScope();
     const jobs = scope.run(() => useImportJobs())!;
     jobs.page.value = 3;
     jobs.filters.status = 'DONE';
-    const file = new File(['x'], 'pkg.zip');
+    const created = await jobs.create('f1', true);
 
-    const created = await jobs.create(file, true);
-
-    expect(uploadContentFile).toHaveBeenCalledWith(file, 'import');
     expect(adminCreateImport).toHaveBeenCalledWith({ fileId: 'f1', publishOnImport: true });
     expect(created.id).toBe('j2');
     expect(jobs.page.value).toBe(1);
@@ -164,6 +173,29 @@ describe('useImportJobs', () => {
 
     expect(adminDownloadImportErrors).toHaveBeenCalledWith('j9', { disableDedup: true });
     expect(click).toHaveBeenCalled();
+    scope.stop();
+  });
+});
+
+describe('useImportErrors', () => {
+  it('按任务分页查询错误明细，按工作表筛选后回到第一页', async () => {
+    const scope = effectScope();
+    const errors = scope.run(() => useImportErrors(() => 'j3'))!;
+
+    await errors.search();
+    expect(adminGetImportErrors).toHaveBeenLastCalledWith('j3', { page: 1, limit: 20 }, { disableDedup: true });
+
+    errors.changePage(2);
+    await vi.waitFor(() => expect(adminGetImportErrors).toHaveBeenCalledTimes(2));
+    expect(adminGetImportErrors).toHaveBeenLastCalledWith('j3', { page: 2, limit: 20 }, { disableDedup: true });
+
+    errors.filters.sheet = 'questions';
+    await errors.search();
+    expect(adminGetImportErrors).toHaveBeenLastCalledWith(
+      'j3',
+      { page: 1, limit: 20, sheet: 'questions' },
+      { disableDedup: true },
+    );
     scope.stop();
   });
 });

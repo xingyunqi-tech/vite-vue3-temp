@@ -14,6 +14,7 @@ import type {
   AdminGetDailyQuestionSetsParams,
   AdminGetErrataListParams,
   AdminGetExamsParams,
+  AdminGetImportErrorsParams,
   AdminGetImportsParams,
   AdminGetPaperRulesParams,
   AdminGetPapersParams,
@@ -28,6 +29,10 @@ import type {
   AppProfile,
   BatchPublishQuestionsDto,
   BatchPublishQuestionsResultDto,
+  BatchQuestionIdsDto,
+  BatchQuestionsResultDto,
+  BatchRejectQuestionsDto,
+  BatchUpdateQuestionsDto,
   CreateErrataDto,
   CreateExamDto,
   CreateImportFileIdBodyDto,
@@ -42,6 +47,7 @@ import type {
   Exam,
   GetMonitorAlertsParams,
   ImportJob,
+  ImportPrecheckResultDto,
   KnowledgePoint,
   KnowledgePointTreeNodeDto,
   MigrateKnowledgePointQuestionsDto,
@@ -53,6 +59,7 @@ import type {
   PaginationErrataResponseDto,
   PaginationExamResponseDto,
   PaginationImportJobResponseDto,
+  PaginationImportRowErrorDtoResponseDto,
   PaginationPaperResponseDto,
   PaginationPaperRuleResponseDto,
   PaginationSubjectResponseDto,
@@ -344,6 +351,96 @@ export const adminBatchPublishQuestions = (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       data: batchPublishQuestionsDto,
+    },
+    options,
+  );
+};
+/**
+ * 草稿变为待审核，传入小题按所属材料整组提交
+ * @summary 批量提交审核
+ */
+export const adminBatchSubmitQuestions = (
+  batchQuestionIdsDto: BatchQuestionIdsDto,
+  options?: SecondParameter<typeof customMutator<BatchQuestionsResultDto>>,
+) => {
+  return customMutator<BatchQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-submit`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchQuestionIdsDto,
+    },
+    options,
+  );
+};
+/**
+ * 待审核变为草稿，传入小题按所属材料整组驳回；非 admin 驳回自己提交的题目记为该题失败（selfReviewForbidden）
+ * @summary 批量驳回为草稿
+ */
+export const adminBatchRejectQuestions = (
+  batchRejectQuestionsDto: BatchRejectQuestionsDto,
+  options?: SecondParameter<typeof customMutator<BatchQuestionsResultDto>>,
+) => {
+  return customMutator<BatchQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-reject`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchRejectQuestionsDto,
+    },
+    options,
+  );
+};
+/**
+ * 已发布变为已下架，传入小题按所属材料整组下架
+ * @summary 批量下架
+ */
+export const adminBatchOfflineQuestions = (
+  batchQuestionIdsDto: BatchQuestionIdsDto,
+  options?: SecondParameter<typeof customMutator<BatchQuestionsResultDto>>,
+) => {
+  return customMutator<BatchQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-offline`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchQuestionIdsDto,
+    },
+    options,
+  );
+};
+/**
+ * 规则同单题删除：已发布过或被作答、被试卷引用的题目记为失败；材料连同小题删除，小题与所属材料同批传入时随材料处理
+ * @summary 批量删除未发布过的草稿
+ */
+export const adminBatchDeleteQuestions = (
+  batchQuestionIdsDto: BatchQuestionIdsDto,
+  options?: SecondParameter<typeof customMutator<BatchQuestionsResultDto>>,
+) => {
+  return customMutator<BatchQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-delete`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchQuestionIdsDto,
+    },
+    options,
+  );
+};
+/**
+ * 逐题按单题编辑规则更新：待审核的题、给材料关联知识点等记为失败；已发布过的题知识点变化时生成新版本；小题的 isFree 跟随材料
+ * @summary 批量修改知识点、难度、来源、是否免费
+ */
+export const adminBatchUpdateQuestions = (
+  batchUpdateQuestionsDto: BatchUpdateQuestionsDto,
+  options?: SecondParameter<typeof customMutator<BatchQuestionsResultDto>>,
+) => {
+  return customMutator<BatchQuestionsResultDto>(
+    {
+      url: `/api/v1/admin/questions/batch-update`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: batchUpdateQuestionsDto,
     },
     options,
   );
@@ -658,10 +755,36 @@ export const adminGetImports = (
   );
 };
 /**
+ * 请求体与创建导入任务相同；publishOnImport 影响试卷能否引用本包新题，仅管理员可用。导入单元超过 2000 个时返回 413（importPrecheckTooLarge）；导入包无法解析时返回 422，error 为导入包错误键
+ * @summary 预检导入包：同步解析与校验，返回将新建、更新、跳过的数量与错误行，不写入任何数据
+ */
+export const adminPrecheckImport = (
+  adminPrecheckImportBody: CreateImportUploadBodyDto | CreateImportFileIdBodyDto,
+  options?: SecondParameter<typeof customMutator<ImportPrecheckResultDto>>,
+) => {
+  return customMutator<ImportPrecheckResultDto>(
+    { url: `/api/v1/admin/imports/precheck`, method: 'POST', data: adminPrecheckImportBody },
+    options,
+  );
+};
+/**
  * @summary 导入任务进度与统计
  */
 export const adminGetImport = (id: string, options?: SecondParameter<typeof customMutator<ImportJob>>) => {
   return customMutator<ImportJob>({ url: `/api/v1/admin/imports/${id}`, method: 'GET' }, options);
+};
+/**
+ * @summary 错误行明细（与错误行报告 xlsx 相同），任务无错误时为空列表
+ */
+export const adminGetImportErrors = (
+  id: string,
+  params?: AdminGetImportErrorsParams,
+  options?: SecondParameter<typeof customMutator<PaginationImportRowErrorDtoResponseDto>>,
+) => {
+  return customMutator<PaginationImportRowErrorDtoResponseDto>(
+    { url: `/api/v1/admin/imports/${id}/errors.json`, method: 'GET', params },
+    options,
+  );
 };
 /**
  * @summary 下载错误行报告（xlsx）
@@ -812,6 +935,11 @@ export type AdminMigrateKnowledgePointQuestionsResult = NonNullable<
 export type AdminGetQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestions>>>;
 export type AdminCreateQuestionResult = NonNullable<Awaited<ReturnType<typeof adminCreateQuestion>>>;
 export type AdminBatchPublishQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchPublishQuestions>>>;
+export type AdminBatchSubmitQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchSubmitQuestions>>>;
+export type AdminBatchRejectQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchRejectQuestions>>>;
+export type AdminBatchOfflineQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchOfflineQuestions>>>;
+export type AdminBatchDeleteQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchDeleteQuestions>>>;
+export type AdminBatchUpdateQuestionsResult = NonNullable<Awaited<ReturnType<typeof adminBatchUpdateQuestions>>>;
 export type AdminGetQuestionResult = NonNullable<Awaited<ReturnType<typeof adminGetQuestion>>>;
 export type AdminUpdateQuestionResult = NonNullable<Awaited<ReturnType<typeof adminUpdateQuestion>>>;
 export type AdminDeleteQuestionResult = NonNullable<Awaited<ReturnType<typeof adminDeleteQuestion>>>;
@@ -844,7 +972,9 @@ export type GetMonitorAlertsResult = NonNullable<Awaited<ReturnType<typeof getMo
 export type AcknowledgeMonitorAlertResult = NonNullable<Awaited<ReturnType<typeof acknowledgeMonitorAlert>>>;
 export type AdminCreateImportResult = NonNullable<Awaited<ReturnType<typeof adminCreateImport>>>;
 export type AdminGetImportsResult = NonNullable<Awaited<ReturnType<typeof adminGetImports>>>;
+export type AdminPrecheckImportResult = NonNullable<Awaited<ReturnType<typeof adminPrecheckImport>>>;
 export type AdminGetImportResult = NonNullable<Awaited<ReturnType<typeof adminGetImport>>>;
+export type AdminGetImportErrorsResult = NonNullable<Awaited<ReturnType<typeof adminGetImportErrors>>>;
 export type AdminDownloadImportErrorsResult = NonNullable<Awaited<ReturnType<typeof adminDownloadImportErrors>>>;
 export type AdminCreateErrataResult = NonNullable<Awaited<ReturnType<typeof adminCreateErrata>>>;
 export type AdminGetErrataListResult = NonNullable<Awaited<ReturnType<typeof adminGetErrataList>>>;

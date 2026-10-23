@@ -47,7 +47,7 @@
 
 M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参数。
 
-**当前进度**：批次 0（M0）解析阶段已完成，构造样本上的结果见 `nestjs-template/scripts/poc/m0/`；提取阶段待配置 `LLM_API_KEY` 后实测。批次 1（角色）已完成。批次 2（审计字段与驳回原因）已完成，未提交。
+**当前进度**：批次 0（M0）解析阶段已完成，构造样本上的结果见 `nestjs-template/scripts/poc/m0/`；提取阶段待配置 `LLM_API_KEY` 后实测。批次 1（角色）已完成。批次 2（审计字段与驳回原因）已完成，未提交。批次 3（题目批量操作）已完成，未提交。批次 4（导入预检与错误明细）已完成，未提交。
 
 ## 3. M0 技术验证
 
@@ -146,7 +146,7 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 
 - `AdminQuestionDto`（列表、详情、`children`）返回上述字段，以及 `creator`、`submitter`、`reviewer`：`{ id, name } | null`。`name` 依次取昵称、邮箱，都为空时为「用户{id}」，不显示手机号。
 - `POST /v1/admin/questions/:id/reject` 必须带 `{ reason }`，去除首尾空白后 1–500 字，否则返回 422（`rejectReasonLength`）。
-- **禁止审核自己提交的题**：非 admin 发布或驳回 `submittedBy === 当前用户` 且状态为 REVIEWING 的题，返回 403 `selfReviewForbidden`。`batch-publish` 逐题校验，任一命中则整批 403，响应体 `errors.questionIds` 列出命中的 id（请求中的题目 id，或小题所属材料的 id）。从 OFFLINE 重新发布不受此限制。
+- **禁止审核自己创建或提交的题**：非 admin 发布或驳回 `createdBy` 或 `submittedBy` 为当前用户且状态为 REVIEWING 的题，返回 403 `selfReviewForbidden`。`batch-publish` 逐题校验，任一命中则整批 403，响应体 `errors.questionIds` 列出命中的 id（请求中的题目 id，或小题所属材料的 id）。从 OFFLINE 重新发布不受此限制。
 - `publishOnImport` 仅 admin 可用，其他角色返回 403 `importPublishForbidden`。
 
 操作审计：
@@ -161,7 +161,7 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 前端：
 
 - 驳回入口（审核发布页的行内驳回、预览弹窗内驳回）统一使用 `content/shared/components/RejectReasonDialog.vue`：原因必填，按去除首尾空白后的字数计数与校验（1–500 字），输入框不限制原始长度；提交中不能关闭弹窗；取消不发请求；请求失败时弹窗保留已填内容。
-- 审核发布页增加「提交人」「提交时间」列。非 admin 用户自己提交的行：行内与预览弹窗中的「发布」「驳回」禁用，悬停提示「不能审核自己提交的题」；表格多选不可勾选。批量发布仍收到 403 时由请求层统一提示。
+- 审核发布页增加「提交人」「提交时间」列。非 admin 用户自己创建或提交的行：行内与预览弹窗中的「发布」「驳回」禁用，悬停提示「不能审核自己创建或提交的题」；表格多选不可勾选。批量发布仍收到 403 时由请求层统一提示。
 - 题目编辑页（编辑已有题目时）展示创建人、提交人与提交时间、审核人与审核时间，缺失时显示「—」；草稿且有驳回原因时，在顶部用警告提示「已被驳回：{原因}」及审核人。
 - 「导入即发布」开关仅 admin 可见；其他角色提示「题目以草稿导入，需审核后发布；引用新题的试卷只能在题目发布后导入」。
 
@@ -169,29 +169,48 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 
 后端在 `admin-questions.controller.ts` 中新增：
 
-| 接口 | 权限 | 说明 |
-| --- | --- | --- |
-| `POST /v1/admin/questions/batch-submit` | `content:manage` | 草稿 → 待审 |
-| `POST /v1/admin/questions/batch-reject` | `content:review` | 带 `reason` |
-| `POST /v1/admin/questions/batch-offline` | `content:review` | 发布 → 下架 |
-| `POST /v1/admin/questions/batch-delete` | `content:manage` | 只能删从未发布的草稿 |
-| `PATCH /v1/admin/questions/batch-update` | `content:manage` | 知识点（追加 / 覆盖）、难度、来源、是否免费 |
+| 接口 | 权限 | 请求体 | 说明 |
+| --- | --- | --- | --- |
+| `POST /v1/admin/questions/batch-submit` | `content:manage` | `{ ids }` | 草稿 → 待审 |
+| `POST /v1/admin/questions/batch-reject` | `content:review` | `{ ids, reason }` | 待审 → 草稿，`reason` 去除首尾空白后 1–500 字 |
+| `POST /v1/admin/questions/batch-offline` | `content:review` | `{ ids }` | 已发布 → 已下架 |
+| `POST /v1/admin/questions/batch-delete` | `content:manage` | `{ ids }` | 规则同单题删除，只能删从未发布过的草稿 |
+| `PATCH /v1/admin/questions/batch-update` | `content:manage` | `{ ids, knowledgePointIds?, mode?, difficulty?, source?, isFree? }` | 规则同单题编辑 |
 
 统一约定：
 
-- 请求体为 `{ ids: uuid[] }`，1–100 条，不能重复。传入小题时按所属材料整组处理。
-- **逐题独立执行**，返回 `{ succeeded: number, failed: { id, reason }[] }`。不采用现有 `batch-publish` 的整批失败语义，`batch-publish` 本身不改。
-- `batch-update` 修改已发布题目时，沿用现有逻辑生成 EDIT 版本。
+- `ids` 1–100 条，不能重复，不合法时整批返回 422。
+- **逐题独立执行**，返回 `{ succeeded: number, failed: { id, error, message }[] }`：`failed.id` 是请求中的 id，按请求顺序排列；`error` 是错误码，`message` 是按请求语言翻译的文案。不采用 `batch-publish` 的整批失败语义，`batch-publish` 本身不改。
+- 小题处理：
+  - 提交、驳回、下架传入小题时按所属材料整组处理，同一材料的多个请求 id 共享结果。
+  - 删除逐题处理，单独传小题只删该小题；小题与所属材料同批传入时随材料删除。
+  - 修改逐题处理，不随材料归并；小题的 `isFree` 跟随材料，对小题不生效。
+- `batch-reject`：非 admin 驳回自己创建或提交的题时，该题记为失败（`selfReviewForbidden`），不影响其他题。
+- `batch-update`：
+  - `knowledgePointIds` 须同时传 `mode`：`append` 追加到现有知识点（去重），`replace` 整体替换；结果超过 10 个记为该题失败。
+  - 一项要修改的字段都没传时整批返回 422（`batchUpdateFieldsRequired`）；传 `knowledgePointIds` 未传 `mode` 同样返回 422。
+  - 待审核的题、给材料关联知识点等按单题编辑规则记为失败。
+  - 已发布过的题（`currentVersion > 0`）知识点变化时生成新版本；难度、来源、是否免费不生成版本。
 
 前端（`content/questions`）：
 
-- 列表加勾选列和批量操作栏；批量设知识点复用 `KnowledgePointSelect`。
-- 执行完弹出结果，逐条列出失败原因。
+- 列表加勾选列，只能勾选顶层题（独立题或材料）。勾选后在表格上方出现批量操作栏，显示已选数量与「清空」。翻页、改每页条数、查询或重置后清空勾选。
+- 操作按钮按角色显示：「批量驳回」「批量下架」仅 `canReview` 可见；「批量提交审核」「批量删除」「批量修改」三种角色都可见。
+- 批量提交审核：直接执行。
+- 批量驳回：复用 `RejectReasonDialog`，原因去除首尾空白后提交；请求失败时弹窗保留。
+- 批量下架：二次确认，写明题数。
+- 批量删除：二次确认，写明题数，并提示「已发布过的题目不会被删除」；取消不发请求。
+- 批量修改（`questions/components/BatchUpdateDialog.vue`）：
+  - 知识点、难度、来源、是否免费均为选填，至少填一项才能提交。
+  - 知识点复用 `KnowledgePointSelect`（多选、仅叶子），按勾选题目的科目加载，并选择「追加 / 覆盖」。勾选题目跨科目时知识点项禁用，提示「勾选的题目属于多个科目，不能批量设置知识点」。
+  - 修改知识点且勾选中含已发布过的题时，提交前二次确认「将为 N 道已发布题目生成新版本」；取消不发请求，弹窗保留。
+- 执行结果：全部成功时提示「已处理 N 道」，清空勾选并刷新当前页。有失败时弹出 `content/shared/components/BatchResultDialog.vue`，显示成功数与失败数，逐条列出题干摘要（`markdownSummary`）与失败原因（`message`）；点击题干进入编辑页；关闭后清空勾选并刷新当前页。该组件只接收 `{ id, label, message }[]`，供后续批量功能复用。
+- 请求逻辑在 `useQuestionList` 中，页面只做编排；请求失败的提示由请求层统一弹出。
 
 ### 4.4 验收
 
 - editor 能建题、提交审核，但看不到发布 / 驳回入口；直接调用这些接口返回 403。
-- reviewer 发布自己提交的题返回 403。
+- reviewer 发布自己创建或提交的题返回 403。
 - 选中 50 道题批量提交审核，其中 3 道状态不符：47 道成功，3 道列出原因。
 
 ## 5. M2 导入易用性
@@ -200,18 +219,25 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 
 后端：
 
-- `CreateImportDto` 增加 `dryRun?: boolean`。
-- `ImportSession` 增加 `dryRun` 选项。开启后：
-  - `writeUnit` 和 `uploadAssets` 只做校验，不写库；
-  - 知识点路径和本次导入内新建题目的 key 引用都在内存里模拟。
-- `dryRun` 同步返回 `{ wouldCreate, wouldUpdate, wouldSkip, errors: ImportRowError[] }`，不创建导入任务。超过 2000 个单元时返回 413，提示直接导入后看错误报告。
-- 新增 `GET /v1/admin/imports/:id/errors.json`，供页面直接展示错误。
+- 独立接口 `POST /v1/admin/imports/precheck`（`content:manage`），不在创建导入上加 `dryRun` 参数。请求体与创建导入相同：`fileId` 或 multipart `file`，`publishOnImport` 仅 admin 可传，会影响试卷能否引用本包新题。
+- 同步完整解析与校验，`ImportSession` 以 `dryRun` 模式运行：不保存导入包、不上传素材、不写库、不建任务；知识点路径、本包新建内容的 key 引用按真实导入的顺序在内存中模拟。
+- 返回 `{ wouldCreate, wouldUpdate, wouldSkip, errors, truncated }`：前三项各含 `knowledgePoints`、`materials`（材料连同小题计为一个）、`questions`（独立题）、`papers`；`errors` 为错误行 `{ sheet, row, field, reason, message, detail? }`，最多 500 条，超出时 `truncated` 为 `true`。
+- 限制：导入单元超过 2000 个返回 413（「内容过多，请直接导入后查看错误报告」）；导入包无法解析返回 422。
+- `GET /v1/admin/imports/:id/errors.json`：任务的错误行明细，字段与错误报告 xlsx 相同；`page`、`limit`（≤ 200）分页，`sheet` 按工作表筛选，返回统一分页结构。
 
 前端（`content/imports`）：
 
-- 改为三步：上传 → 查看预检结果 → 确认导入。
-- 错误用表格展示，可按工作表 / 字段筛选。历史任务可以展开看错误明细。
-- 页面注明「预检结果仅供参考，以实际导入为准」。
+- 三步：上传文件 → 预检结果 → 确认导入。点「预检」时先上传导入包拿到 `fileId` 再预检；「确认导入」用同一个 `fileId` 创建任务，不重复上传。
+- 「导入即发布」开关（仅 admin 可见）同时用于预检与导入；预检后改变开关，提示预检结果已失效，重新预检前不能确认导入。
+- 预检结果展示新增 / 更新 / 跳过三组计数和错误表格（工作表、行号、字段、原因），可按工作表筛选；`truncated` 时提示「仅显示前 500 条错误，完整错误请导入后下载报告」。
+- 有错误时仍可确认导入，有错误的单元不会写入，其余照常导入；按钮与二次确认提示错误数量。
+- 413 时展示后端文案并提供「直接导入」；422 时展示文件无法解析的错误，停在第一步。更换文件或重置时清空预检状态。
+- 历史任务中有失败行的任务提供「查看错误」，在抽屉里分页展示 `errors.json`，可按工作表筛选；「下载错误报告」保留。
+- 页面注明「预检结果仅供参考，以实际导入为准」。预检与真实导入可能不一致的情形：
+  - 预检后、导入前他人修改了题库数据（新建同名内容、改动或删除被引用的题目、知识点、试卷）；
+  - 直接引用已有文件 `file:{id}`，导入时文件状态与预检时不同；
+  - 同一包里按 `id` 改名后又用旧名建试卷等依赖写库后状态的组合，内存模拟与真实写入的结果可能不同；
+  - 数据库、存储等非业务错误只会在真实导入时出现。
 
 ### 5.2 模板
 
@@ -219,6 +245,8 @@ M0 和 M1 可以同时开工。M0 的结论决定 M3 的解析方案和分块参
 
 - 选项列上限从 A–H 扩到 A–Z：改 `import-session.ts` 中的上限常量和 `sheet-row` 的列定义。
 - 兼容只填一列 `options` 的写法，每行一个 `A. xxx`。
+
+选项 A–Z 与单列 `options` 已在批次 4 完成（模板说明见后端 `docs/import-template/README.md`）；下面的分场景模板留给批次 5。
 
 前端（`public/templates/`）：模板拆成 4 份。
 

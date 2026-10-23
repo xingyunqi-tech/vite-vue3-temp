@@ -41,12 +41,35 @@
       </el-form-item>
     </el-form>
 
-    <el-table v-loading="loading" :data="list" row-key="id" class="data-table">
+    <div v-if="selected.length > 0" class="question-list__batch">
+      <span class="question-list__batch-count">已选 {{ selected.length }} 项</span>
+      <el-button link type="primary" :disabled="batching" @click="clearSelected">清空</el-button>
+      <div class="question-list__batch-actions">
+        <el-button
+          v-for="action in batchActions"
+          :key="action.key"
+          :type="action.type"
+          plain
+          :disabled="batching"
+          @click="action.handler"
+        >
+          {{ action.label }}
+        </el-button>
+      </div>
+    </div>
+
+    <el-table
+      ref="tableRef"
+      v-loading="loading"
+      :data="list"
+      row-key="id"
+      class="data-table"
+      @selection-change="selected = $event as AdminQuestionDto[]"
+    >
+      <el-table-column type="selection" width="48" :selectable="row => !(row as AdminQuestionDto).parentId" />
       <el-table-column label="题干" min-width="280">
         <template #default="{ row }">
-          <span class="page__stem">
-            {{ markdownSummary(row.type === 'MATERIAL' ? row.material : row.stem) }}
-          </span>
+          <span class="page__stem">{{ questionSummary(row as AdminQuestionDto) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="题型" width="100">
@@ -145,35 +168,48 @@
 
     <QuestionPreviewDialog v-model="previewVisible" :question-id="activeId" />
     <QuestionVersionDrawer v-model="versionsVisible" :question-id="activeId" />
+    <RejectReasonDialog ref="rejectDialog" />
+    <BatchUpdateDialog ref="updateDialog" />
+    <BatchResultDialog
+      v-model="resultVisible"
+      :succeeded="batchResult.succeeded"
+      :failures="batchResult.failures"
+      @select="openEditor"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { ElMessage, type TableInstance } from 'element-plus';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import BatchResultDialog, { type BatchResultFailure } from '../shared/components/BatchResultDialog.vue';
 import KnowledgePointSelect from '../shared/components/KnowledgePointSelect.vue';
 import QuestionPreviewDialog from '../shared/components/QuestionPreviewDialog.vue';
 import QuestionVersionDrawer from '../shared/components/QuestionVersionDrawer.vue';
+import RejectReasonDialog from '../shared/components/RejectReasonDialog.vue';
 import SubjectCascader from '../shared/components/SubjectCascader.vue';
 import { QUESTION_SOURCE_LABEL, QUESTION_STATUS_META, QUESTION_TYPE_LABEL } from '../shared/constants';
 import { canStartErrata, errataCreateLocation } from '../shared/errata';
 import { useSubjectOptions } from '../shared/useSubjectOptions';
+import BatchUpdateDialog from './components/BatchUpdateDialog.vue';
 import {
   canDeleteQuestion,
   canEditQuestion,
   canOfflineQuestion,
   canRepublishQuestion,
   canSubmitQuestion,
+  questionSummary,
   useQuestionList,
+  type BatchQuestionChanges,
 } from './useQuestionList';
-import type { AdminQuestionDto, QuestionSource, QuestionType } from '@/api';
+import type { AdminQuestionDto, BatchQuestionsResultDto, QuestionSource, QuestionType } from '@/api';
 import StatusTag from '@/components/StatusTag/index.vue';
 import { useRowAction } from '@/composables/useRowAction';
 import { PAGE_SIZES, toOptions, toStatusOptions } from '@/constants';
 import { useUserInfoStore } from '@/store/modules/user-info';
 import { confirmAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
-import { markdownSummary } from '@/utils/markdown';
 
 const router = useRouter();
 const userStore = useUserInfoStore();
@@ -198,6 +234,14 @@ const {
   offline,
   republish,
   remove,
+  selected,
+  clearSelected,
+  refreshAfterBatch,
+  batchSubmit,
+  batchReject,
+  batchOffline,
+  batchRemove,
+  batchUpdate,
 } = useQuestionList();
 
 const knowledgePointModel = computed({
@@ -246,6 +290,109 @@ const handleRemove = async (question: AdminQuestionDto) => {
 
 const handleSearch = () => search().catch(() => undefined);
 
+const tableRef = ref<TableInstance>();
+const rejectDialog = ref<InstanceType<typeof RejectReasonDialog>>();
+const updateDialog = ref<InstanceType<typeof BatchUpdateDialog>>();
+const batching = ref(false);
+const resultVisible = ref(false);
+const batchResult = reactive<{ succeeded: number; failures: BatchResultFailure[] }>({ succeeded: 0, failures: [] });
+
+watch(
+  () => selected.value.length === 0,
+  empty => {
+    if (empty) tableRef.value?.clearSelection();
+  },
+);
+
+const refreshAfterBatchQuietly = () => refreshAfterBatch().catch(() => undefined);
+
+watch(resultVisible, visible => {
+  if (!visible) refreshAfterBatchQuietly();
+});
+
+/** 全部成功时提示并刷新，有失败时弹出结果窗口，关闭后刷新；请求失败返回 false */
+const executeBatch = async (task: () => Promise<BatchQuestionsResultDto>): Promise<boolean> => {
+  if (batching.value) return false;
+  batching.value = true;
+  const rows = new Map(selected.value.map(question => [question.id, question]));
+  try {
+    const result = await task();
+    if (result.failed.length === 0) {
+      ElMessage.success(`已处理 ${result.succeeded} 道`);
+      await refreshAfterBatchQuietly();
+      return true;
+    }
+    batchResult.succeeded = result.succeeded;
+    batchResult.failures = result.failed.map(item => {
+      const row = rows.get(item.id);
+      return { id: item.id, label: row ? questionSummary(row) : '', message: item.message };
+    });
+    resultVisible.value = true;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    batching.value = false;
+  }
+};
+
+const openEditor = (id: string) => {
+  router.push(`/content/questions/${id}`);
+};
+
+const handleBatchSubmit = () => executeBatch(batchSubmit);
+
+const handleBatchReject = () =>
+  rejectDialog.value?.open({
+    description: `驳回选中的 ${selected.value.length} 道题目为草稿，材料题按整组处理`,
+    submit: reason => executeBatch(() => batchReject(reason)),
+  });
+
+const handleBatchOffline = async () => {
+  const message = `下架选中的 ${selected.value.length} 道题目？下架后不再被抽入新练习，已在进行中的练习不受影响`;
+  if (!(await confirmAction(message, '批量下架'))) return;
+  await executeBatch(batchOffline);
+};
+
+const handleBatchRemove = async () => {
+  const message = `删除选中的 ${selected.value.length} 道题目？已发布过的题目不会被删除`;
+  if (!(await confirmAction(message, '批量删除'))) return;
+  await executeBatch(batchRemove);
+};
+
+const submitBatchUpdate = async (changes: BatchQuestionChanges) => {
+  if (changes.knowledgePointIds) {
+    const versioned = selected.value.filter(question => question.currentVersion > 0).length;
+    if (versioned > 0 && !(await confirmAction(`将为 ${versioned} 道已发布题目生成新版本`, '批量修改'))) return false;
+  }
+  return executeBatch(() => batchUpdate(changes));
+};
+
+const handleBatchUpdate = () =>
+  updateDialog.value?.open({
+    count: selected.value.length,
+    subjectIds: selected.value.map(question => question.subjectId),
+    submit: submitBatchUpdate,
+  });
+
+type BatchActionKey = 'submit' | 'reject' | 'offline' | 'remove' | 'update';
+
+const BATCH_ACTIONS: {
+  key: BatchActionKey;
+  label: string;
+  type: 'primary' | 'success' | 'warning' | 'danger';
+  reviewOnly: boolean;
+  handler: () => unknown;
+}[] = [
+  { key: 'submit', label: '批量提交审核', type: 'success', reviewOnly: false, handler: handleBatchSubmit },
+  { key: 'reject', label: '批量驳回', type: 'warning', reviewOnly: true, handler: handleBatchReject },
+  { key: 'offline', label: '批量下架', type: 'warning', reviewOnly: true, handler: handleBatchOffline },
+  { key: 'remove', label: '批量删除', type: 'danger', reviewOnly: false, handler: handleBatchRemove },
+  { key: 'update', label: '批量修改', type: 'primary', reviewOnly: false, handler: handleBatchUpdate },
+];
+
+const batchActions = computed(() => BATCH_ACTIONS.filter(action => !action.reviewOnly || userStore.canReview));
+
 onMounted(() => {
   loadSubjects().catch(() => undefined);
   load().catch(() => undefined);
@@ -257,5 +404,31 @@ onMounted(() => {
 
 .question-list__knowledge {
   width: 200px;
+}
+
+.question-list__batch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--aix-colorPrimaryBg);
+}
+
+.question-list__batch-count {
+  color: var(--aix-colorText);
+}
+
+.question-list__batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+
+  :deep(.el-button + .el-button) {
+    margin-left: 0;
+  }
 }
 </style>
