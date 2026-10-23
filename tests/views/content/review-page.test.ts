@@ -35,6 +35,7 @@ const question = (id: string, type: AdminQuestionDto['type'] = 'SINGLE', overrid
     currentVersion: 0,
     options: null,
     answer: null,
+    creator: null,
     submitter: null,
     submittedAt: null,
     ...overrides,
@@ -112,7 +113,7 @@ async function rejectFromPreview(wrapper: PageWrapper, reason: string) {
 }
 
 const selfReviewTooltips = (wrapper: PageWrapper) =>
-  wrapper.findAllComponents({ name: 'ElTooltip' }).filter(tip => tip.props('content') === '不能审核自己提交的题');
+  wrapper.findAllComponents({ name: 'ElTooltip' }).filter(tip => tip.props('content') === '不能审核自己创建或提交的题');
 
 const tooltipOf = (wrapper: PageWrapper, button: ReturnType<typeof rowButton>) =>
   selfReviewTooltips(wrapper).find(tip => tip.findAll('button').some(item => item.element === button.element))!;
@@ -271,6 +272,15 @@ describe('审核发布页', () => {
     expect(rowButton(wrapper, 1, '发布').attributes('disabled')).toBeUndefined();
     expect(rowButton(wrapper, 1, '驳回').attributes('disabled')).toBeUndefined();
     expect(isSelectable(wrapper, 1)).toBe(true);
+  });
+
+  it('自己创建、他人提交的题不能发布、驳回或勾选', async () => {
+    mockList([question('q1', 'SINGLE', { creator: { id: SELF_ID, name: '我' }, submitter: { id: 8, name: '别人' } })]);
+    const wrapper = await mountPage();
+
+    expect(rowButton(wrapper, 0, '发布').attributes('disabled')).toBeDefined();
+    expect(rowButton(wrapper, 0, '驳回').attributes('disabled')).toBeDefined();
+    expect(isSelectable(wrapper, 0)).toBe(false);
   });
 
   it('预览自己提交的题时发布与驳回禁用', async () => {

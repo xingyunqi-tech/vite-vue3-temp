@@ -32,7 +32,7 @@
       class="data-table"
       @selection-change="selectedIds = ($event as AdminQuestionDto[]).map(item => item.id)"
     >
-      <el-table-column type="selection" width="48" :selectable="row => !isSelfSubmitted(row as AdminQuestionDto)" />
+      <el-table-column type="selection" width="48" :selectable="row => !isOwnQuestion(row as AdminQuestionDto)" />
       <el-table-column label="题干" min-width="300">
         <template #default="{ row }">
           <span class="page__stem">
@@ -59,16 +59,12 @@
         <template #default="{ row }">
           <div class="page__actions">
             <el-button link type="primary" @click="openPreview(row as AdminQuestionDto)">预览</el-button>
-            <el-tooltip
-              :disabled="!isSelfSubmitted(row as AdminQuestionDto)"
-              :content="SELF_REVIEW_TIP"
-              placement="top"
-            >
+            <el-tooltip :disabled="!isOwnQuestion(row as AdminQuestionDto)" :content="SELF_REVIEW_TIP" placement="top">
               <span class="page__actions">
                 <el-button
                   link
                   type="warning"
-                  :disabled="isSelfSubmitted(row as AdminQuestionDto)"
+                  :disabled="isOwnQuestion(row as AdminQuestionDto)"
                   @click="handleReject(row as AdminQuestionDto)"
                 >
                   驳回
@@ -76,7 +72,7 @@
                 <el-button
                   link
                   type="success"
-                  :disabled="isSelfSubmitted(row as AdminQuestionDto)"
+                  :disabled="isOwnQuestion(row as AdminQuestionDto)"
                   @click="handlePublish(row as AdminQuestionDto)"
                 >
                   发布
@@ -105,15 +101,15 @@
           <el-button @click="previewVisible = false">关闭</el-button>
           <el-tooltip
             v-if="question.status === 'REVIEWING'"
-            :disabled="!isSelfSubmitted(question)"
+            :disabled="!isOwnQuestion(question)"
             :content="SELF_REVIEW_TIP"
             placement="top"
           >
             <span class="page__actions">
-              <el-button type="warning" :disabled="isSelfSubmitted(question)" @click="handleReject(question, true)">
+              <el-button type="warning" :disabled="isOwnQuestion(question)" @click="handleReject(question, true)">
                 驳回
               </el-button>
-              <el-button type="success" :disabled="isSelfSubmitted(question)" @click="handlePublish(question, true)">
+              <el-button type="success" :disabled="isOwnQuestion(question)" @click="handlePublish(question, true)">
                 发布
               </el-button>
             </span>
@@ -142,7 +138,7 @@ import { confirmAction, runAction } from '@/utils/actions';
 import { formatDateTimeFull } from '@/utils/datetime';
 import { markdownSummary } from '@/utils/markdown';
 
-const SELF_REVIEW_TIP = '不能审核自己提交的题';
+const SELF_REVIEW_TIP = '不能审核自己创建或提交的题';
 
 const typeOptions = toOptions(QUESTION_TYPE_LABEL);
 const userStore = useUserInfoStore();
@@ -171,11 +167,10 @@ const previewId = ref('');
 const batching = ref(false);
 const rejectDialog = ref<InstanceType<typeof RejectReasonDialog>>();
 
-const isSelfSubmitted = (question: AdminQuestionDto) =>
+const isOwnQuestion = (question: AdminQuestionDto) =>
   !userStore.isAdmin &&
   userStore.info.id !== undefined &&
-  !!question.submitter &&
-  question.submitter.id === userStore.info.id;
+  (question.creator?.id === userStore.info.id || question.submitter?.id === userStore.info.id);
 
 const openPreview = (question: AdminQuestionDto) => {
   previewId.value = question.id;
