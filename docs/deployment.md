@@ -14,7 +14,6 @@
 | `deploy/README.md` | 部署包使用说明（随部署包分发） |
 | `.github/workflows/check-quality.yml` | PR / push 时跑 lint、checkCssVars、type-check、test |
 | `.github/workflows/build-deploy.yml` | 质量检查通过后构建、打包，并通过 SSH 部署到服务器 |
-| `.github/dependabot.yml` | 每周一提交依赖与 GitHub Actions 升级 PR |
 
 ## 构建产物
 
