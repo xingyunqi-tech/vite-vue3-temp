@@ -90,24 +90,36 @@ pnpm build
 push / PR ──► Check Quality（lint、checkCssVars、type-check、test）
                     │ main / master / release/** 上成功
                     ▼
-              Build and Deploy：build ──► package ──► deploy（SSH）──► notify
+              Build and Deploy：build ──► deploy（SSH，aliyun / tencent / all）──► cleanup ──► notify
 ```
 
-- `build`：安装依赖、生成构建信息、`pnpm build`；配置了 `SENTRY_AUTH_TOKEN` 时以 `UPLOAD_TO_SENTRY=true` 构建并上传 sourcemap。
-- `package`：构建镜像，生成部署包 `vite-vue3-web_<hash>_<时间>.tar.gz` 与热更新包 `static_assets_<hash>.tar.gz`，作为 artifact 保留 30 天。
-- `deploy`：通过 SSH 上传部署包，在服务器上解压后执行 `manage.sh remove` 与 `manage.sh start`，并保留最近 3 个部署包与镜像。使用 `production` environment，可在仓库设置中为它加审批。
-- 手动触发（Actions → Build and Deploy → Run workflow）时可选择只构建打包、不部署。
+- `build`：安装依赖、生成构建信息、`pnpm build`，构建 Nginx 镜像推送到 GHCR；部署时同时推送到腾讯云 TCR 个人版 `<命名空间>/vite-vue3-temp`。配置了 `SENTRY_AUTH_TOKEN` 时以 `UPLOAD_TO_SENTRY=true` 构建并上传 sourcemap。
+- `deploy`：同步 `manage.sh` 与 `nginx.conf` 到服务器部署目录，登录 TCR 后执行 `manage.sh deploy <镜像>` 拉取镜像并重建容器，服务器保留最近 3 个镜像。阿里云使用 `production` environment，腾讯云使用 `tencent-production`，可在仓库设置中加审批。
+- `cleanup`：调用 `cleanup-registry.yml`，GHCR 与 TCR 各保留最近 2 个镜像；该工作流也每周定时执行。
+- 手动触发（Actions → Build and Deploy → Run workflow）时可选择部署目标，或只构建推送 GHCR、不部署。
 
-需要配置的 Secrets（Settings → Secrets and variables → Actions）：
+需要配置的 Secrets（Settings → Secrets and variables → Actions，`<PREFIX>` 为 `ALIYUN` 或 `TENCENT`）：
 
 | Secret | 必填 | 说明 |
 |---|---|---|
-| `DEPLOY_SERVER_HOST` | 部署时必填 | 服务器 IP 或域名 |
-| `DEPLOY_SERVER_USER` | 部署时必填 | SSH 用户名（需在 docker 组中） |
-| `DEPLOY_SERVER_PATH` | 部署时必填 | 部署目录 |
-| `DEPLOY_SSH_PRIVATE_KEY` | 部署时必填 | SSH 私钥（完整内容，包括 BEGIN/END） |
+| `<PREFIX>_HOST` | 部署对应目标时必填 | 服务器 IP 或域名 |
+| `<PREFIX>_USER` | 部署对应目标时必填 | SSH 用户名（需在 docker 组中） |
+| `<PREFIX>_PATH` | 部署对应目标时必填 | 部署目录 |
+| `<PREFIX>_SSH_KEY` | 部署对应目标时必填 | SSH 私钥（完整内容，包括 BEGIN/END） |
+| `<PREFIX>_PORT` | 否 | SSH 端口，默认 22 |
+| `TENCENT_TCR_PASSWORD` | 部署时必填 | TCR 个人版登录密码 |
+| `TENCENTCLOUD_SECRET_ID` / `TENCENTCLOUD_SECRET_KEY` | 否 | 清理 TCR 旧镜像，未配置时跳过 |
 | `VITE_BASEURL` | 否 | 生产环境接口地址，留空则请求同源 |
 | `SENTRY_AUTH_TOKEN` | 否 | 配置后构建时上传 sourcemap |
+
+需要配置的 Variables：
+
+| Variable | 必填 | 说明 |
+|---|---|---|
+| `TENCENT_TCR_REGISTRY` | 部署时必填 | TCR 地址，如 `ccr.ccs.tencentyun.com` |
+| `TENCENT_TCR_NAMESPACE` | 部署时必填 | TCR 命名空间，需先在 TCR 控制台创建 |
+| `TENCENT_TCR_USERNAME` | 部署时必填 | 腾讯云账号 UIN |
+| `TENCENT_TCR_REGION` | 否 | TCR 地域，默认 `ap-guangzhou` |
 
 ## Sentry
 
