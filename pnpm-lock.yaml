@@ -27,8 +27,8 @@ importers:
         specifier: ^1.11.23
         version: 1.11.23
       element-plus:
-        specifier: ^2.14.5
-        version: 2.14.7(vue@3.5.44(typescript@6.0.3))
+        specifier: ^2.14.8
+        version: 2.14.8(vue@3.5.44(typescript@6.0.3))
       js-cookie:
         specifier: ^3.0.8
         version: 3.0.8
@@ -1211,8 +1211,8 @@ packages:
     peerDependencies:
       postcss-selector-parser: ^7.1.1
 
-  '@ctrl/tinycolor@4.2.1':
-    resolution: {integrity: sha512-Vh5uy9Y1JBMId6J1f68TMXnZrTCvNdo9Fu2k0d1YnJngR+sM5kWTKl441c/3TFs+cG0NWOjRWgQ/iaWhbYx+7A==}
+  '@ctrl/tinycolor@4.3.0':
+    resolution: {integrity: sha512-6V0+8vw/GmH92URQ/Ki12FPhoB3nqaQUJE+5xgbFbB5ok0OXYK5jCQsQQoyR3BzCddHsCpyCFRnIcI1PSOVYkQ==}
     engines: {node: '>=14'}
 
   '@element-plus/icons-vue@2.3.2':
@@ -3412,8 +3412,8 @@ packages:
   electron-to-chromium@1.5.458:
     resolution: {integrity: sha512-/hIH2gRSmxrf4/X4Nw/t/Wc8PVS22l8/3HnWjWTWsTOM5dsnMUPZF/+u+yr3LqweNuTBJE1rq6qAQzKkZVwMfA==}
 
-  element-plus@2.14.7:
-    resolution: {integrity: sha512-lrG7pZyCS+mpCNVpzxxyu5r35+T6V0hzkAeIwn7HA6to772XSTHKuYCZG51OfzlqaxGbNegLxs650zAF1j43gA==}
+  element-plus@2.14.8:
+    resolution: {integrity: sha512-Z4Br45W9b8vWKvVHSTvbS6rRKmsLjmHCPXICJR6osl35+i+S2LCBs4NN8apLBkQiUh0pzS9labK5eCS7yzDhWw==}
     peerDependencies:
       vue: ^3.3.7
 
@@ -4041,6 +4041,7 @@ packages:
   image-size@0.5.5:
     resolution: {integrity: sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==}
     engines: {node: '>=0.10.0'}
+    deprecated: Please migrate to image-size@2.x
     hasBin: true
 
   immediate@3.0.6:
@@ -7496,7 +7497,7 @@ snapshots:
     dependencies:
       postcss-selector-parser: 7.1.6
 
-  '@ctrl/tinycolor@4.2.1': {}
+  '@ctrl/tinycolor@4.3.0': {}
 
   '@element-plus/icons-vue@2.3.2(vue@3.5.44(typescript@6.0.3))':
     dependencies:
@@ -9713,9 +9714,9 @@ snapshots:
 
   electron-to-chromium@1.5.458: {}
 
-  element-plus@2.14.7(vue@3.5.44(typescript@6.0.3)):
+  element-plus@2.14.8(vue@3.5.44(typescript@6.0.3)):
     dependencies:
-      '@ctrl/tinycolor': 4.2.1
+      '@ctrl/tinycolor': 4.3.0
       '@element-plus/icons-vue': 2.3.2(vue@3.5.44(typescript@6.0.3))
       '@floating-ui/dom': 1.8.0
       '@popperjs/core': '@sxzz/popperjs-es@2.11.8'
