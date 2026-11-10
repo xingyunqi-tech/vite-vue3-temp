@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Docker 容器管理脚本
-# 用法: ./manage.sh [start|stop|restart|remove|status|logs|build|help]
+# 用法: ./manage.sh [start|stop|restart|remove|status|logs|build|deploy <image>|help]
 
 set -euo pipefail
 
@@ -92,8 +92,10 @@ start_container() {
         log_info "Starting existing container '$CONTAINER_NAME'..."
         docker start "$CONTAINER_NAME"
     else
-        # 部署包目录里的镜像 tar 优先，保证重新部署时用的是本次打包的镜像
-        if load_image; then
+        # 已从镜像仓库拉取时直接使用；否则部署包目录里的镜像 tar 优先
+        if [ -n "${PULLED_IMAGE:-}" ]; then
+            log_info "Using pulled image ${PULLED_IMAGE}"
+        elif load_image; then
             log_info "Image loaded successfully"
         elif ! image_exists; then
             log_info "No image tar found. Building image from source..."
@@ -118,6 +120,33 @@ start_container() {
         log_error "Failed to start container"
         exit 1
     fi
+}
+
+# 从镜像仓库拉取镜像并重建容器，保留该仓库最近 3 个镜像
+deploy_image() {
+    local image="${1:-}"
+    if [ -z "$image" ]; then
+        log_error "Usage: $0 deploy <image>"
+        exit 1
+    fi
+
+    local retry=0
+    log_info "Pulling ${image}..."
+    until docker pull "$image"; do
+        retry=$((retry + 1))
+        if [ "$retry" -ge 3 ]; then
+            log_error "Failed to pull ${image}"
+            exit 1
+        fi
+        log_warn "Pull failed, retry ${retry}/3..."
+        sleep 10
+    done
+
+    docker tag "$image" "$IMAGE_NAME"
+    remove_container
+    PULLED_IMAGE="$image" start_container
+
+    docker images "${image%:*}" --format '{{.ID}}' | awk '!seen[$0]++' | tail -n +4 | xargs -r docker rmi -f 2>/dev/null || true
 }
 
 stop_container() {
@@ -194,6 +223,7 @@ ${GREEN}Commands:${NC}
   status      Show container status
   logs        Show and follow container logs
   build       Build Docker image from source (requires dist/)
+  deploy      Pull <image> from registry and recreate the container
   help        Show this help message
 
 ${GREEN}Environment Variables:${NC}
@@ -227,6 +257,7 @@ main() {
         status) show_status ;;
         logs) show_logs ;;
         build) build_image ;;
+        deploy) deploy_image "${2:-}" ;;
         *)
             log_error "Unknown command: $command"
             echo ""

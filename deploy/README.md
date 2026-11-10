@@ -1,6 +1,6 @@
 # 部署包使用说明
 
-本目录随 `package.sh` / CI 打包进部署包 `vite-vue3-web_<hash>_<时间>.tar.gz`，解压后得到 `vite_vue3_web/`：
+本目录随 `package.sh` 打包进部署包 `vite-vue3-web_<hash>_<时间>.tar.gz`，解压后得到 `vite_vue3_web/`：
 
 | 文件 | 说明 |
 |---|---|
@@ -34,6 +34,7 @@ cd vite_vue3_web
 | `status` | 查看容器状态与访问地址 |
 | `logs` | 跟随查看容器日志 |
 | `build` | 在源码仓库中用已构建的 `dist/` 构建镜像 |
+| `deploy <镜像>` | 从镜像仓库拉取镜像、标记为 `vite-vue3-web:local` 并重建容器，保留该仓库最近 3 个镜像（CI 部署使用） |
 
 环境变量：`PORT`（宿主机端口，默认 `31190`）、`CONTAINER_NAME`（默认 `vite-vue3-web`）。
 
@@ -52,7 +53,7 @@ cd vite_vue3_web
 
 ## 热更新静态资源
 
-`package.sh --full` 与 CI 都会生成 `static_assets_<hash>.tar.gz`（只含 `dist/` 与 `version.html`），用于不重建容器的更新：
+`package.sh --full` 会生成 `static_assets_<hash>.tar.gz`（只含 `dist/` 与 `version.html`），用于不重建容器的更新：
 
 ```bash
 tar -xzf static_assets_<hash>.tar.gz
