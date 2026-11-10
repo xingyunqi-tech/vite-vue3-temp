@@ -37,7 +37,7 @@ model: inherit
 ```
 vite-vue3-temp/
 ├── .claude/                    # Claude AI 配置（agents / skills / commands / settings）
-├── .github/                    # GitHub Actions（check-quality、build-deploy）
+├── .github/                    # GitHub Actions（check、deploy、cleanup-registry）
 ├── .husky/                     # Git hooks（pre-commit / commit-msg）
 ├── config/
 │   └── devServer.ts            # 开发服务器（端口、/api 代理、HTTPS）
