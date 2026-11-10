@@ -32,7 +32,7 @@
       class="data-table"
       @selection-change="selectedIds = ($event as AdminQuestionDto[]).map(item => item.id)"
     >
-      <el-table-column type="selection" width="48" :selectable="row => !isOwnQuestion(row as AdminQuestionDto)" />
+      <el-table-column type="selection" width="48" :selectable="(row: AdminQuestionDto) => !isOwnQuestion(row)" />
       <el-table-column label="题干" min-width="300">
         <template #default="{ row }">
           <span class="page__stem">

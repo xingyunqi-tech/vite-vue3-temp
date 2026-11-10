@@ -66,7 +66,7 @@
       class="data-table"
       @selection-change="selected = $event as AdminQuestionDto[]"
     >
-      <el-table-column type="selection" width="48" :selectable="row => !(row as AdminQuestionDto).parentId" />
+      <el-table-column type="selection" width="48" :selectable="(row: AdminQuestionDto) => !row.parentId" />
       <el-table-column label="题干" min-width="280">
         <template #default="{ row }">
           <span class="page__stem">{{ questionSummary(row as AdminQuestionDto) }}</span>
