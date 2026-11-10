@@ -12,9 +12,9 @@
 | `deploy/nginx.conf` | Nginx 配置（缓存策略、SPA 回退、版本页、gzip_static、接口代理模板） |
 | `deploy/manage.sh` | 容器管理：start / stop / restart / remove / status / logs / build |
 | `deploy/README.md` | 部署包使用说明（随部署包分发） |
-| `.github/workflows/check-quality.yml` | PR / push 时跑 lint、checkCssVars、type-check、test |
-| `.github/workflows/build-deploy.yml` | 质量检查通过后构建、打包，并通过 SSH 部署到服务器 |
-| `.github/dependabot.yml` | 每周一提交依赖与 GitHub Actions 升级 PR |
+| `.github/workflows/check.yml` | PR / push 时跑 lint、checkCssVars、type-check、test |
+| `.github/workflows/deploy.yml` | 手动触发，构建镜像推送 GHCR / TCR，并通过 SSH 部署到服务器 |
+| `.github/workflows/cleanup-registry.yml` | 清理 GHCR / TCR 旧镜像，各保留最近 2 个 |
 
 ## 构建产物
 
@@ -88,16 +88,15 @@ pnpm build
 ## CI/CD：GitHub Actions
 
 ```
-push / PR ──► Check Quality（lint、checkCssVars、type-check、test）
-                    │ main / master / release/** 上成功
-                    ▼
-              Build and Deploy：build ──► deploy（SSH，aliyun / tencent / all）──► cleanup ──► notify
+push / PR ──► Check（lint、checkCssVars、type-check、test）
+
+手动触发 ──► Deploy：build ──► deploy（SSH，aliyun / tencent / all）──► cleanup ──► notify
 ```
 
 - `build`：安装依赖、生成构建信息、`pnpm build`，构建 Nginx 镜像推送到 GHCR；部署时同时推送到腾讯云 TCR 个人版 `<命名空间>/vite-vue3-temp`。配置了 `SENTRY_AUTH_TOKEN` 时以 `UPLOAD_TO_SENTRY=true` 构建并上传 sourcemap。
-- `deploy`：同步 `manage.sh` 与 `nginx.conf` 到服务器部署目录，登录 TCR 后执行 `manage.sh deploy <镜像>` 拉取镜像并重建容器，服务器保留最近 3 个镜像。阿里云使用 `production` environment，腾讯云使用 `tencent-production`，可在仓库设置中加审批。
+- `deploy`：同步 `manage.sh` 与 `nginx.conf` 到服务器部署目录，登录 TCR 后执行 `manage.sh deploy <镜像>` 拉取镜像并重建容器，服务器保留最近 3 个镜像。阿里云使用 `aliyun-production` environment，腾讯云使用 `tencent-production`，可在仓库设置中加审批。
 - `cleanup`：调用 `cleanup-registry.yml`，GHCR 与 TCR 各保留最近 2 个镜像；该工作流也每周定时执行。
-- 手动触发（Actions → Build and Deploy → Run workflow）时可选择部署目标，或只构建推送 GHCR、不部署。
+- 手动触发（Actions → Deploy → Run workflow）时可选择部署目标，或只构建推送 GHCR、不部署。
 
 需要配置的 Secrets（Settings → Secrets and variables → Actions，`<PREFIX>` 为 `ALIYUN` 或 `TENCENT`）：
 

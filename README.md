@@ -50,7 +50,7 @@
 
 ```
 ├── .claude/                   # AI 协作配置（agents / skills / commands / settings.json）
-├── .github/                   # GitHub Actions（check-quality、build-deploy）与 dependabot
+├── .github/                   # GitHub Actions（check、deploy、cleanup-registry）
 ├── .husky/                    # Git hooks
 ├── .vscode/                   # VS Code 推荐插件与设置
 ├── config/
