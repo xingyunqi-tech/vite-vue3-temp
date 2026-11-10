@@ -83,8 +83,8 @@
     "@vitejs/plugin-legacy": "^8.2.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
-    "@vitest/coverage-v8": "^5.0.0",
-    "@vitest/ui": "^5.0.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/ui": "^5.1.0",
     "@vue/test-utils": "^2.5.0",
     "autoprefixer": "^10.5.5",
     "chalk": "^6.0.0",
@@ -130,7 +130,7 @@
     "vite-plugin-compression2": "^2.5.3",
     "vite-plugin-mkcert": "^2.1.0",
     "vite-plugin-svg-icons": "^2.0.1",
-    "vitest": "^5.0.0",
+    "vitest": "^5.1.0",
     "vue-tsc": "^3.3.11"
   }
 }
