@@ -66,8 +66,8 @@
     "normalize.css": "^8.0.1",
     "pinia": "^4.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
-    "vue": "^3.5.42",
-    "vue-i18n": "^11.4.10",
+    "vue": "^3.5.45",
+    "vue-i18n": "^11.4.18",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
@@ -131,6 +131,6 @@
     "vite-plugin-mkcert": "^2.1.0",
     "vite-plugin-svg-icons": "^2.0.1",
     "vitest": "^5.0.0",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.14"
   }
 }
