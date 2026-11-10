@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-output
           path: |
@@ -136,7 +136,7 @@ jobs:
           echo "Package created: ${PACKAGE_NAME}"
 
       - name: Upload deploy package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deploy-package
           path: |
