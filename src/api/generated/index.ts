@@ -11,6 +11,7 @@ export * from './exams/exams';
 export * from './favorites/favorites';
 export * from './feedbacks/feedbacks';
 export * from './files/files';
+export * from './game/game';
 export * from './health/health';
 export * from './me/me';
 export * from './notifications/notifications';

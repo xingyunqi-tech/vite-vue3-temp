@@ -160,6 +160,9 @@ export {
   updateCurrentUser,
   deleteCurrentUser,
   refreshToken,
+  getMySessions,
+  revokeMySession,
+  revokeOtherSessions,
   sendSmsCode,
   loginWithPhone,
   loginWithSms,
@@ -188,6 +191,8 @@ export {
 export { createFeedback, getFeedbacks, getFeedback } from './generated/feedbacks/feedbacks';
 
 export { uploadFile } from './generated/files/files';
+
+export { gameLogin, gameRefreshToken } from './generated/game/game';
 
 export { healthCheck, livenessProbe, readinessProbe } from './generated/health/health';
 

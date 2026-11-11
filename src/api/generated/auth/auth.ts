@@ -26,6 +26,7 @@ import type {
   AuthWechatPhoneLoginDto,
   LoginResponseDto,
   RefreshResponseDto,
+  SessionResponseDto,
   User,
 } from '../model';
 
@@ -175,6 +176,24 @@ export const deleteCurrentUser = (
  */
 export const refreshToken = (options?: SecondParameter<typeof customMutator<RefreshResponseDto>>) => {
   return customMutator<RefreshResponseDto>({ url: `/api/v1/auth/refresh`, method: 'POST' }, options);
+};
+/**
+ * @summary 当前用户的登录设备
+ */
+export const getMySessions = (options?: SecondParameter<typeof customMutator<SessionResponseDto[]>>) => {
+  return customMutator<SessionResponseDto[]>({ url: `/api/v1/auth/sessions`, method: 'GET' }, options);
+};
+/**
+ * @summary 下线指定设备
+ */
+export const revokeMySession = (id: number, options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/auth/sessions/${id}`, method: 'DELETE' }, options);
+};
+/**
+ * @summary 下线其他设备
+ */
+export const revokeOtherSessions = (options?: SecondParameter<typeof customMutator<void>>) => {
+  return customMutator<void>({ url: `/api/v1/auth/sessions/revoke-others`, method: 'POST' }, options);
 };
 /**
  * @summary 退出登录
@@ -345,6 +364,9 @@ export type GetCurrentUserResult = NonNullable<Awaited<ReturnType<typeof getCurr
 export type UpdateCurrentUserResult = NonNullable<Awaited<ReturnType<typeof updateCurrentUser>>>;
 export type DeleteCurrentUserResult = NonNullable<Awaited<ReturnType<typeof deleteCurrentUser>>>;
 export type RefreshTokenResult = NonNullable<Awaited<ReturnType<typeof refreshToken>>>;
+export type GetMySessionsResult = NonNullable<Awaited<ReturnType<typeof getMySessions>>>;
+export type RevokeMySessionResult = NonNullable<Awaited<ReturnType<typeof revokeMySession>>>;
+export type RevokeOtherSessionsResult = NonNullable<Awaited<ReturnType<typeof revokeOtherSessions>>>;
 export type LogoutResult = NonNullable<Awaited<ReturnType<typeof logout>>>;
 export type SendSmsCodeResult = NonNullable<Awaited<ReturnType<typeof sendSmsCode>>>;
 export type LoginWithPhoneResult = NonNullable<Awaited<ReturnType<typeof loginWithPhone>>>;

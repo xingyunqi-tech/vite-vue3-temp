@@ -338,7 +338,7 @@ export const adminCreateQuestion = (
   );
 };
 /**
- * 非 admin 发布自己提交的题目时整批返回 403（selfReviewForbidden），响应 data.questionIds 为命中的题目 id；传入小题时返回其所属材料的 id
+ * 非 admin 发布自己创建或提交的题目时整批返回 403（selfReviewForbidden），响应 data.questionIds 为命中的题目 id；传入小题时返回其所属材料的 id
  * @summary 批量发布待审题目
  */
 export const adminBatchPublishQuestions = (
@@ -374,7 +374,7 @@ export const adminBatchSubmitQuestions = (
   );
 };
 /**
- * 待审核变为草稿，传入小题按所属材料整组驳回；非 admin 驳回自己提交的题目记为该题失败（selfReviewForbidden）
+ * 待审核变为草稿，传入小题按所属材料整组驳回；非 admin 驳回自己创建或提交的题目记为该题失败（selfReviewForbidden）
  * @summary 批量驳回为草稿
  */
 export const adminBatchRejectQuestions = (
